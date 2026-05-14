@@ -2027,6 +2027,13 @@ func (w *writer) expr(expr syntax.Expr) {
 			w.optExpr(n)
 		}
 
+	case *syntax.TryExpr:
+		tv := w.p.typeAndValue(expr)
+		w.Code(exprTry)
+		w.pos(expr)
+		w.typ(tv.Type)
+		w.expr(expr.X)
+
 	case *syntax.AssertExpr:
 		iface := w.p.typeOf(expr.X)
 

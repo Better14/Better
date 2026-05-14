@@ -2435,6 +2435,12 @@ func (r *reader) expr() (res ir.Node) {
 		}
 		return x
 
+	case exprTry:
+		pos := r.pos()
+		typ := r.typ()
+		x := r.expr()
+		return ir.NewTryExpr(pos, typ, x)
+
 	case exprCall:
 		var fun ir.Node
 		var args ir.Nodes

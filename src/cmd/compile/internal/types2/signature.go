@@ -30,6 +30,7 @@ type Signature struct {
 	params   *Tuple         // (incoming) parameters from left to right; or nil
 	results  *Tuple         // (outgoing) results from left to right; or nil
 	variadic bool           // true if the last parameter's type is of the form ...T
+	resultQuery bool        // true if results were declared as T? (permits "return v" as v, nil)
 
 	// If recvold is the sentinel value [methExpr], then recvold should
 	// instead be sourced from params[0]. Otherwise, recvold points to
@@ -138,6 +139,9 @@ func (s *Signature) Results() *Tuple { return s.results }
 // Variadic reports whether the signature s is variadic.
 func (s *Signature) Variadic() bool { return s.variadic }
 
+// ResultQuery reports whether results were written with the T? syntax.
+func (s *Signature) ResultQuery() bool { return s != nil && s.resultQuery }
+
 func (s *Signature) Underlying() Type { return s }
 func (s *Signature) String() string   { return TypeString(s, nil) }
 
@@ -183,6 +187,11 @@ func (check *Checker) funcType(sig *Signature, recvPar *syntax.Field, tparams []
 	sig.params = NewTuple(params...)
 	sig.results = NewTuple(results...)
 	sig.variadic = variadic
+	if len(ftyp.ResultList) == 1 {
+		if _, ok := syntax.Unparen(ftyp.ResultList[0].Type).(*syntax.ResultType); ok {
+			sig.resultQuery = true
+		}
+	}
 }
 
 // collectRecv extracts the method receiver and its type parameters (if any) from rparam.
@@ -379,6 +388,17 @@ func (check *Checker) recordParenthesizedRecvTypes(expr syntax.Expr, typ Type) {
 func (check *Checker) collectParams(kind VarKind, list []*syntax.Field) (names []*syntax.Name, params []*Var, variadic bool) {
 	if list == nil {
 		return
+	}
+
+	//     func f() T?     expands to results (T, error)
+	if kind == ResultVar && len(list) == 1 && list[0].Type != nil {
+		if rt, ok := syntax.Unparen(list[0].Type).(*syntax.ResultType); ok {
+			elemTyp := check.varType(rt.Elem)
+			v0 := newVar(ResultVar, list[0].Pos(), check.pkg, "", elemTyp)
+			v1 := newVar(ResultVar, list[0].Pos(), check.pkg, "", universeError)
+			check.recordImplicit(list[0], v0)
+			return []*syntax.Name{nil, nil}, []*Var{v0, v1}, false
+		}
 	}
 
 	var named, anonymous bool

@@ -328,6 +328,20 @@ type (
 		Elem Expr
 		expr
 	}
+
+	// Elem?  result type: (Elem, error)
+	ResultType struct {
+		Elem Expr
+		QPos Pos // position of '?'
+		expr
+	}
+
+	// X? unwrap success value or propagate error (early return)
+	TryExpr struct {
+		X   Expr
+		QPos Pos // position of '?'
+		expr
+	}
 )
 
 type expr struct {

@@ -1247,6 +1247,15 @@ loop:
 			n.Type = x
 			x = n
 
+		case _Question:
+			qpos := p.pos()
+			p.next()
+			t := new(TryExpr)
+			t.pos = x.Pos()
+			t.QPos = qpos
+			t.X = x
+			x = t
+
 		default:
 			break loop
 		}
@@ -1350,6 +1359,20 @@ func newIndirect(pos Pos, typ Expr) Expr {
 //	TypeLit  = ArrayType | StructType | PointerType | FunctionType | InterfaceType |
 //		      SliceType | MapType | Channel_Type .
 func (p *parser) typeOrNil() Expr {
+	typ := p.baseTypeOrNil()
+	for typ != nil && p.tok == _Question {
+		qpos := p.pos()
+		p.next()
+		rt := new(ResultType)
+		rt.pos = typ.Pos()
+		rt.QPos = qpos
+		rt.Elem = typ
+		typ = rt
+	}
+	return typ
+}
+
+func (p *parser) baseTypeOrNil() Expr {
 	if trace {
 		defer p.trace("typeOrNil")()
 	}

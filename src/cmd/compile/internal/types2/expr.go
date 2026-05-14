@@ -296,6 +296,9 @@ func (check *Checker) updateExprType(x syntax.Expr, typ Type, final bool) {
 		// The respective calls take care of calling updateExprType
 		// for the arguments if necessary.
 
+	case *syntax.TryExpr:
+		check.updateExprType(x.X, typ, final)
+
 	case *syntax.Name, *syntax.BasicLit, *syntax.SelectorExpr:
 		// An identifier denoting a constant, a constant literal,
 		// or a qualified identifier (imported untyped constant).
@@ -1137,6 +1140,12 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		check.use(e.X)
 		goto Error
 
+	case *syntax.TryExpr:
+		check.tryExpr(x, e)
+		if !x.isValid() {
+			goto Error
+		}
+
 	case *syntax.CallExpr:
 		return check.callExpr(x, e)
 
@@ -1323,6 +1332,32 @@ func (check *Checker) genericExpr(x *operand, e syntax.Expr, hint Type) {
 	check.rawExpr(nil, x, e, hint, true)
 	check.exclude(x, 1<<novalue|1<<builtin|1<<typexpr)
 	check.singleValue(x)
+}
+
+// tryExpr type-checks e.X? where e.X must be a (value, error) pair.
+func (check *Checker) tryExpr(x *operand, e *syntax.TryExpr) {
+	var inner operand
+	check.expr(nil, &inner, e.X)
+	if !inner.isValid() {
+		x.invalidate()
+		return
+	}
+	tup, ok := inner.typ().(*Tuple)
+	if !ok || tup.Len() != 2 {
+		check.error(e, InvalidSyntaxTree, "invalid operation: ? requires expression of type (T, error)")
+		x.invalidate()
+		return
+	}
+	if !Identical(tup.At(1).Type(), universeError) {
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: second return value must be error, got %s", tup.At(1).Type())
+		x.invalidate()
+		return
+	}
+	x.mode_ = value
+	x.typ_ = tup.At(0).Type()
+	x.expr = e
+	check.record(x)
+	check.hasCallOrRecv = true
 }
 
 // multiExpr typechecks e and returns its value (or values) in list.

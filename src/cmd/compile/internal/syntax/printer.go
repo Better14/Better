@@ -505,6 +505,12 @@ func (p *printer) printRawNode(n Node) {
 	case *MapType:
 		p.print(_Map, _Lbrack, n.Key, _Rbrack, n.Value)
 
+	case *ResultType:
+		p.print(n.Elem, _Question)
+
+	case *TryExpr:
+		p.print(n.X, _Question)
+
 	case *ChanType:
 		if n.Dir == RecvOnly {
 			p.print(_Arrow)

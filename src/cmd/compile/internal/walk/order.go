@@ -1187,6 +1187,39 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 	o.init(n)
 
 	switch n.Op() {
+	case ir.OTRY:
+		n := n.(*ir.TryExpr)
+		x := o.expr(n.X, nil)
+		xt := x.Type()
+		if xt == nil || !xt.IsTuple() {
+			base.FatalfAt(n.Pos(), "OTRY operand is not a tuple: %L", x)
+		}
+		t0typ := xt.FieldType(0)
+		t1typ := xt.FieldType(1)
+		t0 := o.newTemp(t0typ, t0typ.HasPointers())
+		t1 := o.newTemp(t1typ, t1typ.HasPointers())
+		pos := n.Pos()
+		as := ir.NewAssignListStmt(pos, ir.OAS2FUNC, []ir.Node{t0, t1}, []ir.Node{x})
+		typecheck.Stmt(as)
+		o.out = append(o.out, as)
+
+		fn := ir.CurFunc
+		r := fn.Type().Results()
+		if r.NumFields() != 2 {
+			base.FatalfAt(n.Pos(), "invalid use of ? — enclosing function must have results (T, error)")
+		}
+		retvals := []ir.Node{
+			typecheck.DefaultLit(ir.NewZero(pos, r.Field(0).Type), r.Field(0).Type),
+			t1,
+		}
+		rs := ir.NewReturnStmt(pos, retvals)
+		typecheck.Stmt(rs)
+		ifStmt := ir.NewIfStmt(pos, ir.NewBinaryExpr(pos, ir.ONE, t1, typecheck.NodNil()), []ir.Node{rs}, nil)
+		typecheck.Stmt(ifStmt)
+		o.out = append(o.out, ifStmt)
+
+		return t0
+
 	default:
 		if o.edit == nil {
 			o.edit = o.exprNoLHS // create closure once
