@@ -784,6 +784,22 @@ func (n *UnaryExpr) SetOp(op Op) {
 	}
 }
 
+// A TryExpr is X? with type T; X has type (T, error).
+type TryExpr struct {
+	miniExpr
+	X Node
+}
+
+// NewTryExpr constructs a typechecked OTRY node (result type typ).
+func NewTryExpr(pos src.XPos, typ *types.Type, x Node) *TryExpr {
+	n := &TryExpr{X: x}
+	n.pos = pos
+	n.op = OTRY
+	n.SetType(typ)
+	n.SetTypecheck(1)
+	return n
+}
+
 func IsZero(n Node) bool {
 	switch n.Op() {
 	case ONIL:

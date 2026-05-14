@@ -363,6 +363,11 @@ func (check *Checker) typInternal(e0 syntax.Expr, def *TypeName) (T Type) {
 
 		return typ
 
+	case *syntax.ResultType:
+		check.error(e, InvalidSyntaxTree, "invalid use of result type (T?); allowed only in function result list")
+		check.use(e.Elem)
+		return Typ[Invalid]
+
 	case *syntax.ChanType:
 		typ := new(Chan)
 

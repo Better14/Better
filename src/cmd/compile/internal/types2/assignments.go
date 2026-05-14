@@ -389,6 +389,20 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []syntax.Expr, returnStmt sy
 
 	l, r := len(lhs), len(orig_rhs)
 
+	// return v for func () T? means return v, nil
+	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
+		var x operand
+		check.expr(nil, &x, orig_rhs[0])
+		if x.isValid() && AssignableTo(x.typ(), lhs[0].typ) && Identical(lhs[1].typ, universeError) {
+			check.initVar(lhs[0], &x, context)
+			var nerr operand
+			nerr.mode_ = nilvalue
+			nerr.typ_ = universeError
+			check.initVar(lhs[1], &nerr, context)
+			return
+		}
+	}
+
 	// If l == 1 and the rhs is a single call, for a better
 	// error message don't handle it as n:n mapping below.
 	isCall := false

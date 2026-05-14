@@ -208,6 +208,12 @@ func (w walker) node(n Node) {
 		w.node(n.Key)
 		w.node(n.Value)
 
+	case *ResultType:
+		w.node(n.Elem)
+
+	case *TryExpr:
+		w.node(n.X)
+
 	case *ChanType:
 		w.node(n.Elem)
 
