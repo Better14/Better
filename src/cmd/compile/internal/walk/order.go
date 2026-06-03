@@ -1189,33 +1189,50 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 	switch n.Op() {
 	case ir.OTRY:
 		n := n.(*ir.TryExpr)
-		x := o.expr(n.X, nil)
-		xt := x.Type()
-		if xt == nil || !xt.IsTuple() {
-			base.FatalfAt(n.Pos(), "OTRY operand is not a tuple: %L", x)
+		// n.X must be a multi-valued call producing (T, error).
+		// Do NOT route n.X through o.expr (which expects single values).
+		// Run init for any embedded side effects, then mirror OAS2FUNC's
+		// handling of regular vs inlined calls.
+		o.init(n.X)
+		xt := n.X.Type()
+		if xt == nil || xt.NumFields() != 2 {
+			base.FatalfAt(n.Pos(), "OTRY operand is not a 2-tuple: %L", n.X)
 		}
-		t0typ := xt.FieldType(0)
-		t1typ := xt.FieldType(1)
+		t0typ := xt.Field(0).Type
+		t1typ := xt.Field(1).Type
 		t0 := o.newTemp(t0typ, t0typ.HasPointers())
 		t1 := o.newTemp(t1typ, t1typ.HasPointers())
 		pos := n.Pos()
-		as := ir.NewAssignListStmt(pos, ir.OAS2FUNC, []ir.Node{t0, t1}, []ir.Node{x})
-		typecheck.Stmt(as)
-		o.out = append(o.out, as)
+		if ic, ok := n.X.(*ir.InlinedCallExpr); ok {
+			o.stmtList(ic.Body)
+			as := ir.NewAssignListStmt(pos, ir.OAS2, []ir.Node{t0, t1}, ic.ReturnVars)
+			as.SetTypecheck(1)
+			o.exprList(as.Rhs)
+			o.out = append(o.out, as)
+		} else {
+			o.call(n.X)
+			as := ir.NewAssignListStmt(pos, ir.OAS2FUNC, []ir.Node{t0, t1}, []ir.Node{n.X})
+			as.SetTypecheck(1)
+			o.out = append(o.out, as)
+		}
 
 		fn := ir.CurFunc
 		r := fn.Type().Results()
-		if r.NumFields() != 2 {
+		if len(r) != 2 {
 			base.FatalfAt(n.Pos(), "invalid use of ? — enclosing function must have results (T, error)")
 		}
-		retvals := []ir.Node{
-			typecheck.DefaultLit(ir.NewZero(pos, r.Field(0).Type), r.Field(0).Type),
-			t1,
-		}
+		zero := ir.NewZero(pos, r[0].Type)
+		zero.SetTypecheck(1)
+		retvals := []ir.Node{zero, t1}
 		rs := ir.NewReturnStmt(pos, retvals)
-		typecheck.Stmt(rs)
-		ifStmt := ir.NewIfStmt(pos, ir.NewBinaryExpr(pos, ir.ONE, t1, typecheck.NodNil()), []ir.Node{rs}, nil)
-		typecheck.Stmt(ifStmt)
+		rs.SetTypecheck(1)
+		nilErr := ir.NewNilExpr(pos, t1typ)
+		nilErr.SetTypecheck(1)
+		cmp := ir.NewBinaryExpr(pos, ir.ONE, t1, nilErr)
+		cmp.SetType(types.Types[types.TBOOL])
+		cmp.SetTypecheck(1)
+		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{rs}, nil)
+		ifStmt.SetTypecheck(1)
 		o.out = append(o.out, ifStmt)
 
 		return t0

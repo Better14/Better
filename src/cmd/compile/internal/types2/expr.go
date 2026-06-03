@@ -1337,14 +1337,15 @@ func (check *Checker) genericExpr(x *operand, e syntax.Expr, hint Type) {
 // tryExpr type-checks e.X? where e.X must be a (value, error) pair.
 func (check *Checker) tryExpr(x *operand, e *syntax.TryExpr) {
 	var inner operand
-	check.expr(nil, &inner, e.X)
+	check.rawExpr(nil, &inner, e.X, nil, false)
+	check.exclude(&inner, 1<<novalue|1<<builtin|1<<typexpr)
 	if !inner.isValid() {
 		x.invalidate()
 		return
 	}
 	tup, ok := inner.typ().(*Tuple)
 	if !ok || tup.Len() != 2 {
-		check.error(e, InvalidSyntaxTree, "invalid operation: ? requires expression of type (T, error)")
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: ? requires expression of type (T, error), got %s", inner.typ())
 		x.invalidate()
 		return
 	}
