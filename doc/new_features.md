@@ -183,3 +183,161 @@ At a call site, the compiler resolves the overload by matching argument count an
 
 - Overloading applies to both package-level functions and methods.
 - Overload sets must be unambiguous for all valid calls.
+
+## If Expressions
+
+Go supports `if` as an expression that evaluates to a value.
+
+```go
+a := if 5 < 6 { 1 } else { 2 }
+```
+
+Both branches must be expressions with compatible types. The result type is the common type of the branch expressions.
+
+## Switch Expressions
+
+Go supports `switch` as an expression that evaluates to a value.
+
+```go
+a := switch x {
+case 1:
+	"one"
+case 2:
+	"two"
+default:
+	"other"
+}
+```
+
+Each case arm must be an expression (or a single expression after `:`). All arms must have compatible types. The result type is the common type of the case expressions.
+
+## Lambda Syntax (`=>`)
+
+For single-expression functions, Go supports arrow lambda syntax. Parameter types are inferred from context.
+
+Before:
+
+```go
+func(a, b, c int) int { return a + b + c }
+```
+
+After:
+
+```go
+(a, b, c) => a + b + c
+```
+
+If the function body requires more than one expression or any statement, use the standard `func` syntax:
+
+```go
+func(a, b, c int) {
+	sum := a + b + c
+	return sum
+}
+```
+
+### Notes
+
+- `=>` lambdas are limited to a single expression body.
+- Parameter types are inferred when the lambda appears in a typed context (e.g. assignment, argument, return).
+- Multi-statement or multi-expression bodies must use `func(...) { ... }`.
+
+## Built-in LINQ
+
+Go includes built-in LINQ-style query operations that mirror C# naming and semantics.
+
+- Same method names as C# (`Where`, `Select`, `OrderBy`, `GroupBy`, `First`, `ToList`, etc.)
+- Lazy evaluation where applicable (e.g. deferred iteration until materialization)
+- Minimal allocations; iterators and pipelines should avoid unnecessary intermediate slices
+
+Step-by-step example:
+
+```go
+nums := []int{1, 2, 3, 4, 5}
+evens := nums.Where(n => n%2 == 0)
+doubled := evens.Select(n => n * 2)
+first := doubled.First()
+```
+
+### Chained one-liners
+
+Pipelines compose left-to-right; each stage is lazy until a terminal operator (`First`, `ToList`, `Sum`, etc.) runs.
+
+```go
+nums := []int{1, 2, 3, 4, 5, 6, 7, 8}
+
+// filter → map → first
+firstEvenDouble := nums.Where(n => n%2 == 0).Select(n => n * 2).First()
+
+// filter → order → take
+topThree := nums.Where(n => n > 2).OrderByDescending(n => n).Take(3).ToList()
+
+// map → aggregate
+sumOfSquares := nums.Select(n => n * n).Sum()
+
+// skip → take → map
+page := nums.Skip(10).Take(20).Select(n => fmt.Sprintf("%d", n)).ToList()
+
+// any / all over a chain
+hasLargeEven := nums.Where(n => n%2 == 0).Any(n => n > 100)
+allPositive := nums.Select(n => n - 1).All(n => n >= 0)
+
+// strings: filter → project → join
+names := []string{"alice", "", "bob", "carol"}
+line := names.Where(s => len(s) > 0).Select(s => strings.ToUpper(s)).Aggregate((a, b) => a + ", " + b)
+
+// grouping (lazy until enumerated)
+byMod := nums.GroupBy(n => n % 3).Select(g => (g.Key, g.Count())).ToList()
+
+// distinct after transform
+unique := nums.Select(n => n / 2).Distinct().OrderBy(n => n).ToList()
+
+// first match or default
+found := users.Where(u => u.Active).Select(u => u.Email).FirstOrDefault()
+```
+
+Predicate and projection arguments are typically single-expression lambdas using `=>`; parameter types are inferred from the LINQ method signature.
+
+LINQ extensions are provided as methods on supported sequence types (slices, arrays, and other iterable types as defined by the standard library).
+
+---
+
+## Optional Features
+
+The following features are planned or under consideration; they are not required for the core language extensions above.
+
+### Default Function Arguments
+
+Functions may declare default values for trailing parameters:
+
+```go
+func example(a int, b int = 3) {
+	// ...
+}
+```
+
+Call sites may omit arguments that have defaults:
+
+```go
+example(1)      // b is 3
+example(1, 10)  // b is 10
+```
+
+### Operator Overloading
+
+Types may define operators via special method syntax:
+
+```go
+func (m *Matrix) +{ /* m + other */ }
+func (m *Matrix) +={ /* m += other */ }
+func (m *Matrix) *{ /* m * other */ }
+func (m *Matrix) []{ /* indexer: m[key] */ }
+```
+
+Supported operators and their method forms include (non-exhaustive):
+
+- Arithmetic: `+`, `-`, `*`, `/`, `%`, and compound forms (`+=`, `-=`, etc.)
+- Comparison: `==`, `!=`, `<`, `>`, `<=`, `>=` (where defined)
+- Indexing: `[]` for get/set via indexer methods
+
+Overload resolution selects the receiver type’s operator method when the corresponding built-in operator is used with that type.

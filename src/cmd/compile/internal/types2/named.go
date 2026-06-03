@@ -546,9 +546,14 @@ func (t *Named) AddMethod(m *Func) {
 	assert(samePkg(t.obj.pkg, m.pkg))
 	assert(t.inst == nil)
 	t.unpack()
-	if t.methodIndex(m.name, false) < 0 {
-		t.methods = append(t.methods, m)
+	for _, existing := range t.methods {
+		if existing.name == m.name {
+			if sameParamSignature(existing, m) {
+				return
+			}
+		}
 	}
+	t.methods = append(t.methods, m)
 }
 
 // methodIndex returns the index of the method with the given name.

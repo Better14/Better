@@ -246,6 +246,9 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 	// ordinary function/method call
 	// signature may be generic
 	cgocall := x.mode() == cgofunc
+	overloadCands := check.overloadCandidatesForCall(call)
+	var preloadArgs []*operand
+	var preloadAtargs [][]Type
 
 	// If the operand type is a type parameter, all types in its type set
 	// must have a common underlying type, which must be a signature.
@@ -262,6 +265,26 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 		return statement
 	}
 	sig := u.(*Signature) // u must be a signature per the commonUnder condition
+
+	// Overloaded call resolution picks a unique candidate by argument count and assignability.
+	if len(overloadCands) > 1 {
+		preloadArgs, preloadAtargs = check.genericExprList(call.ArgList)
+		sel := check.selectOverload(call, overloadCands, preloadArgs)
+		if sel == nil {
+			x.invalidate()
+			x.expr = call
+			return statement
+		}
+		check.objDecl(sel)
+		check.addDeclDep(sel)
+		switch fun := call.Fun.(type) {
+		case *syntax.Name:
+			check.recordUse(fun, sel)
+		case *syntax.SelectorExpr:
+			check.recordUse(fun.Sel, sel)
+		}
+		sig = sel.typ.(*Signature)
+	}
 
 	// Capture wasGeneric before sig is potentially instantiated below.
 	wasGeneric := sig.TypeParams().Len() > 0
@@ -306,7 +329,10 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 	}
 
 	// evaluate arguments
-	args, atargs := check.genericExprList(call.ArgList)
+	args, atargs := preloadArgs, preloadAtargs
+	if args == nil && len(call.ArgList) != 0 {
+		args, atargs = check.genericExprList(call.ArgList)
+	}
 	sig = check.arguments(call, sig, targs, xlist, args, atargs)
 
 	if wasGeneric && sig.TypeParams().Len() == 0 {
@@ -346,6 +372,93 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 	}
 
 	return statement
+}
+
+func (check *Checker) selectOverload(call *syntax.CallExpr, cands []*Func, args []*operand) *Func {
+	var matches []*Func
+	var scores []int
+	for _, fn := range cands {
+		if fn == nil || fn.typ == nil {
+			continue
+		}
+		sig := fn.typ.(*Signature)
+		nargs := len(args)
+		npars := sig.params.Len()
+		if sig.variadic {
+			if hasDots(call) {
+				if nargs != npars {
+					continue
+				}
+			} else if nargs < npars-1 {
+				continue
+			}
+		} else if nargs != npars {
+			continue
+		}
+
+		ok := true
+		score := 0
+		fixed := npars
+		if sig.variadic && !hasDots(call) {
+			fixed = npars - 1
+		}
+		for i := 0; i < fixed; i++ {
+			arg := *args[i]
+			if okAssign, _ := arg.assignableTo(check, sig.params.vars[i].typ, nil); !okAssign {
+				ok = false
+				break
+			}
+			if Identical(arg.typ(), sig.params.vars[i].typ) {
+				score += 2
+			} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), sig.params.vars[i].typ) {
+				score++
+			}
+		}
+		if ok && sig.variadic && !hasDots(call) {
+			elem := sig.params.vars[npars-1].typ.(*Slice).elem
+			for i := npars - 1; i < nargs; i++ {
+				arg := *args[i]
+				if okAssign, _ := arg.assignableTo(check, elem, nil); !okAssign {
+					ok = false
+					break
+				}
+				if Identical(arg.typ(), elem) {
+					score += 2
+				} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), elem) {
+					score++
+				}
+			}
+		}
+		if ok {
+			matches = append(matches, fn)
+			scores = append(scores, score)
+		}
+	}
+
+	if len(matches) == 1 {
+		return matches[0]
+	}
+	if len(matches) == 0 {
+		check.errorf(call, InvalidCall, "no matching overload for call to %s", call.Fun)
+		return nil
+	}
+	best := -1
+	bestI := -1
+	tie := false
+	for i, sc := range scores {
+		if sc > best {
+			best = sc
+			bestI = i
+			tie = false
+		} else if sc == best {
+			tie = true
+		}
+	}
+	if bestI >= 0 && !tie {
+		return matches[bestI]
+	}
+	check.errorf(call, InvalidCall, "ambiguous overloaded call to %s", call.Fun)
+	return nil
 }
 
 // exprList evaluates a list of expressions and returns the corresponding operands.
