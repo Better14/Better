@@ -324,6 +324,13 @@ type (
 		QPos Pos // position of '?'
 		expr
 	}
+
+	// X! unwrap success value or panic(error) if error is non-nil
+	ForceExpr struct {
+		X    Expr
+		Bang Pos // position of '!'
+		expr
+	}
 )
 
 type expr struct {

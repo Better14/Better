@@ -729,6 +729,34 @@ func (n *ForStmt) editChildrenWithHidden(edit func(Node) Node) {
 	n.editChildren(edit)
 }
 
+func (n *ForceExpr) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
+func (n *ForceExpr) copy() Node {
+	c := *n
+	c.init = copyNodes(c.init)
+	return &c
+}
+func (n *ForceExpr) doChildren(do func(Node) bool) bool {
+	if doNodes(n.init, do) {
+		return true
+	}
+	if n.X != nil && do(n.X) {
+		return true
+	}
+	return false
+}
+func (n *ForceExpr) doChildrenWithHidden(do func(Node) bool) bool {
+	return n.doChildren(do)
+}
+func (n *ForceExpr) editChildren(edit func(Node) Node) {
+	editNodes(n.init, edit)
+	if n.X != nil {
+		n.X = edit(n.X).(Node)
+	}
+}
+func (n *ForceExpr) editChildrenWithHidden(edit func(Node) Node) {
+	n.editChildren(edit)
+}
+
 func (n *Func) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
 
 func (n *GoDeferStmt) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }

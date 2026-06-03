@@ -340,6 +340,7 @@ redo:
 			s.tok = _Operator
 			break
 		}
+		s.nlsemi = true
 		s.op, s.prec = Not, 0
 		s.tok = _Operator
 

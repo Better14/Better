@@ -1248,6 +1248,18 @@ loop:
 			t.X = x
 			x = t
 
+		case _Operator:
+			if p.op != Not {
+				break loop
+			}
+			bang := p.pos()
+			p.next()
+			t := new(ForceExpr)
+			t.pos = x.Pos()
+			t.Bang = bang
+			t.X = x
+			x = t
+
 		default:
 			break loop
 		}

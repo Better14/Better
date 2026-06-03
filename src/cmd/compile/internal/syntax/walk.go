@@ -214,6 +214,9 @@ func (w walker) node(n Node) {
 	case *TryExpr:
 		w.node(n.X)
 
+	case *ForceExpr:
+		w.node(n.X)
+
 	case *ChanType:
 		w.node(n.Elem)
 
