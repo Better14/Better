@@ -444,6 +444,8 @@ func (check *Checker) collectObjects() {
 						if s.Body == nil {
 							check.softErrorf(obj.pos, MissingInitBody, "func init must have a body")
 						}
+					} else if name == "_" {
+						check.declare(pkg.scope, s.Name, obj, nopos)
 					} else {
 						// Overloads share the same source identifier and are resolved at call sites
 						// by signature; keep exactly one representative in package scope.

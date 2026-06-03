@@ -1,19 +1,19 @@
-# New `?` Result Syntax
+# New `!` and `?` Types
 
-This document describes the new result-type and postfix-unwrap syntax based on `?`.
+This document describes result types (`T!`), nullable types (`T?`), and postfix `!.value` / `!.field` access for error propagation.
 
 ## Overview
 
 Go now supports a result shorthand:
 
-- `(T, error)` can be written as `T?`
-- `expr?` unwraps a `(T, error)` expression
+- `(T, error)` can be written as `T!`
+- `expr!.value` (or `expr!.field`) propagates an error from `expr` or accesses the success value
 
-The goal is to reduce boilerplate for error propagation while preserving the same runtime behavior as explicit `if err != nil { ... }` checks.
+The goal is to reduce boilerplate for error propagation while preserving the same runtime behavior as explicit `if err != nil { ... }` checks. There is no postfix `expr!` that panics on error.
 
 ## Function Result Type Shorthand
 
-You can declare a function returning `(int, error)` as `int?`.
+You can declare a function returning `(int, error)` as `int!`.
 
 Before:
 
@@ -30,31 +30,48 @@ func myFunc() (int, error) {
 After:
 
 ```go
-func myFunc() int? {
-	a := myFunc2()?
+func myFunc() int! {
+	a := myFunc2()!.value
 	return a, nil
 }
 ```
 
-`int?` is semantically equivalent to `(int, error)`.
+`int!` is semantically equivalent to `(int, error)`.
 
-## Postfix `?` Operator
+## Postfix `!.value` and `!.field`
 
-`expr?` can be used when `expr` has type `(T, error)` (or `T?`).
+Use `!.value` or `!.field` when `expr` has type `(T, error)` or `T!`.
 
-Behavior:
+Behavior for `expr!.value`:
 
 1. Evaluate `expr`
 2. If `err != nil`, return early from the current function with:
    - zero value of the function's value result
    - the error
-3. Otherwise, yield the unwrapped `T` value
+3. Otherwise, use the `.value` field (the unwrapped `T`)
 
-This is similar to Rust's `?` operator in spirit.
+Behavior for `expr!.someField` is the same early-return on error, then access `someField` on the success value.
+
+```go
+func someFunc() int! {
+	return other()!.value
+}
+
+func readUser() User! {
+	u := fetch()!.value
+	return u, nil
+}
+
+func readName() string! {
+	return fetch()!.name   // propagate error, else return User.name
+}
+```
+
+Standalone `someFunc()!` (panic on error) is **not** supported.
 
 ## Conceptual Representation
 
-A `T?` can be thought of as a pair:
+A `T!` can be thought of as a pair:
 
 ```go
 struct TValueOrErr {
@@ -63,7 +80,7 @@ struct TValueOrErr {
 }
 ```
 
-For example, `int?` corresponds conceptually to:
+For example, `int!` corresponds conceptually to:
 
 ```go
 struct intOrErr {
@@ -74,81 +91,78 @@ struct intOrErr {
 
 This is a conceptual model for documentation; syntax-level behavior is defined by compiler lowering and type checking.
 
-## Additional Intended Usage Patterns
-
-The requested usage patterns are:
+## Usage Patterns
 
 ```go
-var a := int?
-if a.err != nil { a.value }
-if a.err == nil { a.err } else { a.value }
-var a, err := int?   // destructure into value and error
-a?.someProperty      // early-return if error, then access property
+var a := int!                              // a has type int! (value + error)
+if a.err != nil { _ = a.value }
+if a.err == nil { _ = a.value } else { _ = a.err }
+var a, err := int!                         // destructure into value and error
+x := someFunc()!.value                     // propagate error or read .value
+y := someFunc()!.someProperty              // propagate error or access a field
 ```
-
-These examples describe the intended ergonomics around result-style values and chained unwrapping.
 
 ## Notes
 
-- `T?` should be treated as the canonical shorthand for `(T, error)`.
-- `expr?` should only be used in contexts where early-returning an error is valid for the enclosing function's signature.
+- `T!` is the canonical shorthand for `(T, error)`.
+- Use `expr!.value` or `expr!.field` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
+- Do not use `expr!` alone; it is not a panic unwrap. Handle unexpected failures with explicit `if err != nil { panic(err) }` or `log.Fatal` as today.
 
-## Postfix `!` Force-Unwrap Operator
+## Nullable Types (`T?`)
 
-Go now also supports postfix `!` as a force-unwrap operator.
+`T?` on a value type `T` means **either a `T` or `nil`** — an optional value with no error channel. This is separate from `T!`, which means **value or `error`**.
 
-`expr!` evaluates a result-like expression and:
+| Syntax | Meaning |
+|--------|---------|
+| `int?` | `int` or `nil` (nullable) |
+| `int!` | `int` or `error` (result / `(int, error)`) |
 
-1. Panics with the error if the error is non-nil
-2. Otherwise returns the underlying value
+Nullable types are useful for primitives and structs that cannot otherwise hold `nil` in Go. Reference types (`*T`, `map`, `slice`, `chan`, `func`, `interface`) are already “nullable” via `nil`; `T?` is most important for `int`, `bool`, `float64`, struct types, etc.
 
-This is useful when failure is unexpected and should be fatal, similar to a forced unwrap.
-
-### `(T, error)` Example
-
-```go
-func someFunc() (int, error) {
-	// ...
-}
-
-var a = someFunc()! // if err != nil: panic(err); otherwise a is int
-```
-
-Equivalent behavior:
+### Declaration and assignment
 
 ```go
-tmp, err := someFunc()
-if err != nil {
-	panic(err)
-}
-var a = tmp
+var a int? = 5
+var b int? = nil
+
+var c int?       // nil by default
+c = 10
+c = nil
 ```
 
-### `T?` Example
+### Functions returning nullable types
+
+A function may return `T?` and supply either a value or `nil`:
 
 ```go
-func someFunc2() int? {
-	// ...
+func myFunc(num int) int? {
+	if num < 5 {
+		return num
+	}
+	return nil
 }
-
-var b = someFunc2()! // if result err != nil: panic(err); otherwise b is int
 ```
 
-Equivalent conceptual behavior:
+Returning a plain `T` where `T?` is expected wraps the value (same idea as assigning `5` to `int?`).
+
+### Checking for a value
 
 ```go
-tmp, err := someFunc2()
-if err != nil {
-	panic(err)
+v := myFunc(3)
+if v == nil {
+	// no value
+} else {
+	use(v) // v is int in this branch
 }
-var b = tmp
 ```
+
+Conceptually, `int?` is a optional value (value + “has value” flag). The compiler may lower it to a struct or pointer; the source-level model is **value or `nil`**, not value + `error`.
 
 ### Notes
 
-- `expr!` accepts values of type `(T, error)` and `T?`.
-- `expr!` does not early-return; it panics on error.
-- `expr!` should be used sparingly and only when panic-on-error is desired.
+- Do not confuse `int?` (nullable) with `int!` (result type). They use different suffixes on purpose.
+- `T?` does not support `!.value` error propagation; that syntax applies only to `T!` / `(T, error)`.
+- Nullable defaults in function parameters (e.g. `x int? = nil`) follow the same compile-time constant rules as other default arguments when/if defaults are added for nullable parameters.
 
 ## Function and Method Overloading
 
@@ -179,10 +193,19 @@ At a call site, the compiler resolves the overload by matching argument count an
 - `myFunc(int64Value)` resolves to `func myFunc(a int64)`
 - `myFunc(1, 2)` resolves to `func myFunc(a int, b int)`
 
+### Errors
+
+The type checker reports:
+
+- **Redeclared** — two overloads with the same parameter types (`redeclared function f` / `redeclared method m`).
+- **No matching overload** — no overload accepts the argument types at a call site.
+- **Ambiguous overloaded call** — more than one overload fits equally well (for example, two overloads taking different named types with the same underlying type and an untyped constant argument).
+
 ### Notes
 
 - Overloading applies to both package-level functions and methods.
 - Overload sets must be unambiguous for all valid calls.
+- The blank identifier `_` is not overloadable; duplicate `func _()` declarations are still invalid.
 
 ## If Expressions
 
@@ -299,9 +322,143 @@ s.Start("localhost")     // port 80
 s.Start("localhost", 443)
 ```
 
-### Notes
+### Default values (compile-time only)
 
-- Default values are compile-time constants or constant expressions evaluable at compile time (same spirit as C# constant defaults).
+Default values must be known at compile time. Parameters may use literals and **constant expressions** built from them (not arbitrary runtime code).
+
+Implementation is staged in two layers; both are evaluated at compile time and inlined at call sites when arguments are omitted.
+
+#### Tier 1 — literals and named constants
+
+- Untyped and typed literals: `42`, `3.14`, `"ok"`, `true`, `false`
+- `nil` where valid for the parameter type (pointer, map, slice, chan, func, interface)
+- Identifiers naming **constants** in scope: package `const`, file `const`, or imported const
+
+```go
+const (
+	DefaultPort   = 443
+	DefaultLevel  = 1
+	DefaultWindow = 30 * time.Second
+)
+
+func connect(host string, port int = DefaultPort, timeout time.Duration = DefaultWindow) {}
+func log(msg string, level int = DefaultLevel) {}
+```
+
+#### Tier 2 — constant expressions (Go `const` rules)
+
+The default expression may be any expression that is legal in a Go `const` declaration with the parameter’s type. The compiler uses the same constant evaluation as for `const` (including typed constants and conversions).
+
+Allowed examples:
+
+```go
+func f(n int = 1 << 20) {}
+func g(d time.Duration = 30 * time.Second) {}
+func h(s string = "go" + "lang") {}
+func k(addr string = string(DefaultIP)) {} // conversion of const
+
+type Port int
+func listen(p Port = Port(8080)) {} // typed constant + conversion
+```
+
+### Valid examples
+
+#### Simple primitives and constants
+
+```go
+func Log(message string, level int = 1, verbose bool = false) {
+	// ...
+}
+
+const DefaultPort = 8080
+
+func Connect(host string, port int = DefaultPort) {
+	// ...
+}
+```
+
+#### Enum and nil defaults
+
+Go has no `enum` keyword; use typed constants with `iota` (or a named integer type). Pointer parameters use `nil` where a “optional / nullable” default is intended.
+
+```go
+type Mode int
+
+const (
+	ModeRead Mode = iota
+	ModeWrite
+	ModeBoth
+)
+
+func Open(path string, mode Mode = ModeRead) {
+	// ...
+}
+
+func Save(path *string = nil) {
+	// optional path: nil means “not provided”
+}
+```
+
+#### Compile-time expression results (tier 2)
+
+```go
+const Base = 2
+
+func Multiply(x int, factor int = Base*3) {
+	// allowed: constant expression
+}
+```
+
+#### Optional parameters after required ones
+
+```go
+func Send(to, message string, urgent bool = false) {
+	// required to, message; optional urgent on the right
+}
+```
+
+### Invalid examples
+
+#### Non-constant defaults (compile-time error)
+
+```go
+now := time.Now()
+
+// func Schedule(t time.Time = now) {} // ERROR: 'now' is not a compile-time constant
+
+// func Schedule(t time.Time = time.Now()) {} // ERROR: call not constant
+```
+
+#### Instance members as defaults (compile-time error)
+
+```go
+type C struct {
+	x int
+}
+
+// func (c *C) M(a int = c.x) {} // ERROR: instance field cannot be used in default
+```
+
+#### Method calls or new objects as defaults (compile-time error)
+
+```go
+// func F(s string = GetDefault()) {}              // ERROR: function call not allowed
+// func G(l []int = make([]int, 0)) {}             // ERROR: make not allowed
+// func H(m map[string]int = map[string]int{}) {}  // ERROR: composite literal allocation not constant
+```
+
+Runtime defaults (`make`, `new`, non-const calls, package `var`s) are **not** supported in v1. See tier 1 and tier 2 above.
+
+| Tier | Allowed in defaults |
+|------|---------------------|
+| 1 | Literals, `nil`, named `const` |
+| 2 | Any Go constant expression (same rules as `const` declarations) |
+| — | Function calls, `make`, `new`, mutable `var`s |
+
+### Other notes
+
+- Default expressions are type-checked against the parameter type; untyped constants follow the same conversion rules as in `const` declarations.
+- A default may not refer to other parameters of the same function.
 - Default arguments are not supported on `=>` lambdas; use a named `func` or a wrapper.
 - Not valid in upstream Go.
 
