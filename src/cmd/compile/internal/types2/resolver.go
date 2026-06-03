@@ -445,7 +445,18 @@ func (check *Checker) collectObjects() {
 							check.softErrorf(obj.pos, MissingInitBody, "func init must have a body")
 						}
 					} else {
-						check.declare(pkg.scope, s.Name, obj, nopos)
+						// Overloads share the same source identifier and are resolved at call sites
+						// by signature; keep exactly one representative in package scope.
+						if alt := pkg.scope.Lookup(name); alt == nil {
+							check.declare(pkg.scope, s.Name, obj, nopos)
+						} else if _, ok := alt.(*Func); !ok {
+							check.declare(pkg.scope, s.Name, obj, nopos) // report regular duplicate error
+						} else {
+							// Keep Defs complete even when this overload isn't inserted in scope.
+							obj.parent = pkg.scope
+							check.recordDef(s.Name, obj)
+						}
+						check.overloadFuncs[name] = append(check.overloadFuncs[name], obj)
 					}
 				} else {
 					// method
@@ -456,6 +467,7 @@ func (check *Checker) collectObjects() {
 					// of them. They will still be type-checked with all the other functions.
 					if recv, _ := base.(*syntax.Name); recv != nil && name != "_" {
 						methods = append(methods, methodInfo{obj, ptr, recv})
+						check.overloadMeths[methodKey{recvName: recv.Value, name: name}] = append(check.overloadMeths[methodKey{recvName: recv.Value, name: name}], obj)
 					}
 					_ = tparam0 != nil && check.verifyVersionf(tparam0, go1_27, "generic method")
 					check.recordDef(s.Name, obj)
