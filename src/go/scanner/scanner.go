@@ -964,6 +964,12 @@ scanAgain:
 			tok = s.switch2(token.ASSIGN, token.EQL)
 		case '!':
 			tok = s.switch2(token.NOT, token.NEQ)
+			if tok == token.NOT {
+				insertSemi = true
+			}
+		case '?':
+			insertSemi = true
+			tok = token.QUESTION
 		case '&':
 			if s.ch == '^' {
 				s.next()

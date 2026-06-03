@@ -428,6 +428,24 @@ type (
 		Colon token.Pos // position of ":"
 		Value Expr
 	}
+
+	// A ResultTypeExpr node represents a result shorthand type T?.
+	ResultTypeExpr struct {
+		X         Expr
+		Question  token.Pos // position of '?'
+	}
+
+	// A TryExpr node represents a postfix try expression x?.
+	TryExpr struct {
+		X        Expr
+		Question token.Pos // position of '?'
+	}
+
+	// A ForceExpr node represents a postfix force expression x!.
+	ForceExpr struct {
+		X    Expr
+		Bang token.Pos // position of '!'
+	}
 )
 
 // The direction of a channel type is indicated by a bit
@@ -514,6 +532,9 @@ func (x *StarExpr) Pos() token.Pos       { return x.Star }
 func (x *UnaryExpr) Pos() token.Pos      { return x.OpPos }
 func (x *BinaryExpr) Pos() token.Pos     { return x.X.Pos() }
 func (x *KeyValueExpr) Pos() token.Pos   { return x.Key.Pos() }
+func (x *ResultTypeExpr) Pos() token.Pos { return x.X.Pos() }
+func (x *TryExpr) Pos() token.Pos        { return x.X.Pos() }
+func (x *ForceExpr) Pos() token.Pos      { return x.X.Pos() }
 func (x *ArrayType) Pos() token.Pos      { return x.Lbrack }
 func (x *StructType) Pos() token.Pos     { return x.Struct }
 func (x *FuncType) Pos() token.Pos {
@@ -556,6 +577,9 @@ func (x *StarExpr) End() token.Pos       { return x.X.End() }
 func (x *UnaryExpr) End() token.Pos      { return x.X.End() }
 func (x *BinaryExpr) End() token.Pos     { return x.Y.End() }
 func (x *KeyValueExpr) End() token.Pos   { return x.Value.End() }
+func (x *ResultTypeExpr) End() token.Pos { return x.Question + 1 }
+func (x *TryExpr) End() token.Pos        { return x.Question + 1 }
+func (x *ForceExpr) End() token.Pos      { return x.Bang + 1 }
 func (x *ArrayType) End() token.Pos      { return x.Elt.End() }
 func (x *StructType) End() token.Pos     { return x.Fields.End() }
 func (x *FuncType) End() token.Pos {
@@ -587,6 +611,9 @@ func (*StarExpr) exprNode()       {}
 func (*UnaryExpr) exprNode()      {}
 func (*BinaryExpr) exprNode()     {}
 func (*KeyValueExpr) exprNode()   {}
+func (*ResultTypeExpr) exprNode() {}
+func (*TryExpr) exprNode()        {}
+func (*ForceExpr) exprNode()      {}
 
 func (*ArrayType) exprNode()     {}
 func (*StructType) exprNode()    {}

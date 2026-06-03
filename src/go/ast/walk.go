@@ -134,6 +134,15 @@ func Walk(v Visitor, node Node) {
 		Walk(v, n.Key)
 		Walk(v, n.Value)
 
+	case *ResultTypeExpr:
+		Walk(v, n.X)
+
+	case *TryExpr:
+		Walk(v, n.X)
+
+	case *ForceExpr:
+		Walk(v, n.X)
+
 	// Types
 	case *ArrayType:
 		if n.Len != nil {

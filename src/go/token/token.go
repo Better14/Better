@@ -78,6 +78,7 @@ const (
 	GEQ      // >=
 	DEFINE   // :=
 	ELLIPSIS // ...
+	QUESTION // ?
 
 	LPAREN // (
 	LBRACK // [
@@ -187,6 +188,7 @@ var tokens = [...]string{
 	GEQ:      ">=",
 	DEFINE:   ":=",
 	ELLIPSIS: "...",
+	QUESTION: "?",
 
 	LPAREN: "(",
 	LBRACK: "[",

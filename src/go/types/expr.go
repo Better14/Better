@@ -294,6 +294,12 @@ func (check *Checker) updateExprType(x ast.Expr, typ Type, final bool) {
 		// The respective calls take care of calling updateExprType
 		// for the arguments if necessary.
 
+	case *ast.TryExpr:
+		check.updateExprType(x.X, typ, final)
+
+	case *ast.ForceExpr:
+		check.updateExprType(x.X, typ, final)
+
 	case *ast.Ident, *ast.BasicLit, *ast.SelectorExpr:
 		// An identifier denoting a constant, a constant literal,
 		// or a qualified identifier (imported untyped constant).
@@ -1123,6 +1129,18 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 	case *ast.CallExpr:
 		return check.callExpr(x, e)
 
+	case *ast.TryExpr:
+		check.tryExpr(x, e)
+		if !x.isValid() {
+			goto Error
+		}
+
+	case *ast.ForceExpr:
+		check.forceExpr(x, e)
+		if !x.isValid() {
+			goto Error
+		}
+
 	case *ast.StarExpr:
 		check.exprOrType(x, e.X, false)
 		switch x.mode() {
@@ -1178,7 +1196,7 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 		goto Error
 
 	case *ast.ArrayType, *ast.StructType, *ast.FuncType,
-		*ast.InterfaceType, *ast.MapType, *ast.ChanType:
+		*ast.InterfaceType, *ast.MapType, *ast.ChanType, *ast.ResultTypeExpr:
 		x.mode_ = typexpr
 		x.typ_ = check.typ(e)
 		// Note: rawExpr (caller of exprInternal) will call check.recordTypeAndValue
@@ -1199,6 +1217,60 @@ Error:
 	x.invalidate()
 	x.expr = e
 	return statement // avoid follow-up errors
+}
+
+// tryExpr type-checks e.X? where e.X must be a (value, error) pair.
+func (check *Checker) tryExpr(x *operand, e *ast.TryExpr) {
+	var inner operand
+	check.rawExpr(nil, &inner, e.X, nil, false)
+	check.exclude(&inner, 1<<novalue|1<<builtin|1<<typexpr)
+	if !inner.isValid() {
+		x.invalidate()
+		return
+	}
+	tup, ok := inner.typ().(*Tuple)
+	if !ok || tup.Len() != 2 {
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: ? requires expression of type (T, error), got %s", inner.typ())
+		x.invalidate()
+		return
+	}
+	if !Identical(tup.At(1).Type(), universeError) {
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: second return value must be error, got %s", tup.At(1).Type())
+		x.invalidate()
+		return
+	}
+	x.mode_ = value
+	x.typ_ = tup.At(0).Type()
+	x.expr = e
+	check.record(x)
+	check.hasCallOrRecv = true
+}
+
+// forceExpr type-checks e.X! where e.X must be a (value, error) pair.
+func (check *Checker) forceExpr(x *operand, e *ast.ForceExpr) {
+	var inner operand
+	check.rawExpr(nil, &inner, e.X, nil, false)
+	check.exclude(&inner, 1<<novalue|1<<builtin|1<<typexpr)
+	if !inner.isValid() {
+		x.invalidate()
+		return
+	}
+	tup, ok := inner.typ().(*Tuple)
+	if !ok || tup.Len() != 2 {
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: ! requires expression of type (T, error), got %s", inner.typ())
+		x.invalidate()
+		return
+	}
+	if !Identical(tup.At(1).Type(), universeError) {
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: second return value must be error, got %s", tup.At(1).Type())
+		x.invalidate()
+		return
+	}
+	x.mode_ = value
+	x.typ_ = tup.At(0).Type()
+	x.expr = e
+	check.record(x)
+	check.hasCallOrRecv = true
 }
 
 // keyVal maps a complex, float, integer, string or boolean constant value

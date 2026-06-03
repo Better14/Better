@@ -832,6 +832,21 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.print(token.COLON, blank)
 		p.expr(x.Value)
 
+	case *ast.ResultTypeExpr:
+		p.expr1(x.X, token.HighestPrec, depth)
+		p.setPos(x.Question)
+		p.print(token.QUESTION)
+
+	case *ast.TryExpr:
+		p.expr1(x.X, token.HighestPrec, depth)
+		p.setPos(x.Question)
+		p.print(token.QUESTION)
+
+	case *ast.ForceExpr:
+		p.expr1(x.X, token.HighestPrec, depth)
+		p.setPos(x.Bang)
+		p.print(token.NOT)
+
 	case *ast.StarExpr:
 		const prec = token.UnaryPrec
 		if prec < prec1 {

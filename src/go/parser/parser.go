@@ -531,6 +531,11 @@ func (p *parser) parseType() ast.Expr {
 		return &ast.BadExpr{From: pos, To: p.pos}
 	}
 
+	for typ != nil && p.tok == token.QUESTION {
+		q := p.pos
+		p.next()
+		typ = &ast.ResultTypeExpr{X: typ, Question: q}
+	}
 	return typ
 }
 
@@ -1097,6 +1102,11 @@ func (p *parser) parseParameters(result bool) *ast.FieldList {
 	}
 
 	if typ := p.tryIdentOrType(); typ != nil {
+		for p.tok == token.QUESTION {
+			q := p.pos
+			p.next()
+			typ = &ast.ResultTypeExpr{X: typ, Question: q}
+		}
 		list := make([]*ast.Field, 1)
 		list[0] = &ast.Field{Type: typ}
 		return &ast.FieldList{List: list}
@@ -1778,6 +1788,14 @@ func (p *parser) parsePrimaryExpr(x ast.Expr) ast.Expr {
 				// already progressed, no need to advance
 			}
 			x = p.parseLiteralValue(x)
+		case token.QUESTION:
+			q := p.pos
+			p.next()
+			x = &ast.TryExpr{X: x, Question: q}
+		case token.NOT:
+			b := p.pos
+			p.next()
+			x = &ast.ForceExpr{X: x, Bang: b}
 		default:
 			return x
 		}
