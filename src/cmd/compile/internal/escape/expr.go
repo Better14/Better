@@ -143,6 +143,13 @@ func (e *escape) exprSkipInit(k hole, n ir.Node) {
 		ir.OUNSAFEADD, ir.OUNSAFESLICE, ir.OUNSAFESTRING, ir.OUNSAFESTRINGDATA, ir.OUNSAFESLICEDATA:
 		e.call([]hole{k}, n)
 
+	case ir.OTRY:
+		// OTRY wraps a (T, error) call. The T flows to k; the error
+		// is conservatively assumed to escape via the synthesized
+		// "return zero, err" inserted by the order pass.
+		n := n.(*ir.TryExpr)
+		e.call([]hole{k, e.heapHole()}, n.X)
+
 	case ir.ONEW:
 		n := n.(*ir.UnaryExpr)
 		e.spill(k, n)
