@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"go/ast"
+	. "internal/types/errors"
 	"strings"
 )
 
@@ -89,7 +90,24 @@ func overloadParamSuffix(sig *Signature) string {
 	return b.String()
 }
 
+func (check *Checker) checkOverloadDuplicates(name string, cands []*Func, kind string) {
+	for i := 0; i < len(cands); i++ {
+		for j := i + 1; j < len(cands); j++ {
+			if sameParamSignature(cands[i], cands[j]) {
+				check.errorf(atPos(cands[j].pos), DuplicateDecl, "redeclared %s %s", kind, name)
+			}
+		}
+	}
+}
+
 func (check *Checker) assignOverloadSuffixes() {
+	for name, cands := range check.overloadFuncs {
+		check.checkOverloadDuplicates(name, cands, "function")
+	}
+	for key, cands := range check.overloadMeths {
+		check.checkOverloadDuplicates(key.name, cands, "method")
+	}
+
 	for _, cands := range check.overloadFuncs {
 		if len(cands) <= 1 {
 			continue
