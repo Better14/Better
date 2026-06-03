@@ -136,7 +136,10 @@ func TestEmbeddedTokens(t *testing.T) {
 				t.Errorf("%s: got prec %d; want %d", src, got.prec, want.prec)
 				continue
 			}
-			nlsemi = want.tok == _IncOp
+			nlsemi = want.tok == _IncOp || (want.tok == _Operator && want.op == Not)
+
+		case _Question:
+			nlsemi = true
 
 		case _Rparen, _Rbrack, _Rbrace, _Break, _Continue, _Fallthrough, _Return:
 			nlsemi = true
@@ -233,6 +236,7 @@ var sampleTokens = [...]struct {
 
 	// operators
 	{_Operator, "!", Not, 0},
+	{_Question, "?", 0, 0},
 	{_Operator, "~", Tilde, 0},
 
 	{_Operator, "||", OrOr, precOrOr},
