@@ -248,6 +248,10 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
 	// ordinary function/method call
 	// signature may be generic
 	cgocall := x.mode() == cgofunc
+	overloadCands := check.overloadCandidatesForCall(call)
+	var preloadArgs []*operand
+	var preloadAtargs [][]Type
+	selectedOverload := false
 
 	// If the operand type is a type parameter, all types in its type set
 	// must have a common underlying type, which must be a signature.
@@ -264,6 +268,36 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
 		return statement
 	}
 	sig := u.(*Signature) // u must be a signature per the commonUnder condition
+
+	// Overloaded call resolution picks a unique candidate by argument count and assignability.
+	if len(overloadCands) > 1 {
+		preloadArgs, preloadAtargs = check.genericExprList(call.Args)
+		sel := check.selectOverload(call, overloadCands, preloadArgs)
+		if sel == nil {
+			x.invalidate()
+			x.expr = call
+			return statement
+		}
+		check.objDecl(sel)
+		check.addDeclDep(sel)
+		switch fun := call.Fun.(type) {
+		case *ast.Ident:
+			check.recordUse(fun, sel)
+		case *ast.SelectorExpr:
+			check.recordUse(fun.Sel, sel)
+			var recv operand
+			check.rawExpr(nil, &recv, fun.X, nil, true)
+			if recv.isValid() {
+				ix := []int{0}
+				if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
+					ix = []int{i}
+				}
+				check.recordSelection(fun, MethodVal, recv.typ(), sel, ix, false)
+			}
+		}
+		selectedOverload = true
+		sig = sel.typ.(*Signature)
+	}
 
 	// Capture wasGeneric before sig is potentially instantiated below.
 	wasGeneric := sig.TypeParams().Len() > 0
@@ -308,10 +342,15 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
 	}
 
 	// evaluate arguments
-	args, atargs := check.genericExprList(call.Args)
+	args, atargs := preloadArgs, preloadAtargs
+	if args == nil && len(call.Args) != 0 {
+		args, atargs = check.genericExprList(call.Args)
+	}
 	sig = check.arguments(call, sig, targs, xlist, args, atargs)
 
-	if wasGeneric && sig.TypeParams().Len() == 0 {
+	if selectedOverload {
+		check.recordTypeAndValue(call.Fun, value, sig, nil)
+	} else if wasGeneric && sig.TypeParams().Len() == 0 {
 		// Update the recorded type of call.Fun to its instantiated type.
 		check.recordTypeAndValue(call.Fun, value, sig, nil)
 	}
@@ -348,6 +387,93 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
 	}
 
 	return statement
+}
+
+func (check *Checker) selectOverload(call *ast.CallExpr, cands []*Func, args []*operand) *Func {
+	var matches []*Func
+	var scores []int
+	for _, fn := range cands {
+		if fn == nil || fn.typ == nil {
+			continue
+		}
+		sig := fn.typ.(*Signature)
+		nargs := len(args)
+		npars := sig.params.Len()
+		if sig.variadic {
+			if hasDots(call) {
+				if nargs != npars {
+					continue
+				}
+			} else if nargs < npars-1 {
+				continue
+			}
+		} else if nargs != npars {
+			continue
+		}
+
+		ok := true
+		score := 0
+		fixed := npars
+		if sig.variadic && !hasDots(call) {
+			fixed = npars - 1
+		}
+		for i := 0; i < fixed; i++ {
+			arg := *args[i]
+			if okAssign, _ := arg.assignableTo(check, sig.params.vars[i].typ, nil); !okAssign {
+				ok = false
+				break
+			}
+			if Identical(arg.typ(), sig.params.vars[i].typ) {
+				score += 2
+			} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), sig.params.vars[i].typ) {
+				score++
+			}
+		}
+		if ok && sig.variadic && !hasDots(call) {
+			elem := sig.params.vars[npars-1].typ.(*Slice).elem
+			for i := npars - 1; i < nargs; i++ {
+				arg := *args[i]
+				if okAssign, _ := arg.assignableTo(check, elem, nil); !okAssign {
+					ok = false
+					break
+				}
+				if Identical(arg.typ(), elem) {
+					score += 2
+				} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), elem) {
+					score++
+				}
+			}
+		}
+		if ok {
+			matches = append(matches, fn)
+			scores = append(scores, score)
+		}
+	}
+
+	if len(matches) == 1 {
+		return matches[0]
+	}
+	if len(matches) == 0 {
+		check.errorf(call, InvalidCall, "no matching overload for call to %s", call.Fun)
+		return nil
+	}
+	best := -1
+	bestI := -1
+	tie := false
+	for i, sc := range scores {
+		if sc > best {
+			best = sc
+			bestI = i
+			tie = false
+		} else if sc == best {
+			tie = true
+		}
+	}
+	if bestI >= 0 && !tie {
+		return matches[bestI]
+	}
+	check.errorf(call, InvalidCall, "ambiguous overloaded call to %s", call.Fun)
+	return nil
 }
 
 // exprList evaluates a list of expressions and returns the corresponding operands.
@@ -827,7 +953,29 @@ func (check *Checker) selector(x *operand, e *ast.SelectorExpr, wantType bool) {
 
 	obj, index, indirect = lookupFieldOrMethod(x.typ(), x.mode() == variable, check.pkg, sel, false)
 	if obj == nil {
-		// Don't report another error if the underlying type was invalid (go.dev/issue/49541).
+		if index != nil {
+			cands := check.overloadMeths[methodKey{recvName: recvBaseNameFromType(x.typ()), name: sel}]
+			if len(cands) == 0 {
+				for k, v := range check.overloadMeths {
+					if k.name == sel && len(v) > 0 {
+						cands = v
+						break
+					}
+				}
+			}
+			if len(cands) > 0 {
+				obj = cands[0]
+				if m := methodIndexInNamed(x.typ(), obj.(*Func)); m >= 0 {
+					index = []int{m}
+				} else {
+					index = []int{0}
+				}
+				indirect = false
+			}
+		}
+	}
+	if obj == nil {
+		// Don't report another error if the underlying type was invalid (go.dev/issue-49541).
 		if !isValid(x.typ().Underlying()) {
 			goto Error
 		}

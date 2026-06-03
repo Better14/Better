@@ -242,6 +242,69 @@ func(a, b, c int) {
 - Parameter types are inferred when the lambda appears in a typed context (e.g. assignment, argument, return).
 - Multi-statement or multi-expression bodies must use `func(...) { ... }`.
 
+## Default Function Arguments
+
+Go supports default parameter values, following these rules: only trailing parameters may have defaults, and once one parameter has a default, every parameter to its right must also have a default.
+
+### Declaration
+
+```go
+func myFunc(a, b, c int = 5, d int = 7) {
+	// a, b, c are int; c defaults to 5; d defaults to 7
+}
+```
+
+Mixed required and optional parameters (optional parameters are always on the right):
+
+```go
+func connect(host string, port int = 443, timeout time.Duration = 30*time.Second) {
+	// ...
+}
+
+func log(msg string, level int = 1) {}
+```
+
+Invalid (a required parameter may not follow an optional one):
+
+```go
+// func bad(a int = 1, b int) {}  // compile error
+// func bad(a int, b int = 2, c int) {}  // compile error: c has no default but follows b
+```
+
+### Call sites
+
+Arguments are filled from left to right. Omitted trailing arguments use their defaults:
+
+```go
+myFunc(1, 2)           // a=1, b=2, c=5, d=7
+myFunc(1, 2, 3)        // a=1, b=2, c=3, d=7
+myFunc(1, 2, 3, 4)     // a=1, b=2, c=3, d=4
+myFunc(1, 2, 0, 9)     // a=1, b=2, c=0, d=9
+
+connect("example.com")                    // port 443, timeout 30s
+connect("example.com", 8080)              // timeout 30s
+connect("example.com", 8080, time.Second) // all explicit
+```
+
+You may not skip a non-trailing argument while passing a later one (no “hole” syntax like `f(1, , 3)`).
+
+### Methods and overloads
+
+Default arguments apply to methods and work with function overloading: each overload has its own default list; overload resolution uses the argument count and types actually passed at the call site.
+
+```go
+func (s *Server) Start(addr string, port int = 80) {}
+
+s.Start("localhost")     // port 80
+s.Start("localhost", 443)
+```
+
+### Notes
+
+- Default values are compile-time constants or constant expressions evaluable at compile time (same spirit as C# constant defaults).
+- Default arguments are not supported on `=>` lambdas; use a named `func` or a wrapper.
+- Not valid in upstream Go.
+
 ## Built-in LINQ
 
 Go includes built-in LINQ-style query operations that mirror C# naming and semantics.
@@ -521,23 +584,6 @@ Operations: `Insert`, `Search`, `Delete`, `Min`, `Max`, `Inorder`, `Preorder`, `
 ## Optional Features
 
 The following features are planned or under consideration; they are not required for the core language extensions above.
-
-### Default Function Arguments
-
-Functions may declare default values for trailing parameters:
-
-```go
-func example(a int, b int = 3) {
-	// ...
-}
-```
-
-Call sites may omit arguments that have defaults:
-
-```go
-example(1)      // b is 3
-example(1, 10)  // b is 10
-```
 
 ### Operator Overloading
 
