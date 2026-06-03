@@ -800,6 +800,22 @@ func NewTryExpr(pos src.XPos, typ *types.Type, x Node) *TryExpr {
 	return n
 }
 
+// A ForceExpr is X! with type T; X has type (T, error).
+type ForceExpr struct {
+	miniExpr
+	X Node
+}
+
+// NewForceExpr constructs a typechecked OFORCE node (result type typ).
+func NewForceExpr(pos src.XPos, typ *types.Type, x Node) *ForceExpr {
+	n := &ForceExpr{X: x}
+	n.pos = pos
+	n.op = OFORCE
+	n.SetType(typ)
+	n.SetTypecheck(1)
+	return n
+}
+
 func IsZero(n Node) bool {
 	switch n.Op() {
 	case ONIL:

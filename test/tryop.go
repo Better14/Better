@@ -56,6 +56,25 @@ func usesStringResult() string? {
 	return s + " world", nil
 }
 
+// forceOK panics on error and returns value on success.
+func forceOK() int {
+	return okPair()!
+}
+
+func forceFromResultType() int {
+	return unwrapOK()!
+}
+
+func forcePanics() {
+	defer func() {
+		if recover() == nil {
+			panic("forcePanics: expected panic")
+		}
+	}()
+	_ = errPair()!
+	panic("forcePanics: expected panic before this line")
+}
+
 func check(name string, got, want int, gotErr, wantErr error) {
 	if got != want {
 		panic(fmt.Sprintf("%s: got value %d, want %d", name, got, want))
@@ -87,4 +106,12 @@ func main() {
 	if s != "hello world" || err != nil {
 		panic(fmt.Sprintf("usesStringResult: got %q, %v; want %q, nil", s, err, "hello world"))
 	}
+
+	if forceOK() != 7 {
+		panic(fmt.Sprintf("forceOK: got %d, want 7", forceOK()))
+	}
+	if forceFromResultType() != 7 {
+		panic(fmt.Sprintf("forceFromResultType: got %d, want 7", forceFromResultType()))
+	}
+	forcePanics()
 }

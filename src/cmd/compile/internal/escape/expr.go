@@ -150,6 +150,12 @@ func (e *escape) exprSkipInit(k hole, n ir.Node) {
 		n := n.(*ir.TryExpr)
 		e.call([]hole{k, e.heapHole()}, n.X)
 
+	case ir.OFORCE:
+		// OFORCE wraps a (T, error) call and panics on non-nil error.
+		// Conservatively treat the error as escaping.
+		n := n.(*ir.ForceExpr)
+		e.call([]hole{k, e.heapHole()}, n.X)
+
 	case ir.ONEW:
 		n := n.(*ir.UnaryExpr)
 		e.spill(k, n)

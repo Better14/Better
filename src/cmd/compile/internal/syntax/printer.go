@@ -511,6 +511,9 @@ func (p *printer) printRawNode(n Node) {
 	case *TryExpr:
 		p.print(n.X, _Question)
 
+	case *ForceExpr:
+		p.print(n.X, Not)
+
 	case *ChanType:
 		if n.Dir == RecvOnly {
 			p.print(_Arrow)
