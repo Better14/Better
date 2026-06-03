@@ -152,6 +152,8 @@ type Checker struct {
 	usedVars      map[*Var]bool             // set of used variables
 	usedPkgNames  map[*PkgName]bool         // set of used package names
 	mono          monoGraph                 // graph for detecting non-monomorphizable instantiation loops
+	overloadFuncs map[string][]*Func         // package-level function overloads in current package
+	overloadMeths map[methodKey][]*Func      // method overloads keyed by receiver base name and method name
 
 	firstErr   error                 // first error encountered
 	methods    map[*TypeName][]*Func // maps package scope type names to associated non-blank (non-interface) methods
@@ -287,6 +289,8 @@ func (check *Checker) initFiles(files []*ast.File) {
 	// only needed in the context of a given file).
 	check.usedVars = make(map[*Var]bool)
 	check.usedPkgNames = make(map[*PkgName]bool)
+	check.overloadFuncs = make(map[string][]*Func)
+	check.overloadMeths = make(map[methodKey][]*Func)
 
 	// determine package name and collect valid files
 	pkg := check.pkg

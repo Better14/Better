@@ -1059,6 +1059,9 @@ func (w *writer) qualifiedIdent(obj types2.Object) {
 	w.Sync(pkgbits.SyncSym)
 
 	name := obj.Name()
+	if f, ok := obj.(*types2.Func); ok {
+		name = f.LinkName()
+	}
 	if isDefinedType(obj) && obj.Pkg() == w.p.curpkg {
 		decl, ok := w.p.typDecls[obj.(*types2.TypeName)]
 		assert(ok)
@@ -1116,7 +1119,11 @@ func (w *writer) selectorInfo(info selectorInfo) {
 
 func (pw *pkgWriter) selectorIdx(obj types2.Object) selectorInfo {
 	pkgIdx := pw.pkgIdx(obj.Pkg())
-	nameIdx := pw.StringIdx(obj.Name())
+	name := obj.Name()
+	if f, ok := obj.(*types2.Func); ok {
+		name = f.LinkName()
+	}
+	nameIdx := pw.StringIdx(name)
 	return selectorInfo{pkgIdx: pkgIdx, nameIdx: nameIdx}
 }
 
@@ -1910,8 +1917,10 @@ func (w *writer) expr(expr syntax.Expr) {
 		// to another shape-identical type to allow use in field
 		// selection, indexing, etc.
 		if typ := tv.Type; !tv.IsBuiltin() && !isTuple(typ) && !isUntyped(typ) {
-			w.Code(exprReshape)
-			w.typ(typ)
+			if _, ok := types2.CoreType(typ).(*types2.Signature); !ok {
+				w.Code(exprReshape)
+				w.typ(typ)
+			}
 			// fallthrough
 		}
 	}

@@ -1,8 +1,8 @@
-package types2
+package types
 
 import (
-	"cmd/compile/internal/syntax"
 	"fmt"
+	"go/ast"
 	"strings"
 )
 
@@ -112,7 +112,7 @@ func (check *Checker) assignOverloadSuffixes() {
 	}
 }
 
-func (check *Checker) recvBaseNameFromExpr(x syntax.Expr) string {
+func (check *Checker) recvBaseNameFromExpr(x ast.Expr) string {
 	var recv operand
 	check.rawExpr(nil, &recv, x, nil, true)
 	if !recv.isValid() {
@@ -154,13 +154,13 @@ func methodIndexInNamed(recv Type, fn *Func) int {
 	return -1
 }
 
-func (check *Checker) overloadCandidatesForCall(call *syntax.CallExpr) []*Func {
+func (check *Checker) overloadCandidatesForCall(call *ast.CallExpr) []*Func {
 	switch fun := call.Fun.(type) {
-	case *syntax.Name:
-		return check.overloadFuncs[fun.Value]
-	case *syntax.SelectorExpr:
-		if id, ok := fun.X.(*syntax.Name); ok {
-			if obj := check.lookup(id.Value); obj != nil {
+	case *ast.Ident:
+		return check.overloadFuncs[fun.Name]
+	case *ast.SelectorExpr:
+		if id, ok := fun.X.(*ast.Ident); ok {
+			if obj := check.lookup(id.Name); obj != nil {
 				if _, isPkg := obj.(*PkgName); isPkg {
 					return nil
 				}
@@ -170,7 +170,7 @@ func (check *Checker) overloadCandidatesForCall(call *syntax.CallExpr) []*Func {
 		if recvName == "" {
 			return nil
 		}
-		return check.overloadMeths[methodKey{recvName: recvName, name: fun.Sel.Value}]
+		return check.overloadMeths[methodKey{recvName: recvName, name: fun.Sel.Name}]
 	default:
 		return nil
 	}

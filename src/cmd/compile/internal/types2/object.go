@@ -113,6 +113,17 @@ func (obj *object) Pkg() *Package { return obj.pkg }
 // Name returns the object's (package-local, unqualified) name.
 func (obj *object) Name() string { return obj.name }
 
+// LinkName returns the linker symbol name for obj.
+// Overloaded functions and methods use a parameter-type suffix after '·'.
+func (obj *Func) LinkName() string {
+	if obj.linkSuffix != "" {
+		return obj.name + "·" + obj.linkSuffix
+	}
+	return obj.name
+}
+
+func (obj *Func) setLinkSuffix(s string) { obj.linkSuffix = s }
+
 // Type returns the object's type.
 func (obj *object) Type() Type { return obj.typ }
 
@@ -398,6 +409,7 @@ type Func struct {
 	object
 	hasPtrRecv_ bool  // only valid for methods that don't have a type yet; use hasPtrRecv() to read
 	origin      *Func // if non-nil, the Func from which this one was instantiated
+	linkSuffix  string // non-empty for overloaded symbols; used by the compiler backend
 }
 
 // NewFunc returns a new function with the given signature, representing
@@ -412,7 +424,7 @@ func NewFunc(pos syntax.Pos, pkg *Package, name string, sig *Signature) *Func {
 		// as this would violate object.{Type,color} invariants.
 		// TODO(adonovan): propose to disallow NewFunc with nil *Signature.
 	}
-	return &Func{object{nil, pos, pkg, name, typ, 0, nopos}, false, nil}
+	return &Func{object{nil, pos, pkg, name, typ, 0, nopos}, false, nil, ""}
 }
 
 // Signature returns the signature (type) of the function or method.

@@ -717,6 +717,8 @@ func (check *Checker) packageObjects() {
 	// types were not found. In that case, an error was reported when declaring those
 	// methods. We can now safely discard this map.
 	check.methods = nil
+
+	check.assignOverloadSuffixes()
 }
 
 // unusedImports checks for unused imports.

@@ -434,7 +434,17 @@ func (check *Checker) collectObjects() {
 							check.softErrorf(obj, MissingInitBody, "func init must have a body")
 						}
 					} else {
-						check.declare(pkg.scope, d.decl.Name, obj, nopos)
+						// Overloads share the same source identifier and are resolved at call sites
+						// by signature; keep exactly one representative in package scope.
+						if alt := pkg.scope.Lookup(name); alt == nil {
+							check.declare(pkg.scope, d.decl.Name, obj, nopos)
+						} else if _, ok := alt.(*Func); !ok {
+							check.declare(pkg.scope, d.decl.Name, obj, nopos) // report regular duplicate error
+						} else {
+							obj.parent = pkg.scope
+							check.recordDef(d.decl.Name, obj)
+						}
+						check.overloadFuncs[name] = append(check.overloadFuncs[name], obj)
 					}
 				} else {
 					// method
@@ -444,6 +454,7 @@ func (check *Checker) collectObjects() {
 					// of them. They will still be type-checked with all the other functions.)
 					if recv, _ := base.(*ast.Ident); recv != nil && name != "_" {
 						methods = append(methods, methodInfo{obj, ptr, recv})
+						check.overloadMeths[methodKey{recvName: recv.Name, name: name}] = append(check.overloadMeths[methodKey{recvName: recv.Name, name: name}], obj)
 					}
 					_ = tparam0 != nil && check.verifyVersionf(tparam0, go1_27, "generic method")
 					check.recordDef(d.decl.Name, obj)
@@ -694,6 +705,8 @@ func (check *Checker) packageObjects() {
 	// types were not found. In that case, an error was reported when declaring those
 	// methods. We can now safely discard this map.
 	check.methods = nil
+
+	check.assignOverloadSuffixes()
 }
 
 // unusedImports checks for unused imports.

@@ -715,12 +715,15 @@ func (check *Checker) collectMethods(obj *TypeName) {
 		// to it must be unique."
 		assert(m.name != "_")
 		if alt := mset.insert(m); alt != nil {
-			if alt.Pos().IsValid() {
-				check.errorf(m, DuplicateMethod, "method %s.%s already declared at %v", obj.Name(), m.name, alt.Pos())
-			} else {
-				check.errorf(m, DuplicateMethod, "method %s.%s already declared", obj.Name(), m.name)
+			altf, aok := alt.(*Func)
+			if !aok || sameParamSignature(altf, m) {
+				if alt.Pos().IsValid() {
+					check.errorf(m, DuplicateMethod, "method %s.%s already declared at %v", obj.Name(), m.name, alt.Pos())
+				} else {
+					check.errorf(m, DuplicateMethod, "method %s.%s already declared", obj.Name(), m.name)
+				}
+				continue
 			}
-			continue
 		}
 
 		if base != nil {
@@ -735,7 +738,7 @@ func (check *Checker) checkFieldUniqueness(base *Named) {
 		for i := 0; i < base.NumMethods(); i++ {
 			m := base.Method(i)
 			assert(m.name != "_")
-			assert(mset.insert(m) == nil)
+			_ = mset.insert(m) // overloaded methods may share a name
 		}
 
 		// Check that any non-blank field names of base are distinct from its
