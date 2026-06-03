@@ -283,6 +283,15 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 			check.recordUse(fun, sel)
 		case *syntax.SelectorExpr:
 			check.recordUse(fun.Sel, sel)
+			var recv operand
+			check.rawExpr(nil, &recv, fun.X, nil, true)
+			if recv.isValid() {
+				ix := []int{0}
+				if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
+					ix = []int{i}
+				}
+				check.recordSelection(fun, MethodVal, recv.typ(), sel, ix, false)
+			}
 		}
 		selectedOverload = true
 		sig = sel.typ.(*Signature)
@@ -944,7 +953,16 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 	if obj == nil {
 		if index != nil {
 			// Permit overloaded methods to defer final resolution to call checking.
-			if cands := check.overloadMeths[methodKey{recvName: recvBaseNameFromType(x.typ()), name: sel}]; len(cands) > 0 {
+			cands := check.overloadMeths[methodKey{recvName: recvBaseNameFromType(x.typ()), name: sel}]
+			if len(cands) == 0 {
+				for k, v := range check.overloadMeths {
+					if k.name == sel && len(v) > 0 {
+						cands = v
+						break
+					}
+				}
+			}
+			if len(cands) > 0 {
 				obj = cands[0]
 				if m := methodIndexInNamed(x.typ(), obj.(*Func)); m >= 0 {
 					index = []int{m}
