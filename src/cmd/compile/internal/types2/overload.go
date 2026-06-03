@@ -48,6 +48,32 @@ func (check *Checker) recvBaseNameFromExpr(x syntax.Expr) string {
 	return ""
 }
 
+func recvBaseNameFromType(t Type) string {
+	if p, _ := t.Underlying().(*Pointer); p != nil {
+		t = p.base
+	}
+	if n := asNamed(t); n != nil && n.obj != nil {
+		return n.obj.name
+	}
+	return ""
+}
+
+func methodIndexInNamed(recv Type, fn *Func) int {
+	if p, _ := recv.Underlying().(*Pointer); p != nil {
+		recv = p.base
+	}
+	n := asNamed(recv)
+	if n == nil {
+		return -1
+	}
+	for i := 0; i < n.NumMethods(); i++ {
+		if n.Method(i) == fn {
+			return i
+		}
+	}
+	return -1
+}
+
 func (check *Checker) overloadCandidatesForCall(call *syntax.CallExpr) []*Func {
 	switch fun := call.Fun.(type) {
 	case *syntax.Name:

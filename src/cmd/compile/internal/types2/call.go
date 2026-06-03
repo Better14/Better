@@ -249,6 +249,7 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 	overloadCands := check.overloadCandidatesForCall(call)
 	var preloadArgs []*operand
 	var preloadAtargs [][]Type
+	selectedOverload := false
 
 	// If the operand type is a type parameter, all types in its type set
 	// must have a common underlying type, which must be a signature.
@@ -283,6 +284,7 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 		case *syntax.SelectorExpr:
 			check.recordUse(fun.Sel, sel)
 		}
+		selectedOverload = true
 		sig = sel.typ.(*Signature)
 	}
 
@@ -335,7 +337,10 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 	}
 	sig = check.arguments(call, sig, targs, xlist, args, atargs)
 
-	if wasGeneric && sig.TypeParams().Len() == 0 {
+	if selectedOverload {
+		// Ensure downstream noder/writer sees the selected overload signature.
+		check.recordTypeAndValue(call.Fun, value, sig, nil)
+	} else if wasGeneric && sig.TypeParams().Len() == 0 {
 		// update the recorded type of call.Fun to its instantiated type
 		check.recordTypeAndValue(call.Fun, value, sig, nil)
 	}
@@ -936,6 +941,20 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 	}
 
 	obj, index, indirect = lookupFieldOrMethod(x.typ(), x.mode() == variable, check.pkg, sel, false)
+	if obj == nil {
+		if index != nil {
+			// Permit overloaded methods to defer final resolution to call checking.
+			if cands := check.overloadMeths[methodKey{recvName: recvBaseNameFromType(x.typ()), name: sel}]; len(cands) > 0 {
+				obj = cands[0]
+				if m := methodIndexInNamed(x.typ(), obj.(*Func)); m >= 0 {
+					index = []int{m}
+				} else {
+					index = []int{0}
+				}
+				indirect = false
+			}
+		}
+	}
 	if obj == nil {
 		// Don't report another error if the underlying type was invalid (go.dev/issue/49541).
 		if !isValid(x.typ().Underlying()) {
