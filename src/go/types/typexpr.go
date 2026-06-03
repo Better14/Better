@@ -379,6 +379,10 @@ func (check *Checker) typInternal(e0 ast.Expr, def *TypeName) (T Type) {
 		typ.elem = check.varType(e.Value)
 		return typ
 
+	case *ast.ResultTypeExpr:
+		check.error(e, InvalidSyntaxTree, "invalid use of result type (T?); allowed only in function result list")
+		check.use(e.X)
+
 	default:
 		check.errorf(e0, NotAType, "%s is not a type", e0)
 		check.use(e0)

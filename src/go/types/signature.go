@@ -30,6 +30,7 @@ type Signature struct {
 	params   *Tuple         // (incoming) parameters from left to right; or nil
 	results  *Tuple         // (outgoing) results from left to right; or nil
 	variadic bool           // true if the last parameter's type is of the form ...T
+	resultQuery bool        // true if source used single T? result shorthand
 
 	// If variadic, the last element of params ordinarily has an
 	// unnamed Slice type. As a special case, in a call to append,
@@ -142,6 +143,9 @@ func (s *Signature) Results() *Tuple { return s.results }
 // Variadic reports whether the signature s is variadic.
 func (s *Signature) Variadic() bool { return s.variadic }
 
+// ResultQuery reports whether results were written with the T? syntax.
+func (s *Signature) ResultQuery() bool { return s != nil && s.resultQuery }
+
 func (s *Signature) Underlying() Type { return s }
 func (s *Signature) String() string   { return TypeString(s, nil) }
 
@@ -176,6 +180,11 @@ func (check *Checker) funcType(sig *Signature, recvPar *ast.FieldList, ftyp *ast
 	}
 
 	// collect ordinary and result parameters
+	if ftyp.Results != nil && len(ftyp.Results.List) == 1 {
+		if _, ok := ast.Unparen(ftyp.Results.List[0].Type).(*ast.ResultTypeExpr); ok {
+			sig.resultQuery = true
+		}
+	}
 	pnames, params, variadic := check.collectParams(ParamVar, ftyp.Params)
 	rnames, results, _ := check.collectParams(ResultVar, ftyp.Results)
 
@@ -398,6 +407,16 @@ func (check *Checker) collectParams(kind VarKind, list *ast.FieldList) (names []
 	var named, anonymous bool
 	for i, field := range list.List {
 		ftype := field.Type
+		if kind == ResultVar && len(list.List) == 1 && ftype != nil {
+			if rt, ok := ast.Unparen(ftype).(*ast.ResultTypeExpr); ok {
+				elemTyp := check.varType(rt.X)
+				v0 := newVar(ResultVar, field.Pos(), check.pkg, "", elemTyp)
+				v1 := newVar(ResultVar, field.Pos(), check.pkg, "", universeError)
+				names = append(names, nil, nil)
+				params = append(params, v0, v1)
+				return names, params, variadic
+			}
+		}
 		if t, _ := ftype.(*ast.Ellipsis); t != nil {
 			ftype = t.Elt
 			if kind == ParamVar && i == len(list.List)-1 && len(field.Names) <= 1 {
