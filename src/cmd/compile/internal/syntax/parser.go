@@ -812,8 +812,8 @@ func (p *parser) funcDeclOrNil() *FuncDecl {
 		}
 	}
 
-	if p.tok == _Name {
-		f.Name = p.name()
+	if name := p.funcDeclName(); name != nil {
+		f.Name = name
 		f.TParamList, f.Type = p.funcType("")
 	} else {
 		f.Name = NewName(p.pos(), "_")
@@ -3001,6 +3001,37 @@ func (p *parser) name() *Name {
 	p.syntaxError("expected name")
 	p.advance()
 	return n
+}
+
+// funcDeclName parses an identifier or operator name for func/method declarations.
+func (p *parser) funcDeclName() *Name {
+	switch p.tok {
+	case _Name:
+		return p.name()
+	case _Operator:
+		n := NewName(p.pos(), p.op.String())
+		p.next()
+		return n
+	case _Star:
+		n := NewName(p.pos(), "*")
+		p.next()
+		return n
+	case _IncOp:
+		n := NewName(p.pos(), p.lit)
+		p.next()
+		return n
+	case _Lbrack:
+		pos := p.pos()
+		p.next()
+		name := "[]"
+		if p.tok == _Assign {
+			p.next()
+			name = "[]="
+		}
+		return NewName(pos, name)
+	default:
+		return nil
+	}
 }
 
 // IdentifierList = identifier { "," identifier } .

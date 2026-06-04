@@ -169,6 +169,10 @@ func (check *Checker) unary(x *operand, e *syntax.Operation) {
 		op = syntax.Xor
 	}
 
+	if check.tryUnaryOperatorOverload(x, e) {
+		return
+	}
+
 	if !check.op(unaryOpPredicates, x, op) {
 		x.invalidate()
 		return
@@ -822,6 +826,10 @@ func init() {
 func (check *Checker) binary(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op syntax.Operator) {
 	if op == syntax.NullCoalesce {
 		check.nullCoalesce(x, e, lhs, rhs)
+		return
+	}
+
+	if e != nil && check.tryBinaryOperatorOverload(x, e, lhs, rhs, op) {
 		return
 	}
 
