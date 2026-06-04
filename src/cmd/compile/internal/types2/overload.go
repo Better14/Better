@@ -112,6 +112,7 @@ func (check *Checker) checkOverloadDuplicates(name string, cands []*Func, kind s
 }
 
 func (check *Checker) assignOverloadSuffixes() {
+	check.validateOperatorPairs()
 	for name, cands := range check.overloadFuncs {
 		check.checkOverloadDuplicates(name, cands, "function")
 	}

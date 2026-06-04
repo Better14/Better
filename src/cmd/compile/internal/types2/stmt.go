@@ -474,6 +474,9 @@ func (check *Checker) stmt(ctxt stmtContext, s syntax.Stmt) {
 	case *syntax.AssignStmt:
 		if s.Rhs == nil {
 			// x++ or x--
+			if check.tryIncDecOperatorOverload(s, s.Op) {
+				return
+			}
 			// (no need to call unpackExpr as s.Lhs must be single-valued)
 			var x operand
 			check.expr(nil, &x, s.Lhs)
