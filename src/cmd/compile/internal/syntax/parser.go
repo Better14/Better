@@ -909,6 +909,9 @@ func (p *parser) unaryExpr() Expr {
 			return x
 		}
 
+	case _If:
+		return p.ifExpr()
+
 	case _Arrow:
 		// receive op (<-x) or receive-only channel (<-chan E)
 		pos := p.pos()
@@ -2542,6 +2545,33 @@ func emphasize(x Expr) string {
 		return "(" + s + ")"
 	}
 	return s
+}
+
+func (p *parser) ifExpr() Expr {
+	if trace {
+		defer p.trace("ifExpr")()
+	}
+
+	pos := p.pos()
+	p.next() // if
+	ie := new(IfExpr)
+	ie.pos = pos
+	outer := p.xnest
+	p.xnest = -1
+	ie.Cond = p.expr()
+	p.xnest = outer
+	p.want(_Lbrace)
+	ie.Then = p.expr()
+	p.want(_Rbrace)
+	if !p.got(_Else) {
+		p.syntaxError("if expression requires else clause")
+		p.advance(_Name, _Rparen, _Rbrack, _Rbrace)
+		return p.badExpr()
+	}
+	p.want(_Lbrace)
+	ie.Else = p.expr()
+	p.want(_Rbrace)
+	return ie
 }
 
 func (p *parser) ifStmt() *IfStmt {

@@ -345,6 +345,14 @@ type (
 		Bang Pos // position of '!'
 		expr
 	}
+
+	// IfExpr is an if expression: if cond { then } else { else }.
+	IfExpr struct {
+		Cond Expr
+		Then Expr
+		Else Expr
+		expr
+	}
 )
 
 type expr struct {

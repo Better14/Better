@@ -847,6 +847,23 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.setPos(x.Bang)
 		p.print(token.NOT)
 
+	case *ast.IfExpr:
+		p.setPos(x.If)
+		p.print(token.IF)
+		p.expr(x.Cond)
+		p.setPos(x.Lbrace)
+		p.print(token.LBRACE)
+		p.expr(x.Then)
+		p.setPos(x.Rbrace)
+		p.print(token.RBRACE)
+		p.setPos(x.Else)
+		p.print(token.ELSE)
+		p.setPos(x.Lbrace2)
+		p.print(token.LBRACE)
+		p.expr(x.ElseBody)
+		p.setPos(x.Rbrace2)
+		p.print(token.RBRACE)
+
 	case *ast.StarExpr:
 		const prec = token.UnaryPrec
 		if prec < prec1 {

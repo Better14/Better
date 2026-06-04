@@ -1880,9 +1880,42 @@ func (p *parser) parseUnaryExpr() ast.Expr {
 		p.next()
 		x := p.parseUnaryExpr()
 		return &ast.StarExpr{Star: pos, X: x}
+
+	case token.IF:
+		return p.parseIfExpr()
 	}
 
 	return p.parsePrimaryExpr(nil)
+}
+
+func (p *parser) parseIfExpr() ast.Expr {
+	if p.trace {
+		defer un(trace(p, "IfExpr"))
+	}
+
+	ifPos := p.pos
+	p.next()
+	outer := p.exprLev
+	p.exprLev = -1
+	cond := p.parseExpr()
+	p.exprLev = outer
+	lbrace := p.expect(token.LBRACE)
+	then := p.parseExpr()
+	rbrace := p.expect(token.RBRACE)
+	if p.tok != token.ELSE {
+		p.errorExpected(p.pos, "'else'")
+		return &ast.BadExpr{From: ifPos, To: p.pos}
+	}
+	elsePos := p.pos
+	p.next()
+	lbrace2 := p.expect(token.LBRACE)
+	els := p.parseExpr()
+	rbrace2 := p.expect(token.RBRACE)
+	return &ast.IfExpr{
+		If: ifPos, Cond: cond,
+		Lbrace: lbrace, Then: then, Rbrace: rbrace,
+		Else: elsePos, Lbrace2: lbrace2, ElseBody: els, Rbrace2: rbrace2,
+	}
 }
 
 func (p *parser) tokPrec() (token.Token, int) {

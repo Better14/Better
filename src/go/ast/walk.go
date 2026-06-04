@@ -143,6 +143,11 @@ func Walk(v Visitor, node Node) {
 	case *ForceExpr:
 		Walk(v, n.X)
 
+	case *IfExpr:
+		Walk(v, n.Cond)
+		Walk(v, n.Then)
+		Walk(v, n.ElseBody)
+
 	// Types
 	case *ArrayType:
 		if n.Len != nil {

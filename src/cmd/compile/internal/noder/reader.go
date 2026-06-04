@@ -2450,6 +2450,14 @@ func (r *reader) expr() (res ir.Node) {
 		y := r.expr()
 		return ir.NewNullCoalesceExpr(pos, typ, x, y)
 
+	case exprIfExpr:
+		pos := r.pos()
+		typ := r.typ()
+		cond := r.expr()
+		then := r.expr()
+		els := r.expr()
+		return ir.NewIfExpr(pos, typ, cond, then, els)
+
 	case exprCall:
 		var fun ir.Node
 		var args ir.Nodes

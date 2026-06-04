@@ -2041,6 +2041,15 @@ func (w *writer) expr(expr syntax.Expr) {
 			w.optExpr(n)
 		}
 
+	case *syntax.IfExpr:
+		tv := w.p.typeAndValue(expr)
+		w.Code(exprIfExpr)
+		w.pos(expr)
+		w.typ(tv.Type)
+		w.expr(expr.Cond)
+		w.implicitConvExpr(tv.Type, expr.Then)
+		w.implicitConvExpr(tv.Type, expr.Else)
+
 	case *syntax.TryExpr:
 		tv := w.p.typeAndValue(expr)
 		w.Code(exprTry)

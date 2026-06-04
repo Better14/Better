@@ -523,6 +523,13 @@ func (p *printer) printRawNode(n Node) {
 		p.print(n.X)
 		p.print(n.Bang, Not)
 
+	case *IfExpr:
+		p.print(_If)
+		p.print(n.Cond)
+		p.print(_Lbrace, n.Then, _Rbrace)
+		p.print(_Else)
+		p.print(_Lbrace, n.Else, _Rbrace)
+
 	case *ChanType:
 		if n.Dir == RecvOnly {
 			p.print(_Arrow)

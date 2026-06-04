@@ -847,6 +847,23 @@ func NewNullCoalesceExpr(pos src.XPos, typ *types.Type, x, y Node) *NullCoalesce
 	return n
 }
 
+// An IfExpr is an if expression.
+type IfExpr struct {
+	miniExpr
+	Cond Node
+	Then Node
+	Else Node
+}
+
+func NewIfExpr(pos src.XPos, typ *types.Type, cond, then, els Node) *IfExpr {
+	n := &IfExpr{Cond: cond, Then: then, Else: els}
+	n.pos = pos
+	n.op = OIFEXPR
+	n.SetType(typ)
+	n.SetTypecheck(1)
+	return n
+}
+
 func IsZero(n Node) bool {
 	switch n.Op() {
 	case ONIL:

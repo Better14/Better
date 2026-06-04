@@ -448,6 +448,19 @@ type (
 		X    Expr
 		Bang token.Pos // position of '!'
 	}
+
+	// An IfExpr node represents an if expression.
+	IfExpr struct {
+		If       token.Pos // position of "if"
+		Cond     Expr
+		Lbrace   token.Pos // position of "{"
+		Then     Expr
+		Rbrace   token.Pos // position of "}"
+		Else     token.Pos // position of "else"
+		Lbrace2  token.Pos // position of "{" after else
+		ElseBody Expr
+		Rbrace2  token.Pos // position of "}"
+	}
 )
 
 // The direction of a channel type is indicated by a bit
@@ -582,6 +595,8 @@ func (x *KeyValueExpr) End() token.Pos   { return x.Value.End() }
 func (x *ResultTypeExpr) End() token.Pos { return x.Bang + 1 }
 func (x *TryExpr) End() token.Pos        { return x.Bang + 1 }
 func (x *ForceExpr) End() token.Pos      { return x.Bang + 1 }
+func (x *IfExpr) Pos() token.Pos         { return x.If }
+func (x *IfExpr) End() token.Pos         { return x.Rbrace2 + 1 }
 func (x *ArrayType) End() token.Pos      { return x.Elt.End() }
 func (x *StructType) End() token.Pos     { return x.Fields.End() }
 func (x *FuncType) End() token.Pos {
@@ -616,6 +631,7 @@ func (*KeyValueExpr) exprNode()   {}
 func (*ResultTypeExpr) exprNode() {}
 func (*TryExpr) exprNode()        {}
 func (*ForceExpr) exprNode()      {}
+func (*IfExpr) exprNode()         {}
 
 func (*ArrayType) exprNode()     {}
 func (*StructType) exprNode()    {}
