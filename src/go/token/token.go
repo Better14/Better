@@ -63,8 +63,9 @@ const (
 
 	LAND  // &&
 	LOR   // ||
-	ARROW // <-
-	INC   // ++
+	ARROW    // <-
+	FATARROW // =>
+	INC      // ++
 	DEC   // --
 
 	EQL    // ==
@@ -173,8 +174,9 @@ var tokens = [...]string{
 
 	LAND:  "&&",
 	LOR:   "||",
-	ARROW: "<-",
-	INC:   "++",
+	ARROW:    "<-",
+	FATARROW: "=>",
+	INC:      "++",
 	DEC:   "--",
 
 	EQL:    "==",

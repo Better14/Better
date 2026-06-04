@@ -361,6 +361,17 @@ func (p *printer) printRawNode(n Node) {
 	case *BasicLit:
 		p.print(_Name, n.Value) // _Name requires actual value following immediately
 
+	case *LambdaExpr:
+		p.print(_Lparen)
+		for i, f := range n.ParamList {
+			if i > 0 {
+				p.print(_Comma, blank)
+			}
+			p.printNode(f.Name)
+		}
+		p.print(_Rparen, blank, _FatArrow, blank)
+		p.printNode(n.Body)
+
 	case *FuncLit:
 		p.print(n.Type, blank)
 		if n.Body != nil {

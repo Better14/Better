@@ -478,6 +478,15 @@ type (
 		Colon token.Pos // position of ":"
 		Body  Expr
 	}
+
+	// A LambdaExpr node represents (a, b) => expr.
+	LambdaExpr struct {
+		Lparen token.Pos // position of "("
+		Params []*Ident
+		Rparen token.Pos // position of ")"
+		Arrow  token.Pos // position of "=>"
+		Body   Expr
+	}
 )
 
 // The direction of a channel type is indicated by a bit
@@ -616,6 +625,8 @@ func (x *IfExpr) Pos() token.Pos         { return x.If }
 func (x *IfExpr) End() token.Pos         { return x.Rbrace2 + 1 }
 func (x *SwitchExpr) Pos() token.Pos     { return x.Switch }
 func (x *SwitchExpr) End() token.Pos     { return x.Rbrace + 1 }
+func (x *LambdaExpr) Pos() token.Pos      { return x.Lparen }
+func (x *LambdaExpr) End() token.Pos      { return x.Body.End() }
 func (x *SwitchExprClause) Pos() token.Pos {
 	if len(x.Cases) > 0 {
 		return x.Cases[0].Pos()
@@ -658,6 +669,7 @@ func (*ResultTypeExpr) exprNode() {}
 func (*TryExpr) exprNode()        {}
 func (*ForceExpr) exprNode()      {}
 func (*IfExpr) exprNode()         {}
+func (*LambdaExpr) exprNode()     {}
 func (*SwitchExpr) exprNode()     {}
 
 func (*ArrayType) exprNode()     {}

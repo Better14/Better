@@ -961,7 +961,15 @@ scanAgain:
 		case '>':
 			tok = s.switch4(token.GTR, token.GEQ, '>', token.SHR, token.SHR_ASSIGN)
 		case '=':
-			tok = s.switch2(token.ASSIGN, token.EQL)
+			if s.ch == '=' {
+				s.next()
+				tok = token.EQL
+			} else if s.ch == '>' {
+				s.next()
+				tok = token.FATARROW
+			} else {
+				tok = token.ASSIGN
+			}
 		case '!':
 			tok = s.switch2(token.NOT, token.NEQ)
 			if tok == token.NOT {

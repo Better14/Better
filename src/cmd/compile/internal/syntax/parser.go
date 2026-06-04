@@ -1009,6 +1009,91 @@ func (p *parser) callStmt() *CallStmt {
 	return s
 }
 
+// parenOrLambda parses "( Expression )" or "( a, b ) => expr".
+func (p *parser) parenOrLambda(keep_parens bool) Expr {
+	pos := p.pos()
+	p.next() // consume '('
+
+	// Lambda: ( name { "," name } ")" "=>" Expression — only when each name
+	// is followed by ',' or ')', so "(x & y)" is not mistaken for a lambda.
+	if p.tok == _Name {
+		var params []*Field
+		lambdaParams := true
+		for {
+			f := new(Field)
+			f.pos = p.pos()
+			f.Name = p.name()
+			params = append(params, f)
+			switch p.tok {
+			case _Comma:
+				p.next()
+				if p.tok != _Name {
+					lambdaParams = false
+				}
+				if lambdaParams {
+					continue
+				}
+			case _Rparen:
+			default:
+				lambdaParams = false
+			}
+			break
+		}
+		if !lambdaParams && len(params) > 0 {
+			p.xnest++
+			x := p.binaryExpr(p.pexpr(params[0].Name, false), 0)
+			p.xnest--
+			p.want(_Rparen)
+			if keep_parens {
+				px := new(ParenExpr)
+				px.pos = pos
+				px.X = x
+				x = px
+			}
+			return x
+		}
+		if lambdaParams && len(params) > 0 && p.tok == _Rparen {
+			p.next()
+			if p.tok == _FatArrow {
+				p.next()
+				lam := new(LambdaExpr)
+				lam.pos = pos
+				lam.ParamList = params
+				lam.Body = p.expr()
+				return lam
+			}
+			if len(params) == 1 {
+				x := Expr(params[0].Name)
+				if keep_parens {
+					px := new(ParenExpr)
+					px.pos = pos
+					px.X = x
+					x = px
+				}
+				return x
+			}
+			p.syntaxError("expected =>")
+			return p.badExpr()
+		}
+	}
+
+	p.xnest++
+	x := p.expr()
+	p.xnest--
+	p.want(_Rparen)
+
+	if p.tok == _Lbrace {
+		keep_parens = true
+	}
+	if keep_parens {
+		px := new(ParenExpr)
+		px.pos = pos
+		px.X = x
+		x = px
+	}
+	return x
+}
+
 // Operand     = Literal | OperandName | MethodExpr | "(" Expression ")" .
 // Literal     = BasicLit | CompositeLit | FunctionLit .
 // BasicLit    = int_lit | float_lit | imaginary_lit | rune_lit | string_lit .
@@ -1026,35 +1111,7 @@ func (p *parser) operand(keep_parens bool) Expr {
 		return p.oliteral()
 
 	case _Lparen:
-		pos := p.pos()
-		p.next()
-		p.xnest++
-		x := p.expr()
-		p.xnest--
-		p.want(_Rparen)
-
-		// Optimization: Record presence of ()'s only where needed
-		// for error reporting. Don't bother in other cases; it is
-		// just a waste of memory and time.
-		//
-		// Parentheses are not permitted around T in a composite
-		// literal T{}. If the next token is a {, assume x is a
-		// composite literal type T (it may not be, { could be
-		// the opening brace of a block, but we don't know yet).
-		if p.tok == _Lbrace {
-			keep_parens = true
-		}
-
-		// Parentheses are also not permitted around the expression
-		// in a go/defer statement. In that case, operand is called
-		// with keep_parens set.
-		if keep_parens {
-			px := new(ParenExpr)
-			px.pos = pos
-			px.X = x
-			x = px
-		}
-		return x
+		return p.parenOrLambda(keep_parens)
 
 	case _Func:
 		pos := p.pos()

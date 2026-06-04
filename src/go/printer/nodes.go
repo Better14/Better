@@ -851,6 +851,21 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.setPos(x.Bang)
 		p.print(token.NOT)
 
+	case *ast.LambdaExpr:
+		p.setPos(x.Lparen)
+		p.print(token.LPAREN)
+		for i, id := range x.Params {
+			if i > 0 {
+				p.print(token.COMMA, blank)
+			}
+			p.print(id)
+		}
+		p.setPos(x.Rparen)
+		p.print(token.RPAREN, blank)
+		p.setPos(x.Arrow)
+		p.print(token.FATARROW, blank)
+		p.expr(x.Body)
+
 	case *ast.IfExpr:
 		p.setPos(x.If)
 		p.print(token.IF)

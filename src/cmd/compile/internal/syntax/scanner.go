@@ -330,6 +330,11 @@ redo:
 			s.tok = _Operator
 			break
 		}
+		if s.ch == '>' {
+			s.nextch()
+			s.tok = _FatArrow
+			break
+		}
 		s.tok = _Assign
 
 	case '!':
