@@ -185,6 +185,10 @@ func (w *typeWriter) typ(typ Type) {
 		w.byte('*')
 		w.typ(t.base)
 
+	case *Optional:
+		w.typ(t.elem)
+		w.byte('?')
+
 	case *Tuple:
 		w.tuple(t, false)
 

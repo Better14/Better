@@ -1283,6 +1283,63 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		o.out = append(o.out, ifStmt)
 		return t0
 
+	case ir.ONULLCOND:
+		n := n.(*ir.NullCondExpr)
+		pos := n.Pos()
+		x := o.expr1(n.X, nil)
+		res := o.newTemp(n.Type(), n.Type().HasPointers())
+		niln := ir.NewNilExpr(pos, x.Type())
+		niln.SetTypecheck(1)
+		cmp := ir.NewBinaryExpr(pos, ir.OEQ, x, niln)
+		cmp.SetType(types.Types[types.TBOOL])
+		cmp.SetTypecheck(1)
+		z := ir.NewNilExpr(pos, n.Type())
+		z.SetTypecheck(1)
+		thenAs := ir.NewAssignStmt(pos, res, z)
+		thenAs.SetTypecheck(1)
+		end := nullCondEnd(n.End, n.X, x)
+		end = o.expr1(end, nil)
+		elseVal := end
+		if res.Type().IsPtr() && end.Type() != nil && types.Identical(res.Type().Elem(), end.Type()) {
+			elseVal = typecheck.Expr(typecheck.NodAddrAt(pos, end))
+		}
+		elseAs := ir.NewAssignStmt(pos, res, elseVal)
+		elseAs.SetTypecheck(1)
+		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{thenAs}, []ir.Node{elseAs})
+		ifStmt.SetTypecheck(1)
+		o.out = append(o.out, ifStmt)
+		return res
+
+	case ir.ONULLCOALESCE:
+		n := n.(*ir.NullCoalesceExpr)
+		pos := n.Pos()
+		lhs := o.expr1(n.X, nil)
+		res := o.newTemp(n.Type(), n.Type().HasPointers())
+		niln := ir.NewNilExpr(pos, lhs.Type())
+		niln.SetTypecheck(1)
+		cmp := ir.NewBinaryExpr(pos, ir.OEQ, lhs, niln)
+		cmp.SetType(types.Types[types.TBOOL])
+		cmp.SetTypecheck(1)
+		o.init(n.Y)
+		y := typecheck.DefaultLit(n.Y, n.Type())
+		elseVal := n.Y
+		if lhs.Type().IsPtr() && !n.Type().IsPtr() {
+			star := ir.NewStarExpr(pos, lhs)
+			star.SetType(n.Type())
+			star.SetTypecheck(1)
+			elseVal = star
+		} else {
+			elseVal = lhs
+		}
+		elseAs := ir.NewAssignStmt(pos, res, elseVal)
+		elseAs.SetTypecheck(1)
+		thenAs := ir.NewAssignStmt(pos, res, y)
+		thenAs.SetTypecheck(1)
+		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{thenAs}, []ir.Node{elseAs})
+		ifStmt.SetTypecheck(1)
+		o.out = append(o.out, ifStmt)
+		return res
+
 	default:
 		if o.edit == nil {
 			o.edit = o.exprNoLHS // create closure once
@@ -1689,4 +1746,24 @@ func (o *orderState) as2ok(n *ir.AssignListStmt) {
 
 	o.out = append(o.out, n)
 	o.stmt(typecheck.Stmt(as))
+}
+
+// nullCondEnd rewrites the receiver in a ?. access to use newX after the
+// base expression has been ordered (e.g. nested ?. chains).
+func nullCondEnd(end, oldX, newX ir.Node) ir.Node {
+	switch e := end.(type) {
+	case *ir.SelectorExpr:
+		if e.X == oldX {
+			a := ir.Copy(e).(*ir.SelectorExpr)
+			a.X = newX
+			return typecheck.Expr(a)
+		}
+	case *ir.IndexExpr:
+		if e.X == oldX {
+			a := ir.Copy(e).(*ir.IndexExpr)
+			a.X = newX
+			return typecheck.Expr(a)
+		}
+	}
+	return end
 }

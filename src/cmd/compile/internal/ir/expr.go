@@ -816,6 +816,37 @@ func NewForceExpr(pos src.XPos, typ *types.Type, x Node) *ForceExpr {
 	return n
 }
 
+// A NullCondExpr is a null-conditional access (?.field or ?.[index]).
+type NullCondExpr struct {
+	miniExpr
+	X   Node
+	End Node // selector or index expression
+}
+
+func NewNullCondExpr(pos src.XPos, typ *types.Type, x, end Node) *NullCondExpr {
+	n := &NullCondExpr{X: x, End: end}
+	n.pos = pos
+	n.op = ONULLCOND
+	n.SetType(typ)
+	n.SetTypecheck(1)
+	return n
+}
+
+// A NullCoalesceExpr is lhs ?? rhs.
+type NullCoalesceExpr struct {
+	miniExpr
+	X, Y Node
+}
+
+func NewNullCoalesceExpr(pos src.XPos, typ *types.Type, x, y Node) *NullCoalesceExpr {
+	n := &NullCoalesceExpr{X: x, Y: y}
+	n.pos = pos
+	n.op = ONULLCOALESCE
+	n.SetType(typ)
+	n.SetTypecheck(1)
+	return n
+}
+
 func IsZero(n Node) bool {
 	switch n.Op() {
 	case ONIL:

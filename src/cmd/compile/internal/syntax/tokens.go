@@ -119,6 +119,9 @@ const (
 	Recv  // <-
 	Tilde // ~
 
+	// precNullCoalesce
+	NullCoalesce // ??
+
 	// precOrOr
 	OrOr // ||
 
@@ -152,6 +155,7 @@ const (
 // Operator precedences
 const (
 	_ = iota
+	precNullCoalesce
 	precOrOr
 	precAndAnd
 	precCmp

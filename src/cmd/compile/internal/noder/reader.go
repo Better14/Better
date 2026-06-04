@@ -2447,6 +2447,21 @@ func (r *reader) expr() (res ir.Node) {
 		x := r.expr()
 		return ir.NewForceExpr(pos, typ, x)
 
+	case exprNullCond:
+		pos := r.pos()
+		typ := r.typ()
+		x := r.expr()
+		sym := r.selector()
+		dot := typecheck.XDotField(pos, x, sym)
+		return ir.NewNullCondExpr(pos, typ, x, dot)
+
+	case exprNullCoalesce:
+		pos := r.pos()
+		typ := r.typ()
+		x := r.expr()
+		y := r.expr()
+		return ir.NewNullCoalesceExpr(pos, typ, x, y)
+
 	case exprCall:
 		var fun ir.Node
 		var args ir.Nodes

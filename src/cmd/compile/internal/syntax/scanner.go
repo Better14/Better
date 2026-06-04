@@ -351,6 +351,12 @@ redo:
 
 	case '?':
 		s.nextch()
+		if s.ch == '?' {
+			s.nextch()
+			s.op, s.prec = NullCoalesce, precNullCoalesce
+			s.tok = _Operator
+			break
+		}
 		s.nlsemi = true
 		s.tok = _Question
 

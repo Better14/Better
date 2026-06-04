@@ -399,7 +399,13 @@ func (check *Checker) updateExprType(x syntax.Expr, typ Type, final bool) {
 	}
 
 	// Everything's fine, record final type and value for x.
-	check.recordTypeAndValue(x, old.mode, typ, old.val)
+	mode, val := old.mode, old.val
+	if _, ok := typ.Underlying().(*Optional); ok && val != nil {
+		// Nullable values are lowered to pointers; not compile-time constants.
+		mode = value
+		val = nil
+	}
+	check.recordTypeAndValue(x, mode, typ, val)
 }
 
 // updateExprVal updates the value of x to val.
@@ -470,6 +476,13 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 		default:
 			return nil, nil, InvalidUntypedConversion
 		}
+	case *Optional:
+		_, val, code := check.implicitTypeAndValue(x, u.elem)
+		if code != 0 {
+			return nil, nil, code
+		}
+		return target, val, code
+
 	case *Interface:
 		if isTypeParam(target) {
 			if !underIs(target, func(u Type) bool {
@@ -795,6 +808,11 @@ func init() {
 // If e != nil, it must be the binary expression; it may be nil for non-constant expressions
 // (when invoked for an assignment operation where the binary expression is implicit).
 func (check *Checker) binary(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op syntax.Operator) {
+	if op == syntax.NullCoalesce {
+		check.nullCoalesce(x, e, lhs, rhs)
+		return
+	}
+
 	var y operand
 
 	check.expr(nil, x, lhs)
@@ -1088,9 +1106,17 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		return kind
 
 	case *syntax.SelectorExpr:
-		check.selector(x, e, false)
+		if nc, ok := e.X.(*syntax.NullCondExpr); ok {
+			check.nullCondSelector(x, e, nc)
+		} else {
+			check.selector(x, e, false)
+		}
 
 	case *syntax.IndexExpr:
+		if nc, ok := e.X.(*syntax.NullCondExpr); ok {
+			check.nullCondIndex(x, e, nc)
+			break
+		}
 		if check.indexExpr(x, e) {
 			if !enableReverseTypeInference {
 				T = nil
@@ -1141,6 +1167,10 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		// x.(type) expressions are handled explicitly in type switches
 		check.error(e, InvalidSyntaxTree, "use of .(type) outside type switch")
 		check.use(e.X)
+		goto Error
+
+	case *syntax.NullCondExpr:
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone ?.; use ?.field or ?.[index]")
 		goto Error
 
 	case *syntax.TryExpr:
@@ -1507,6 +1537,9 @@ var op2tok = [...]token.Token{
 	syntax.Def:  token.ILLEGAL,
 	syntax.Not:  token.NOT,
 	syntax.Recv: token.ILLEGAL,
+	syntax.Tilde: token.ILLEGAL,
+
+	syntax.NullCoalesce: token.ILLEGAL,
 
 	syntax.OrOr:   token.LOR,
 	syntax.AndAnd: token.LAND,

@@ -509,6 +509,12 @@ func (p *printer) printRawNode(n Node) {
 		p.print(n.Elem)
 		p.print(n.Bang, Not)
 
+	case *NullableType:
+		p.print(n.Elem, _Question)
+
+	case *NullCondExpr:
+		p.print(n.X, _Question)
+
 	case *TryExpr:
 		p.print(n.X)
 		p.print(n.Bang, Not)
