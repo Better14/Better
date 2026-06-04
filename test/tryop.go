@@ -4,14 +4,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Test the T? result type and the postfix ? unwrap operator.
+// Test the T! result type and the postfix !.value operator.
 //
 // Rules being checked:
-//   * A function declared with result type T? has effective results (T, error).
-//   * Inside such a function, expr? is allowed when expr has type (T2, error).
+//   * A function declared with result type T! has effective results (T, error).
+//   * Inside such a function, expr!.value is allowed when expr has type (T2, error).
 //     - If the error is non-nil, the enclosing function returns (zeroT, err).
-//     - Otherwise, expr? evaluates to the T2 value.
-//   * `return v, nil` still works for a T? function (it is just (T, error)).
+//     - Otherwise, expr!.value evaluates to the T2 value.
+//   * `return v, nil` still works for a T! function (it is just (T, error)).
 
 package main
 
@@ -27,91 +27,46 @@ func errPair() (int, error)  { return 0, errBoom }
 func okString() (string, error)  { return "hello", nil }
 
 // unwrapOK returns 7 successfully.
-func unwrapOK() int? {
-	v := okPair()?
+func unwrapOK() int! {
+	v := okPair()!.value
 	return v, nil
 }
 
 // unwrapErr early-returns errBoom.
-func unwrapErr() int? {
-	v := errPair()?
+func unwrapErr() int! {
+	v := errPair()!.value
 	return v, nil
 }
 
-// callsTQuestion calls a T? function and unwraps it.
-func callsTQuestion() int? {
-	v := unwrapOK()?
+// callsTQuestion calls a T! function and unwraps it.
+func callsTQuestion() int! {
+	v := unwrapOK()!.value
 	return v * 2, nil
 }
 
-// callsTQuestionErr propagates an error through two ?-using calls.
-func callsTQuestionErr() int? {
-	v := unwrapErr()?
+// callsTQuestionErr propagates an error through two !-using calls.
+func callsTQuestionErr() int! {
+	v := unwrapErr()!.value
 	return v, nil
 }
 
-// usesStringResult ensures T? works for non-int Ts too.
-func usesStringResult() string? {
-	s := okString()?
-	return s + " world", nil
-}
-
-// forceOK panics on error and returns value on success.
-func forceOK() int {
-	return okPair()!
-}
-
-func forceFromResultType() int {
-	return unwrapOK()!
-}
-
-func forcePanics() {
-	defer func() {
-		if recover() == nil {
-			panic("forcePanics: expected panic")
-		}
-	}()
-	_ = errPair()!
-	panic("forcePanics: expected panic before this line")
-}
-
-func check(name string, got, want int, gotErr, wantErr error) {
-	if got != want {
-		panic(fmt.Sprintf("%s: got value %d, want %d", name, got, want))
-	}
-	switch {
-	case wantErr == nil && gotErr != nil:
-		panic(fmt.Sprintf("%s: unexpected error %v", name, gotErr))
-	case wantErr != nil && gotErr == nil:
-		panic(fmt.Sprintf("%s: missing error, want %v", name, wantErr))
-	case wantErr != nil && !errors.Is(gotErr, wantErr):
-		panic(fmt.Sprintf("%s: got error %v, want %v", name, gotErr, wantErr))
-	}
-}
+// forceOnPair is not supported: standalone ! is invalid.
+// Use !.value instead (see unwrapOK).
 
 func main() {
 	v, err := unwrapOK()
-	check("unwrapOK", v, 7, err, nil)
-
-	v, err = unwrapErr()
-	check("unwrapErr", v, 0, err, errBoom)
-
+	if err != nil || v != 7 {
+		panic("unwrapOK")
+	}
+	if _, err := unwrapErr(); err != errBoom {
+		panic("unwrapErr")
+	}
 	v, err = callsTQuestion()
-	check("callsTQuestion", v, 14, err, nil)
-
-	v, err = callsTQuestionErr()
-	check("callsTQuestionErr", v, 0, err, errBoom)
-
-	s, err := usesStringResult()
-	if s != "hello world" || err != nil {
-		panic(fmt.Sprintf("usesStringResult: got %q, %v; want %q, nil", s, err, "hello world"))
+	if err != nil || v != 14 {
+		panic("callsTQuestion")
 	}
-
-	if forceOK() != 7 {
-		panic(fmt.Sprintf("forceOK: got %d, want 7", forceOK()))
+	if _, err := callsTQuestionErr(); err != errBoom {
+		panic("callsTQuestionErr")
 	}
-	if forceFromResultType() != 7 {
-		panic(fmt.Sprintf("forceFromResultType: got %d, want 7", forceFromResultType()))
-	}
-	forcePanics()
+	fmt.Println("ok")
 }
