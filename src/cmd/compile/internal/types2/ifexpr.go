@@ -65,3 +65,17 @@ func (check *Checker) branchCommonType(e syntax.Expr, a, b *operand) Type {
 	check.errorf(e, MismatchedTypes, "mismatched types %s and %s", at, bt)
 	return Typ[Invalid]
 }
+
+func (check *Checker) mergeBranchTypes(e syntax.Expr, arms []*operand) Type {
+	t := arms[0].typ()
+	for i := 1; i < len(arms); i++ {
+		var prev operand
+		prev.mode_ = value
+		prev.typ_ = t
+		t = check.branchCommonType(e, &prev, arms[i])
+		if !isValid(t) {
+			return Typ[Invalid]
+		}
+	}
+	return t
+}

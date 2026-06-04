@@ -530,6 +530,23 @@ func (p *printer) printRawNode(n Node) {
 		p.print(_Else)
 		p.print(_Lbrace, n.Else, _Rbrace)
 
+	case *SwitchExpr:
+		p.print(_Switch)
+		p.print(n.Tag)
+		p.print(_Lbrace)
+		for _, c := range n.Body {
+			p.print(c)
+		}
+		p.print(_Rbrace)
+
+	case *SwitchExprClause:
+		if n.Cases != nil {
+			p.print(_Case, n.Cases)
+		} else {
+			p.print(_Default)
+		}
+		p.print(_Colon, n.Body)
+
 	case *ChanType:
 		if n.Dir == RecvOnly {
 			p.print(_Arrow)

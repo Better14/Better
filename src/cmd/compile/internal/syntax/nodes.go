@@ -371,6 +371,22 @@ type (
 		Else Expr
 		expr
 	}
+
+	// SwitchExpr is a switch expression: switch tag { case ...: body ... }.
+	SwitchExpr struct {
+		Tag    Expr
+		Body   []*SwitchExprClause
+		Rbrace Pos
+		expr
+	}
+
+	// SwitchExprClause is a case arm in a switch expression.
+	SwitchExprClause struct {
+		Cases Expr // nil means default
+		Colon Pos
+		Body  Expr
+		node
+	}
 )
 
 type expr struct {

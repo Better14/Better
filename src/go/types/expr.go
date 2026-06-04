@@ -301,6 +301,13 @@ func (check *Checker) updateExprType(x ast.Expr, typ Type, final bool) {
 		check.updateExprType(x.Then, typ, final)
 		check.updateExprType(x.ElseBody, typ, final)
 
+	case *ast.SwitchExpr:
+		for _, c := range x.Body {
+			if c != nil {
+				check.updateExprType(c.Body, typ, final)
+			}
+		}
+
 	case *ast.ForceExpr:
 		check.updateExprType(x.X, typ, final)
 
@@ -1141,6 +1148,12 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 
 	case *ast.IfExpr:
 		check.ifExpr(x, e)
+		if !x.isValid() {
+			goto Error
+		}
+
+	case *ast.SwitchExpr:
+		check.switchExpr(x, e)
 		if !x.isValid() {
 			goto Error
 		}

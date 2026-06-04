@@ -2470,6 +2470,32 @@ func (r *reader) expr() (res ir.Node) {
 		els := r.expr()
 		return ir.NewIfExpr(pos, typ, cond, then, els)
 
+	case exprSwitchExpr:
+		pos := r.pos()
+		typ := r.typ()
+		var tag ir.Node
+		if r.Bool() {
+			tag = r.expr()
+		} else {
+			tag = ir.NewBasicLit(pos, types.Types[types.TBOOL], constant.MakeBool(true))
+			tag.SetTypecheck(1)
+		}
+		n := r.Len()
+		cases := make([]*ir.SwitchCaseArm, n)
+		for i := range cases {
+			var list []ir.Node
+			if r.Bool() {
+				m := r.Len()
+				list = make([]ir.Node, m)
+				for j := range list {
+					list[j] = r.expr()
+				}
+			}
+			body := r.expr()
+			cases[i] = &ir.SwitchCaseArm{List: list, Body: body}
+		}
+		return ir.NewSwitchExpr(pos, typ, tag, cases)
+
 	case exprCall:
 		var fun ir.Node
 		var args ir.Nodes

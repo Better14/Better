@@ -461,6 +461,22 @@ type (
 		ElseBody Expr
 		Rbrace2  token.Pos // position of "}"
 	}
+
+	// A SwitchExpr node represents a switch expression.
+	SwitchExpr struct {
+		Switch token.Pos // position of "switch"
+		Tag    Expr      // nil means true
+		Lbrace token.Pos // position of "{"
+		Body   []*SwitchExprClause
+		Rbrace token.Pos // position of "}"
+	}
+
+	// A SwitchExprClause is a case arm in a switch expression.
+	SwitchExprClause struct {
+		Cases []Expr    // nil means default
+		Colon token.Pos // position of ":"
+		Body  Expr
+	}
 )
 
 // The direction of a channel type is indicated by a bit
@@ -597,6 +613,15 @@ func (x *TryExpr) End() token.Pos        { return x.Bang + 1 }
 func (x *ForceExpr) End() token.Pos      { return x.Bang + 1 }
 func (x *IfExpr) Pos() token.Pos         { return x.If }
 func (x *IfExpr) End() token.Pos         { return x.Rbrace2 + 1 }
+func (x *SwitchExpr) Pos() token.Pos     { return x.Switch }
+func (x *SwitchExpr) End() token.Pos     { return x.Rbrace + 1 }
+func (x *SwitchExprClause) Pos() token.Pos {
+	if len(x.Cases) > 0 {
+		return x.Cases[0].Pos()
+	}
+	return x.Colon
+}
+func (x *SwitchExprClause) End() token.Pos { return x.Body.End() }
 func (x *ArrayType) End() token.Pos      { return x.Elt.End() }
 func (x *StructType) End() token.Pos     { return x.Fields.End() }
 func (x *FuncType) End() token.Pos {
@@ -632,6 +657,7 @@ func (*ResultTypeExpr) exprNode() {}
 func (*TryExpr) exprNode()        {}
 func (*ForceExpr) exprNode()      {}
 func (*IfExpr) exprNode()         {}
+func (*SwitchExpr) exprNode()     {}
 
 func (*ArrayType) exprNode()     {}
 func (*StructType) exprNode()    {}

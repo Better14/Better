@@ -228,6 +228,24 @@ func (w walker) node(n Node) {
 		w.node(n.Then)
 		w.node(n.Else)
 
+	case *SwitchExpr:
+		w.node(n.Tag)
+		for _, c := range n.Body {
+			if c == nil {
+				continue
+			}
+			if c.Cases != nil {
+				w.node(c.Cases)
+			}
+			w.node(c.Body)
+		}
+
+	case *SwitchExprClause:
+		if n.Cases != nil {
+			w.node(n.Cases)
+		}
+		w.node(n.Body)
+
 	case *ChanType:
 		w.node(n.Elem)
 

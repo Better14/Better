@@ -864,6 +864,28 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.setPos(x.Rbrace2)
 		p.print(token.RBRACE)
 
+	case *ast.SwitchExpr:
+		p.setPos(x.Switch)
+		p.print(token.SWITCH)
+		if x.Tag != nil {
+			p.expr(x.Tag)
+		}
+		p.setPos(x.Lbrace)
+		p.print(token.LBRACE)
+		for _, c := range x.Body {
+			if len(c.Cases) > 0 {
+				p.print(token.CASE, blank)
+				p.exprList(c.Cases[0].Pos(), c.Cases, 1, 0, c.Colon, false)
+			} else {
+				p.print(token.DEFAULT)
+			}
+			p.setPos(c.Colon)
+			p.print(token.COLON)
+			p.expr(c.Body)
+		}
+		p.setPos(x.Rbrace)
+		p.print(token.RBRACE)
+
 	case *ast.StarExpr:
 		const prec = token.UnaryPrec
 		if prec < prec1 {

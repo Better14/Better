@@ -920,6 +920,9 @@ func (p *parser) unaryExpr() Expr {
 	case _If:
 		return p.ifExpr()
 
+	case _Switch:
+		return p.switchExpr()
+
 	case _Arrow:
 		// receive op (<-x) or receive-only channel (<-chan E)
 		pos := p.pos()
@@ -2580,6 +2583,64 @@ func (p *parser) ifExpr() Expr {
 	ie.Else = p.expr()
 	p.want(_Rbrace)
 	return ie
+}
+
+func (p *parser) switchExpr() Expr {
+	if trace {
+		defer p.trace("switchExpr")()
+	}
+
+	pos := p.pos()
+	p.next() // switch
+	se := new(SwitchExpr)
+	se.pos = pos
+	outer := p.xnest
+	p.xnest = -1
+	if p.tok != _Lbrace {
+		se.Tag = p.expr()
+	}
+	p.xnest = outer
+	if !p.got(_Lbrace) {
+		p.syntaxError("missing { after switch")
+		p.advance(_Case, _Default, _Rbrace)
+	}
+	for p.tok != _EOF && p.tok != _Rbrace {
+		if p.tok == _Semi {
+			p.next()
+			continue
+		}
+		se.Body = append(se.Body, p.switchExprClause())
+	}
+	se.Rbrace = p.pos()
+	p.want(_Rbrace)
+	return se
+}
+
+func (p *parser) switchExprClause() *SwitchExprClause {
+	if trace {
+		defer p.trace("switchExprClause")()
+	}
+
+	c := new(SwitchExprClause)
+	c.pos = p.pos()
+
+	switch p.tok {
+	case _Case:
+		p.next()
+		c.Cases = p.exprList()
+
+	case _Default:
+		p.next()
+
+	default:
+		p.syntaxError("expected case or default or }")
+		p.advance(_Colon, _Case, _Default, _Rbrace)
+	}
+
+	c.Colon = p.pos()
+	p.want(_Colon)
+	c.Body = p.expr()
+	return c
 }
 
 func (p *parser) ifStmt() *IfStmt {
