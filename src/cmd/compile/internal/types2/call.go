@@ -409,8 +409,11 @@ func (check *Checker) selectOverload(call *syntax.CallExpr, cands []*Func, args 
 			} else if nargs < npars-1 {
 				continue
 			}
-		} else if nargs != npars {
-			continue
+		} else {
+			min := sigMinParams(sig)
+			if nargs < min || nargs > npars {
+				continue
+			}
 		}
 
 		ok := true
@@ -420,7 +423,11 @@ func (check *Checker) selectOverload(call *syntax.CallExpr, cands []*Func, args 
 			fixed = npars - 1
 		}
 		for i := 0; i < fixed; i++ {
-			arg := *args[i]
+			arg, okArg := overloadArgOperand(args, nargs, i, sig.params.vars[i])
+			if !okArg {
+				ok = false
+				break
+			}
 			if okAssign, _ := arg.assignableTo(check, sig.params.vars[i].typ, nil); !okAssign {
 				ok = false
 				break
@@ -656,6 +663,11 @@ func (check *Checker) arguments(call *syntax.CallExpr, sig *Signature, targs []T
 			return
 		}
 		// standard_func(a, b, c)
+	}
+
+	if !sig.variadic && nargs < npars {
+		args = check.appendDefaultArgs(call, sig, args)
+		nargs = len(args)
 	}
 
 	// check argument count

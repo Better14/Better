@@ -196,6 +196,9 @@ func (w walker) node(n Node) {
 			w.node(n.Name)
 		}
 		w.node(n.Type)
+		if n.Default != nil {
+			w.node(n.Default)
+		}
 
 	case *InterfaceType:
 		w.fieldList(n.MethodList)

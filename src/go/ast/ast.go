@@ -203,6 +203,7 @@ type Field struct {
 	Names   []*Ident      // field/method/(type) parameter names; or nil
 	Type    Expr          // field/method/parameter type; or nil
 	Tag     *BasicLit     // field tag; or nil
+	Default Expr          // parameter default value; or nil
 	Comment *CommentGroup // line comments; or nil
 }
 
