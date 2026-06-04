@@ -1310,6 +1310,22 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		o.out = append(o.out, ifStmt)
 		return res
 
+	case ir.OIFEXPR:
+		n := n.(*ir.IfExpr)
+		pos := n.Pos()
+		cond := o.expr1(n.Cond, nil)
+		res := o.newTemp(n.Type(), n.Type().HasPointers())
+		thenE := typecheck.DefaultLit(o.expr1(n.Then, nil), n.Type())
+		elseE := typecheck.DefaultLit(o.expr1(n.Else, nil), n.Type())
+		thenAs := ir.NewAssignStmt(pos, res, thenE)
+		thenAs.SetTypecheck(1)
+		elseAs := ir.NewAssignStmt(pos, res, elseE)
+		elseAs.SetTypecheck(1)
+		ifStmt := ir.NewIfStmt(pos, cond, []ir.Node{thenAs}, []ir.Node{elseAs})
+		ifStmt.SetTypecheck(1)
+		o.out = append(o.out, ifStmt)
+		return res
+
 	case ir.ONULLCOALESCE:
 		n := n.(*ir.NullCoalesceExpr)
 		pos := n.Pos()

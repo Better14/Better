@@ -314,6 +314,8 @@ const (
 	ONULLCOND     // ?. access on nullable value
 	ONULLCOALESCE // ?? null coalescing
 
+	OIFEXPR // if cond { then } else { else }
+
 	OEND
 )
 

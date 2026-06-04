@@ -223,6 +223,11 @@ func (w walker) node(n Node) {
 	case *ForceExpr:
 		w.node(n.X)
 
+	case *IfExpr:
+		w.node(n.Cond)
+		w.node(n.Then)
+		w.node(n.Else)
+
 	case *ChanType:
 		w.node(n.Elem)
 
