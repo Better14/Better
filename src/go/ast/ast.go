@@ -429,19 +429,21 @@ type (
 		Value Expr
 	}
 
-	// A ResultTypeExpr node represents a result shorthand type T?.
+	// A ResultTypeExpr node represents a result shorthand type T!.
 	ResultTypeExpr struct {
-		X         Expr
-		Question  token.Pos // position of '?'
+		X    Expr
+		Bang token.Pos // position of '!'
 	}
 
-	// A TryExpr node represents a postfix try expression x?.
+	// A TryExpr node represents error propagation: x!.value or the
+	// prefix of x!.field (parsed as SelectorExpr{TryExpr{X}, Sel}).
 	TryExpr struct {
-		X        Expr
-		Question token.Pos // position of '?'
+		X    Expr
+		Bang token.Pos // position of '!'
 	}
 
-	// A ForceExpr node represents a postfix force expression x!.
+	// A ForceExpr node is no longer produced by the parser; it remains
+	// for backward compatibility in existing tools.
 	ForceExpr struct {
 		X    Expr
 		Bang token.Pos // position of '!'
@@ -577,8 +579,8 @@ func (x *StarExpr) End() token.Pos       { return x.X.End() }
 func (x *UnaryExpr) End() token.Pos      { return x.X.End() }
 func (x *BinaryExpr) End() token.Pos     { return x.Y.End() }
 func (x *KeyValueExpr) End() token.Pos   { return x.Value.End() }
-func (x *ResultTypeExpr) End() token.Pos { return x.Question + 1 }
-func (x *TryExpr) End() token.Pos        { return x.Question + 1 }
+func (x *ResultTypeExpr) End() token.Pos { return x.Bang + 1 }
+func (x *TryExpr) End() token.Pos        { return x.Bang + 1 }
 func (x *ForceExpr) End() token.Pos      { return x.Bang + 1 }
 func (x *ArrayType) End() token.Pos      { return x.Elt.End() }
 func (x *StructType) End() token.Pos     { return x.Fields.End() }

@@ -329,21 +329,21 @@ type (
 		expr
 	}
 
-	// Elem?  result type: (Elem, error)
+	// Elem!  result type: (Elem, error)
 	ResultType struct {
 		Elem Expr
-		QPos Pos // position of '?'
+		Bang Pos // position of '!'
 		expr
 	}
 
-	// X? unwrap success value or propagate error (early return)
+	// X! error propagation (.value or prefix of .field selector)
 	TryExpr struct {
-		X   Expr
-		QPos Pos // position of '?'
+		X    Expr
+		Bang Pos // position of '!'
 		expr
 	}
 
-	// X! unwrap success value or panic(error) if error is non-nil
+	// ForceExpr is no longer produced by the parser.
 	ForceExpr struct {
 		X    Expr
 		Bang Pos // position of '!'

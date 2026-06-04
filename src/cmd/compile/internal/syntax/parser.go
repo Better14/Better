@@ -1247,26 +1247,36 @@ loop:
 			n.Type = x
 			x = n
 
-		case _Question:
-			qpos := p.pos()
-			p.next()
-			t := new(TryExpr)
-			t.pos = x.Pos()
-			t.QPos = qpos
-			t.X = x
-			x = t
-
 		case _Operator:
 			if p.op != Not {
 				break loop
 			}
 			bang := p.pos()
 			p.next()
-			t := new(ForceExpr)
+			if p.tok != _Dot {
+				p.syntaxError("expected '.' after !'")
+				x = p.badExpr()
+				return x
+			}
+			p.next() // '.'
+			if p.tok != _Name {
+				p.syntaxError("expected identifier after !.'")
+				x = p.badExpr()
+				return x
+			}
+			sel := p.name()
+			t := new(TryExpr)
 			t.pos = x.Pos()
 			t.Bang = bang
 			t.X = x
 			x = t
+			if sel.Value != "value" {
+				s := new(SelectorExpr)
+				s.pos = x.Pos()
+				s.X = t
+				s.Sel = sel
+				x = s
+			}
 
 		default:
 			break loop
@@ -1372,12 +1382,12 @@ func newIndirect(pos Pos, typ Expr) Expr {
 //		      SliceType | MapType | Channel_Type .
 func (p *parser) typeOrNil() Expr {
 	typ := p.baseTypeOrNil()
-	for typ != nil && p.tok == _Question {
-		qpos := p.pos()
+	for typ != nil && p.tok == _Operator && p.op == Not {
+		bang := p.pos()
 		p.next()
 		rt := new(ResultType)
 		rt.pos = typ.Pos()
-		rt.QPos = qpos
+		rt.Bang = bang
 		rt.Elem = typ
 		typ = rt
 	}

@@ -1150,10 +1150,8 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		}
 
 	case *syntax.ForceExpr:
-		check.forceExpr(x, e)
-		if !x.isValid() {
-			goto Error
-		}
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone !; use !.value or !.field")
+		goto Error
 
 	case *syntax.CallExpr:
 		return check.callExpr(x, e)
@@ -1354,7 +1352,7 @@ func (check *Checker) tryExpr(x *operand, e *syntax.TryExpr) {
 	}
 	tup, ok := inner.typ().(*Tuple)
 	if !ok || tup.Len() != 2 {
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: ? requires expression of type (T, error), got %s", inner.typ())
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: !.value requires expression of type (T, error), got %s", inner.typ())
 		x.invalidate()
 		return
 	}

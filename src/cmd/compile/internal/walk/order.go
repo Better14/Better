@@ -1219,7 +1219,7 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		fn := ir.CurFunc
 		r := fn.Type().Results()
 		if len(r) != 2 {
-			base.FatalfAt(n.Pos(), "invalid use of ? — enclosing function must have results (T, error)")
+			base.FatalfAt(n.Pos(), "invalid use of ! — enclosing function must have results (T, error)")
 		}
 		zero := ir.NewZero(pos, r[0].Type)
 		zero.SetTypecheck(1)
@@ -1267,9 +1267,18 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		cmp := ir.NewBinaryExpr(pos, ir.ONE, t1, nilErr)
 		cmp.SetType(types.Types[types.TBOOL])
 		cmp.SetTypecheck(1)
-		pan := ir.NewUnaryExpr(pos, ir.OPANIC, t1)
-		typecheck.Stmt(pan)
-		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{pan}, nil)
+		fn := ir.CurFunc
+		r := fn.Type().Results()
+		if len(r) != 2 {
+			base.FatalfAt(n.Pos(), "invalid use of ! — enclosing function must have results (T, error)")
+		}
+		retvals := []ir.Node{ir.NewZero(pos, r[0].Type), t1}
+		for i := range retvals {
+			retvals[i].SetTypecheck(1)
+		}
+		rs := ir.NewReturnStmt(pos, retvals)
+		rs.SetTypecheck(1)
+		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{rs}, nil)
 		ifStmt.SetTypecheck(1)
 		o.out = append(o.out, ifStmt)
 		return t0

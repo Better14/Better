@@ -531,10 +531,10 @@ func (p *parser) parseType() ast.Expr {
 		return &ast.BadExpr{From: pos, To: p.pos}
 	}
 
-	for typ != nil && p.tok == token.QUESTION {
-		q := p.pos
+	for typ != nil && p.tok == token.NOT {
+		b := p.pos
 		p.next()
-		typ = &ast.ResultTypeExpr{X: typ, Question: q}
+		typ = &ast.ResultTypeExpr{X: typ, Bang: b}
 	}
 	return typ
 }
@@ -1102,10 +1102,10 @@ func (p *parser) parseParameters(result bool) *ast.FieldList {
 	}
 
 	if typ := p.tryIdentOrType(); typ != nil {
-		for p.tok == token.QUESTION {
-			q := p.pos
+		for p.tok == token.NOT {
+			b := p.pos
 			p.next()
-			typ = &ast.ResultTypeExpr{X: typ, Question: q}
+			typ = &ast.ResultTypeExpr{X: typ, Bang: b}
 		}
 		list := make([]*ast.Field, 1)
 		list[0] = &ast.Field{Type: typ}
@@ -1788,14 +1788,26 @@ func (p *parser) parsePrimaryExpr(x ast.Expr) ast.Expr {
 				// already progressed, no need to advance
 			}
 			x = p.parseLiteralValue(x)
-		case token.QUESTION:
-			q := p.pos
-			p.next()
-			x = &ast.TryExpr{X: x, Question: q}
 		case token.NOT:
 			b := p.pos
 			p.next()
-			x = &ast.ForceExpr{X: x, Bang: b}
+			if p.tok != token.PERIOD {
+				p.errorExpected(p.pos, "'.' after !'")
+				x = &ast.BadExpr{From: b, To: p.pos}
+				return x
+			}
+			p.next() // '.'
+			if p.tok != token.IDENT {
+				p.errorExpected(p.pos, "identifier after !.'")
+				x = &ast.BadExpr{From: b, To: p.pos}
+				return x
+			}
+			sel := &ast.Ident{NamePos: p.pos, Name: p.lit}
+			p.next()
+			x = &ast.TryExpr{X: x, Bang: b}
+			if sel.Name != "value" {
+				x = &ast.SelectorExpr{X: x, Sel: sel}
+			}
 		default:
 			return x
 		}

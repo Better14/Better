@@ -834,13 +834,13 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 
 	case *ast.ResultTypeExpr:
 		p.expr1(x.X, token.HighestPrec, depth)
-		p.setPos(x.Question)
-		p.print(token.QUESTION)
+		p.setPos(x.Bang)
+		p.print(token.NOT)
 
 	case *ast.TryExpr:
 		p.expr1(x.X, token.HighestPrec, depth)
-		p.setPos(x.Question)
-		p.print(token.QUESTION)
+		p.setPos(x.Bang)
+		p.print(token.NOT)
 
 	case *ast.ForceExpr:
 		p.expr1(x.X, token.HighestPrec, depth)
