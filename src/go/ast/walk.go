@@ -160,6 +160,12 @@ func Walk(v Visitor, node Node) {
 			Walk(v, c.Body)
 		}
 
+	case *LambdaExpr:
+		for _, id := range n.Params {
+			Walk(v, id)
+		}
+		Walk(v, n.Body)
+
 	// Types
 	case *ArrayType:
 		if n.Len != nil {

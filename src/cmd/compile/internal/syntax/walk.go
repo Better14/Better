@@ -128,6 +128,14 @@ func (w walker) node(n Node) {
 		w.node(n.Type)
 		w.node(n.Body)
 
+	case *LambdaExpr:
+		for _, f := range n.ParamList {
+			if f != nil && f.Name != nil {
+				w.node(f.Name)
+			}
+		}
+		w.node(n.Body)
+
 	case *ParenExpr:
 		w.node(n.X)
 

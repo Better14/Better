@@ -1965,6 +1965,10 @@ func (w *writer) expr(expr syntax.Expr) {
 		w.Code(exprFuncLit)
 		w.funcLit(expr)
 
+	case *syntax.LambdaExpr:
+		w.Code(exprFuncLit)
+		w.lambdaExpr(expr)
+
 	case *syntax.SelectorExpr:
 		if nc, ok := syntax.Unparen(expr.X).(*syntax.NullCondExpr); ok {
 			tv := w.p.typeAndValue(expr)
@@ -2690,6 +2694,30 @@ func (w *writer) funcLit(expr *syntax.FuncLit) {
 	w.pos(expr)
 	w.signature(sig)
 	w.Bool(w.p.rangeFuncBodyClosures[expr])
+
+	w.Len(len(closureVars))
+	for _, cv := range closureVars {
+		w.pos(cv.pos)
+		w.useLocal(cv.pos, cv.var_)
+	}
+
+	w.Reloc(pkgbits.SectionBody, body)
+}
+
+func (w *writer) lambdaExpr(expr *syntax.LambdaExpr) {
+	sig := w.p.typeOf(expr).(*types2.Signature)
+	ret := new(syntax.ReturnStmt)
+	ret.SetPos(expr.Body.Pos())
+	ret.Results = expr.Body
+	block := new(syntax.BlockStmt)
+	block.SetPos(expr.Pos())
+	block.List = []syntax.Stmt{ret}
+	body, closureVars := w.p.bodyIdx(sig, block, w.dict)
+
+	w.Sync(pkgbits.SyncFuncLit)
+	w.pos(expr)
+	w.signature(sig)
+	w.Bool(false)
 
 	w.Len(len(closureVars))
 	for _, cv := range closureVars {

@@ -1490,6 +1490,58 @@ func (p *parser) parseFuncTypeOrLit() ast.Expr {
 
 // parseOperand may return an expression or a raw type (incl. array
 // types of the form [...]T). Callers must verify the result.
+func (p *parser) parenOrLambda() ast.Expr {
+	lparen := p.pos
+	p.next()
+	if p.tok == token.IDENT {
+		var params []*ast.Ident
+		lambdaParams := true
+		for {
+			params = append(params, p.parseIdent())
+			switch p.tok {
+			case token.COMMA:
+				p.next()
+				if p.tok != token.IDENT {
+					lambdaParams = false
+				}
+				if lambdaParams {
+					continue
+				}
+			case token.RPAREN:
+			default:
+				lambdaParams = false
+			}
+			break
+		}
+		if !lambdaParams && len(params) > 0 {
+			p.exprLev++
+			x := p.parseBinaryExpr(p.parsePrimaryExpr(params[0]), token.LowestPrec+1)
+			p.exprLev--
+			rparen := p.expect(token.RPAREN)
+			return &ast.ParenExpr{Lparen: lparen, X: x, Rparen: rparen}
+		}
+		if lambdaParams && len(params) > 0 && p.tok == token.RPAREN {
+			rparen := p.expect(token.RPAREN)
+			if p.tok == token.FATARROW {
+				arrow := p.pos
+				p.next()
+				body := p.parseRhs()
+				return &ast.LambdaExpr{Lparen: lparen, Params: params, Rparen: rparen, Arrow: arrow, Body: body}
+			}
+			if len(params) == 1 {
+				return &ast.ParenExpr{Lparen: lparen, X: params[0], Rparen: rparen}
+			}
+			p.errorExpected(p.pos, "=>")
+			return &ast.BadExpr{From: lparen, To: p.pos}
+		}
+	}
+	p.exprLev++
+	x := p.parseRhs()
+	p.exprLev--
+	rparen := p.expect(token.RPAREN)
+	return &ast.ParenExpr{Lparen: lparen, X: x, Rparen: rparen}
+}
+
 func (p *parser) parseOperand() ast.Expr {
 	if p.trace {
 		defer un(trace(p, "Operand"))
@@ -1506,13 +1558,7 @@ func (p *parser) parseOperand() ast.Expr {
 		return x
 
 	case token.LPAREN:
-		lparen := p.pos
-		p.next()
-		p.exprLev++
-		x := p.parseRhs() // types may be parenthesized: (some type)
-		p.exprLev--
-		rparen := p.expect(token.RPAREN)
-		return &ast.ParenExpr{Lparen: lparen, X: x, Rparen: rparen}
+		return p.parenOrLambda()
 
 	case token.FUNC:
 		return p.parseFuncTypeOrLit()

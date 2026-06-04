@@ -39,9 +39,9 @@ const _Operator_name = ":!<-~??||&&==!=<<=>>=+-|^*/%&&^<<>>"
 var _Operator_index = [...]uint8{0, 1, 2, 4, 5, 7, 9, 11, 13, 15, 16, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 33, 35}
 
 func (i Operator) String() string {
-	i -= 1
-	if i >= Operator(len(_Operator_index)-1) {
-		return "Operator(" + strconv.FormatInt(int64(i+1), 10) + ")"
+	idx := int(i) - 1
+	if i < 1 || idx >= len(_Operator_index)-1 {
+		return "Operator(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Operator_name[_Operator_index[i]:_Operator_index[i+1]]
+	return _Operator_name[_Operator_index[idx]:_Operator_index[idx+1]]
 }

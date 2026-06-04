@@ -268,6 +268,7 @@ func (check *Checker) updateExprType(x ast.Expr, typ Type, final bool) {
 	switch x := x.(type) {
 	case *ast.BadExpr,
 		*ast.FuncLit,
+		*ast.LambdaExpr,
 		*ast.CompositeLit,
 		*ast.IndexExpr,
 		*ast.SliceExpr,
@@ -1068,6 +1069,16 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 
 	case *ast.FuncLit:
 		check.funcLit(x, e)
+		if !x.isValid() {
+			goto Error
+		}
+
+	case *ast.LambdaExpr:
+		lambdaHint := hint
+		if lambdaHint == nil && T != nil && T.sig != nil {
+			lambdaHint = T.sig
+		}
+		check.lambdaExpr(x, e, lambdaHint)
 		if !x.isValid() {
 			goto Error
 		}

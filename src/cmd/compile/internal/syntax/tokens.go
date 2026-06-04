@@ -26,6 +26,7 @@ const (
 	_Assign   // =
 	_Define   // :=
 	_Arrow    // <-
+	_FatArrow // =>
 	_Star     // *
 
 	// delimiters
