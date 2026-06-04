@@ -247,6 +247,9 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 	// signature may be generic
 	cgocall := x.mode() == cgofunc
 	overloadCands := check.overloadCandidatesForCall(call)
+	if len(overloadCands) > 1 {
+		check.recordCallOverloads(call.Fun, overloadCands)
+	}
 	var preloadArgs []*operand
 	var preloadAtargs [][]Type
 	selectedOverload := false
@@ -453,7 +456,7 @@ func (check *Checker) selectOverload(call *syntax.CallExpr, cands []*Func, args 
 		return matches[0]
 	}
 	if len(matches) == 0 {
-		check.errorf(call, InvalidCall, "no matching overload for call to %s", call.Fun)
+		check.errorf(call, InvalidCall, "no matching overload for call to %s (%s)", call.Fun, check.overloadList(cands))
 		return nil
 	}
 	best := -1
@@ -471,7 +474,7 @@ func (check *Checker) selectOverload(call *syntax.CallExpr, cands []*Func, args 
 	if bestI >= 0 && !tie {
 		return matches[bestI]
 	}
-	check.errorf(call, InvalidCall, "ambiguous overloaded call to %s", call.Fun)
+	check.errorf(call, InvalidCall, "ambiguous overloaded call to %s (%s)", call.Fun, check.overloadList(matches))
 	return nil
 }
 

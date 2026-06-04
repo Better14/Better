@@ -308,6 +308,24 @@ type Info struct {
 	// Version strings begin with “go”, like “go1.21”, and
 	// are suitable for use with the [go/version] package.
 	FileVersions map[*syntax.PosBase]string
+
+	// FuncOverloads maps package-level function names to all overload
+	// variants when more than one declaration shares the name.
+	FuncOverloads map[string][]*Func
+
+	// MethodOverloads maps receiver base type and method names to all
+	// overload variants when more than one method shares the name.
+	MethodOverloads map[MethodOverloadKey][]*Func
+
+	// CallOverloads maps CallExpr.Fun expressions to candidate overloads
+	// for that call. Populated for overloaded callees.
+	CallOverloads map[syntax.Expr][]*Func
+}
+
+// MethodOverloadKey identifies an overloaded method set.
+type MethodOverloadKey struct {
+	RecvName string // receiver base type name
+	Name     string // method name
 }
 
 func (info *Info) recordTypes() bool {

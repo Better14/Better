@@ -709,6 +709,7 @@ func (check *Checker) packageObjects() {
 	check.methods = nil
 
 	check.assignOverloadSuffixes()
+	check.recordOverloadSets()
 }
 
 // unusedImports checks for unused imports.

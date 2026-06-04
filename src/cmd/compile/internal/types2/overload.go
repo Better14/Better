@@ -90,6 +90,17 @@ func overloadParamSuffix(sig *Signature) string {
 	return b.String()
 }
 
+func (check *Checker) overloadList(funcs []*Func) string {
+	var b strings.Builder
+	for i, fn := range funcs {
+		if i > 0 {
+			b.WriteString("; ")
+		}
+		b.WriteString(check.funcString(fn, false))
+	}
+	return b.String()
+}
+
 func (check *Checker) checkOverloadDuplicates(name string, cands []*Func, kind string) {
 	for i := 0; i < len(cands); i++ {
 		for j := i + 1; j < len(cands); j++ {
