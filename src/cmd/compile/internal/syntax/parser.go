@@ -2084,6 +2084,9 @@ func (p *parser) paramDeclOrNil(name *Name, follow token) *Field {
 		// [name] type "|"
 		f = p.embeddedElem(f)
 	}
+	if follow == _Rparen && f.Type != nil && p.gotAssign() {
+		f.Default = p.expr()
+	}
 	if f.Name != nil || f.Type != nil {
 		return f
 	}

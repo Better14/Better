@@ -305,6 +305,8 @@ type Var struct {
 	origin   *Var // if non-nil, the Var from which this one was instantiated
 	kind     VarKind
 	embedded bool // if set, the variable is an embedded struct field, and name is the type name
+	defExpr  syntax.Expr      // default argument expression; nil if none
+	defVal   constant.Value   // compile-time default; invalid if defExpr is nil
 }
 
 // A VarKind discriminates the various kinds of variables.

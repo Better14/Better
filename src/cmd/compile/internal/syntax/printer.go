@@ -780,6 +780,10 @@ func (p *printer) printFields(fields []*Field, tags []*BasicLit, i, j int) {
 		}
 		p.print(blank)
 		p.printNode(fields[i].Type)
+		if fields[i].Default != nil {
+			p.print(blank, _Assign, blank)
+			p.printNode(fields[i].Default)
+		}
 	}
 	if i < len(tags) && tags[i] != nil {
 		p.print(blank)

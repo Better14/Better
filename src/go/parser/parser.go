@@ -791,6 +791,7 @@ func (p *parser) parseDotsType() *ast.Ellipsis {
 type field struct {
 	name *ast.Ident
 	typ  ast.Expr
+	def  ast.Expr
 }
 
 func (p *parser) parseParamDecl(name *ast.Ident, typeSetsOK bool) (f field) {
@@ -805,7 +806,7 @@ func (p *parser) parseParamDecl(name *ast.Ident, typeSetsOK bool) (f field) {
 		p.tok = token.IDENT // force token.IDENT case in switch below
 	} else if typeSetsOK && p.tok == token.TILDE {
 		// "~" ...
-		return field{nil, p.embeddedElem(nil)}
+		return field{nil, p.embeddedElem(nil), nil}
 	}
 
 	switch p.tok {
@@ -873,6 +874,11 @@ func (p *parser) parseParamDecl(name *ast.Ident, typeSetsOK bool) (f field) {
 		f.typ = p.embeddedElem(f.typ)
 	}
 
+	if !typeSetsOK && f.typ != nil && p.tok == token.ASSIGN {
+		p.next()
+		f.def = p.parseExpr()
+	}
+
 	return
 }
 
@@ -907,7 +913,7 @@ func (p *parser) parseParameterList(name0 *ast.Ident, typ0 ast.Expr, closing tok
 			if tparams {
 				typ0 = p.embeddedElem(typ0)
 			}
-			par = field{name0, typ0}
+			par = field{name0, typ0, nil}
 		} else {
 			par = p.parseParamDecl(name0, tparams)
 		}
@@ -1036,7 +1042,7 @@ func (p *parser) parseParameterList(name0 *ast.Ident, typ0 ast.Expr, closing tok
 		// parameter list consists of types only
 		for _, par := range list {
 			assert(par.typ != nil, "nil type in unnamed parameter list")
-			params = append(params, &ast.Field{Type: par.typ})
+			params = append(params, &ast.Field{Type: par.typ, Default: par.def})
 		}
 		return
 	}
@@ -1045,11 +1051,13 @@ func (p *parser) parseParameterList(name0 *ast.Ident, typ0 ast.Expr, closing tok
 	// collect all names with the same types into a single ast.Field.
 	var names []*ast.Ident
 	var typ ast.Expr
+	var def ast.Expr
 	addParams := func() {
 		assert(typ != nil, "nil type in named parameter list")
-		field := &ast.Field{Names: names, Type: typ}
+		field := &ast.Field{Names: names, Type: typ, Default: def}
 		params = append(params, field)
 		names = nil
+		def = nil
 	}
 	for _, par := range list {
 		if par.typ != typ {
@@ -1057,8 +1065,12 @@ func (p *parser) parseParameterList(name0 *ast.Ident, typ0 ast.Expr, closing tok
 				addParams()
 			}
 			typ = par.typ
+			def = nil
 		}
 		names = append(names, par.name)
+		if par.def != nil {
+			def = par.def
+		}
 	}
 	if len(names) > 0 {
 		addParams()

@@ -297,8 +297,9 @@ type (
 	// Name Type
 	//      Type
 	Field struct {
-		Name *Name // nil means anonymous field/parameter (structs/parameters), or embedded element (interfaces)
-		Type Expr  // field names declared in a list share the same Type (identical pointers)
+		Name    *Name // nil means anonymous field/parameter (structs/parameters), or embedded element (interfaces)
+		Type    Expr  // field names declared in a list share the same Type (identical pointers)
+		Default Expr  // parameter default value; nil if none
 		node
 	}
 

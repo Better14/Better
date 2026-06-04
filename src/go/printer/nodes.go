@@ -573,6 +573,10 @@ func (p *printer) fieldList(fields *ast.FieldList, isStruct, isIncomplete bool) 
 				p.expr(f.Type)
 				extraTabs = 2
 			}
+			if f.Default != nil {
+				p.print(blank, token.ASSIGN, blank)
+				p.expr(f.Default)
+			}
 			if f.Tag != nil {
 				if len(f.Names) > 0 && sep == vtab {
 					p.print(sep)

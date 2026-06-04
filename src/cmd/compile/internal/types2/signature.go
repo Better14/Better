@@ -435,6 +435,13 @@ func (check *Checker) collectParams(kind VarKind, list []*syntax.Field) (names [
 			names = append(names, field.Name)
 			params = append(params, par)
 			named = true
+			if field.Default != nil {
+				if kind != ParamVar {
+					check.error(field.Default, InvalidSyntaxTree, "default arguments only permitted for function parameters")
+				} else {
+					check.paramDefault(par, field.Default)
+				}
+			}
 		} else {
 			// anonymous parameter
 			par := newVar(kind, field.Pos(), check.pkg, "", typ)
@@ -442,6 +449,13 @@ func (check *Checker) collectParams(kind VarKind, list []*syntax.Field) (names [
 			names = append(names, nil)
 			params = append(params, par)
 			anonymous = true
+			if field.Default != nil {
+				if kind != ParamVar {
+					check.error(field.Default, InvalidSyntaxTree, "default arguments only permitted for function parameters")
+				} else {
+					check.paramDefault(par, field.Default)
+				}
+			}
 		}
 	}
 
@@ -457,6 +471,15 @@ func (check *Checker) collectParams(kind VarKind, list []*syntax.Field) (names [
 		last := params[len(params)-1]
 		last.typ = &Slice{elem: last.typ}
 		check.recordTypeAndValue(list[len(list)-1].Type, typexpr, last.typ, nil)
+	}
+
+	if kind == ParamVar {
+		check.validateParamDefaults(params)
+		for _, p := range params {
+			if p.defExpr != nil && variadic {
+				check.error(p.defExpr, InvalidSyntaxTree, "default arguments not supported with variadic parameters")
+			}
+		}
 	}
 
 	return
