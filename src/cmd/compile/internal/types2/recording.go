@@ -173,3 +173,29 @@ func (check *Checker) recordScope(node syntax.Node, scope *Scope) {
 		m[node] = scope
 	}
 }
+
+func (check *Checker) recordCallOverloads(expr syntax.Expr, funcs []*Func) {
+	if len(funcs) <= 1 {
+		return
+	}
+	if m := check.CallOverloads; m != nil {
+		m[expr] = funcs
+	}
+}
+
+func (check *Checker) recordOverloadSets() {
+	if m := check.FuncOverloads; m != nil {
+		for name, funcs := range check.overloadFuncs {
+			if len(funcs) > 1 {
+				m[name] = funcs
+			}
+		}
+	}
+	if m := check.MethodOverloads; m != nil {
+		for key, funcs := range check.overloadMeths {
+			if len(funcs) > 1 {
+				m[MethodOverloadKey{RecvName: key.recvName, Name: key.name}] = funcs
+			}
+		}
+	}
+}
