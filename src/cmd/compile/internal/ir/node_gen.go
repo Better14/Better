@@ -1335,6 +1335,73 @@ func (n *IfExpr) editChildrenWithHidden(edit func(Node) Node) {
 	n.editChildren(edit)
 }
 
+func (n *SwitchExpr) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
+func (n *SwitchExpr) copy() Node {
+	c := *n
+	c.init = copyNodes(c.init)
+	c.Cases = copySwitchCaseArms(c.Cases)
+	return &c
+}
+func (n *SwitchExpr) doChildren(do func(Node) bool) bool {
+	if doNodes(n.init, do) {
+		return true
+	}
+	if n.Tag != nil && do(n.Tag) {
+		return true
+	}
+	for _, c := range n.Cases {
+		if c == nil {
+			continue
+		}
+		if doNodes(c.List, do) {
+			return true
+		}
+		if c.Body != nil && do(c.Body) {
+			return true
+		}
+	}
+	return false
+}
+func (n *SwitchExpr) doChildrenWithHidden(do func(Node) bool) bool {
+	return n.doChildren(do)
+}
+func (n *SwitchExpr) editChildren(edit func(Node) Node) {
+	editNodes(n.init, edit)
+	if n.Tag != nil {
+		n.Tag = edit(n.Tag).(Node)
+	}
+	for _, c := range n.Cases {
+		if c == nil {
+			continue
+		}
+		editNodes(c.List, edit)
+		if c.Body != nil {
+			c.Body = edit(c.Body).(Node)
+		}
+	}
+}
+func (n *SwitchExpr) editChildrenWithHidden(edit func(Node) Node) {
+	n.editChildren(edit)
+}
+
+func copySwitchCaseArms(list []*SwitchCaseArm) []*SwitchCaseArm {
+	if list == nil {
+		return nil
+	}
+	c := make([]*SwitchCaseArm, len(list))
+	for i, arm := range list {
+		if arm != nil {
+			a := *arm
+			a.List = copyNodes(a.List)
+			if a.Body != nil {
+				a.Body = a.Body.copy()
+			}
+			c[i] = &a
+		}
+	}
+	return c
+}
+
 func (n *NullCondExpr) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
 func (n *NullCondExpr) copy() Node {
 	c := *n

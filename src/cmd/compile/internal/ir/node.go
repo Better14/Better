@@ -316,6 +316,8 @@ const (
 
 	OIFEXPR // if cond { then } else { else }
 
+	OSWITCHEXPR // switch tag { case ...: body ... }
+
 	OEND
 )
 

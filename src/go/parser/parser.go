@@ -1883,9 +1883,55 @@ func (p *parser) parseUnaryExpr() ast.Expr {
 
 	case token.IF:
 		return p.parseIfExpr()
+
+	case token.SWITCH:
+		return p.parseSwitchExpr()
 	}
 
 	return p.parsePrimaryExpr(nil)
+}
+
+func (p *parser) parseSwitchExpr() ast.Expr {
+	if p.trace {
+		defer un(trace(p, "SwitchExpr"))
+	}
+
+	switchPos := p.pos
+	p.next()
+	var tag ast.Expr
+	outer := p.exprLev
+	p.exprLev = -1
+	if p.tok != token.LBRACE {
+		tag = p.parseExpr()
+	}
+	p.exprLev = outer
+	lbrace := p.expect(token.LBRACE)
+	var body []*ast.SwitchExprClause
+	for p.tok != token.RBRACE && p.tok != token.EOF {
+		if p.tok == token.SEMICOLON {
+			p.next()
+			continue
+		}
+		body = append(body, p.parseSwitchExprClause())
+	}
+	rbrace := p.expect(token.RBRACE)
+	return &ast.SwitchExpr{Switch: switchPos, Tag: tag, Lbrace: lbrace, Body: body, Rbrace: rbrace}
+}
+
+func (p *parser) parseSwitchExprClause() *ast.SwitchExprClause {
+	var cases []ast.Expr
+	switch p.tok {
+	case token.CASE:
+		p.next()
+		cases = p.parseList(true)
+	case token.DEFAULT:
+		p.next()
+	default:
+		p.errorExpected(p.pos, "'case' or 'default' or '}'")
+	}
+	colon := p.expect(token.COLON)
+	body := p.parseExpr()
+	return &ast.SwitchExprClause{Cases: cases, Colon: colon, Body: body}
 }
 
 func (p *parser) parseIfExpr() ast.Expr {

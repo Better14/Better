@@ -172,6 +172,16 @@ func (e *escape) exprSkipInit(k hole, n ir.Node) {
 		e.expr(k, n.Then)
 		e.expr(k, n.Else)
 
+	case ir.OSWITCHEXPR:
+		n := n.(*ir.SwitchExpr)
+		e.discard(n.Tag)
+		for _, c := range n.Cases {
+			for _, v := range c.List {
+				e.discard(v)
+			}
+			e.expr(k, c.Body)
+		}
+
 	case ir.ONEW:
 		n := n.(*ir.UnaryExpr)
 		e.spill(k, n)

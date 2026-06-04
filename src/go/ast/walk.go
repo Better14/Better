@@ -148,6 +148,15 @@ func Walk(v Visitor, node Node) {
 		Walk(v, n.Then)
 		Walk(v, n.ElseBody)
 
+	case *SwitchExpr:
+		Walk(v, n.Tag)
+		for _, c := range n.Body {
+			for _, e := range c.Cases {
+				Walk(v, e)
+			}
+			Walk(v, c.Body)
+		}
+
 	// Types
 	case *ArrayType:
 		if n.Len != nil {

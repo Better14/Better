@@ -1326,6 +1326,27 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		o.out = append(o.out, ifStmt)
 		return res
 
+	case ir.OSWITCHEXPR:
+		n := n.(*ir.SwitchExpr)
+		pos := n.Pos()
+		res := o.newTemp(n.Type(), n.Type().HasPointers())
+		tag := o.expr1(n.Tag, nil)
+		var cases []*ir.CaseClause
+		for _, c := range n.Cases {
+			body := typecheck.DefaultLit(o.expr1(c.Body, nil), n.Type())
+			as := ir.NewAssignStmt(pos, res, body)
+			as.SetTypecheck(1)
+			var list []ir.Node
+			for _, cv := range c.List {
+				list = append(list, o.expr1(cv, nil))
+			}
+			cases = append(cases, ir.NewCaseStmt(pos, list, []ir.Node{as}))
+		}
+		sw := ir.NewSwitchStmt(pos, tag, cases)
+		sw.SetTypecheck(1)
+		o.out = append(o.out, sw)
+		return res
+
 	case ir.ONULLCOALESCE:
 		n := n.(*ir.NullCoalesceExpr)
 		pos := n.Pos()

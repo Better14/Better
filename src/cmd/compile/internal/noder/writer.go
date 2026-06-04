@@ -2050,6 +2050,28 @@ func (w *writer) expr(expr syntax.Expr) {
 		w.implicitConvExpr(tv.Type, expr.Then)
 		w.implicitConvExpr(tv.Type, expr.Else)
 
+	case *syntax.SwitchExpr:
+		tv := w.p.typeAndValue(expr)
+		w.Code(exprSwitchExpr)
+		w.pos(expr)
+		w.typ(tv.Type)
+		w.Bool(expr.Tag != nil)
+		if expr.Tag != nil {
+			w.expr(expr.Tag)
+		}
+		w.Len(len(expr.Body))
+		for _, c := range expr.Body {
+			w.Bool(c.Cases != nil)
+			if c.Cases != nil {
+				cases := syntax.UnpackListExpr(c.Cases)
+				w.Len(len(cases))
+				for _, e := range cases {
+					w.expr(e)
+				}
+			}
+			w.implicitConvExpr(tv.Type, c.Body)
+		}
+
 	case *syntax.TryExpr:
 		tv := w.p.typeAndValue(expr)
 		w.Code(exprTry)

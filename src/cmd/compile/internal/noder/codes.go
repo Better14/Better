@@ -68,6 +68,7 @@ const (
 	exprNullCond       // e?.field / e?.[i] — null-conditional access
 	exprNullCoalesce   // e ?? f — null coalescing
 	exprIfExpr         // if e { a } else { b }
+	exprSwitchExpr     // switch e { case ...: body ... }
 )
 
 type codeAssign int

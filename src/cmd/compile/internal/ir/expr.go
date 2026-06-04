@@ -864,6 +864,28 @@ func NewIfExpr(pos src.XPos, typ *types.Type, cond, then, els Node) *IfExpr {
 	return n
 }
 
+// A SwitchCaseArm is one arm of a switch expression.
+type SwitchCaseArm struct {
+	List []Node // case values; nil or empty for default
+	Body Node
+}
+
+// A SwitchExpr is a switch expression.
+type SwitchExpr struct {
+	miniExpr
+	Tag   Node
+	Cases []*SwitchCaseArm
+}
+
+func NewSwitchExpr(pos src.XPos, typ *types.Type, tag Node, cases []*SwitchCaseArm) *SwitchExpr {
+	n := &SwitchExpr{Tag: tag, Cases: cases}
+	n.pos = pos
+	n.op = OSWITCHEXPR
+	n.SetType(typ)
+	n.SetTypecheck(1)
+	return n
+}
+
 func IsZero(n Node) bool {
 	switch n.Op() {
 	case ONIL:
