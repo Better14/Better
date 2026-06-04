@@ -1239,6 +1239,41 @@ loop:
 			n.Type = x
 			x = n
 
+		case _Question:
+			qpos := p.pos()
+			p.next()
+			if p.tok != _Dot {
+				p.syntaxError("expected '.' after ?'")
+				x = p.badExpr()
+				return x
+			}
+			p.next() // '.'
+			nc := new(NullCondExpr)
+			nc.pos = x.Pos()
+			nc.QPos = qpos
+			nc.X = x
+			x = nc
+			if p.tok == _Name {
+				s := new(SelectorExpr)
+				s.pos = pos
+				s.X = nc
+				s.Sel = p.name()
+				x = s
+			} else if p.tok == _Lbrack {
+				p.next()
+				idx := p.expr()
+				p.want(_Rbrack)
+				t := new(IndexExpr)
+				t.pos = pos
+				t.X = nc
+				t.Index = idx
+				x = t
+			} else {
+				p.syntaxError("expected name or [ after ?.'")
+				x = p.badExpr()
+				return x
+			}
+
 		case _Operator:
 			if p.op != Not {
 				break loop
@@ -1382,6 +1417,15 @@ func (p *parser) typeOrNil() Expr {
 		rt.Bang = bang
 		rt.Elem = typ
 		typ = rt
+	}
+	for typ != nil && p.tok == _Question {
+		qpos := p.pos()
+		p.next()
+		nt := new(NullableType)
+		nt.pos = typ.Pos()
+		nt.QPos = qpos
+		nt.Elem = typ
+		typ = nt
 	}
 	return typ
 }

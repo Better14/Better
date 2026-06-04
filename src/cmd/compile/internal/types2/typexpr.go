@@ -368,6 +368,17 @@ func (check *Checker) typInternal(e0 syntax.Expr, def *TypeName) (T Type) {
 		check.use(e.Elem)
 		return Typ[Invalid]
 
+	case *syntax.NullableType:
+		elem := check.varType(e.Elem)
+		if !isValid(elem) {
+			return Typ[Invalid]
+		}
+		if isNullish(elem) {
+			check.errorf(e, InvalidSyntaxTree, "invalid nullable type %s?; type is already nil-able", elem)
+			return Typ[Invalid]
+		}
+		return NewOptional(elem)
+
 	case *syntax.ChanType:
 		typ := new(Chan)
 

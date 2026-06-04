@@ -318,6 +318,20 @@ type (
 		expr
 	}
 
+	// Elem?  nullable type: Elem or nil
+	NullableType struct {
+		Elem Expr
+		QPos Pos // position of '?'
+		expr
+	}
+
+	// X?.field / X?.method prefix (Sel is set in a following SelectorExpr)
+	NullCondExpr struct {
+		X    Expr
+		QPos Pos // position of '?'
+		expr
+	}
+
 	// X! error propagation (.value or prefix of .field selector)
 	TryExpr struct {
 		X    Expr

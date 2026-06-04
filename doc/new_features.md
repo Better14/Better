@@ -46,8 +46,8 @@ Behavior for `expr!.value`:
 
 1. Evaluate `expr`
 2. If `err != nil`, return early from the current function with:
-   - zero value of the function's value result
-   - the error
+  - zero value of the function's value result
+  - the error
 3. Otherwise, use the `.value` field (the unwrapped `T`)
 
 Behavior for `expr!.someField` is the same early-return on error, then access `someField` on the success value.
@@ -60,6 +60,11 @@ func someFunc() int! {
 func readUser() User! {
 	u := fetch()!.value
 	return u, nil
+}
+
+func readUser2() User! {
+	u := fetch()!.value
+	return u
 }
 
 func readName() string! {
@@ -112,10 +117,12 @@ y := someFunc()!.someProperty              // propagate error or access a field
 
 `T?` on a value type `T` means **either a `T` or `nil`** — an optional value with no error channel. This is separate from `T!`, which means **value or `error`**.
 
-| Syntax | Meaning |
-|--------|---------|
-| `int?` | `int` or `nil` (nullable) |
+
+| Syntax | Meaning                                    |
+| ------ | ------------------------------------------ |
+| `int?` | `int` or `nil` (nullable)                  |
 | `int!` | `int` or `error` (result / `(int, error)`) |
+
 
 Nullable types are useful for primitives and structs that cannot otherwise hold `nil` in Go. Reference types (`*T`, `map`, `slice`, `chan`, `func`, `interface`) are already “nullable” via `nil`; `T?` is most important for `int`, `bool`, `float64`, struct types, etc.
 
@@ -203,10 +210,12 @@ if someObject != nil {
 
 Do not confuse:
 
-| Form | Role |
-|------|------|
-| `int?` | Type: `int` or `nil` |
+
+| Form          | Role                                               |
+| ------------- | -------------------------------------------------- |
+| `int?`        | Type: `int` or `nil`                               |
 | `expr?.field` | Operator: access `field` only if `expr` is non-nil |
+
 
 ### Null-coalescing operator (`??`)
 
@@ -254,11 +263,13 @@ if count == nil {
 
 `??` applies to nullable types and other nil-able values (`*T`, maps, slices, pointers). It does **not** apply to `T!` error results; handle errors with `if err != nil`, `!.value`, or explicit checks.
 
-| Form | Role |
-|------|------|
-| `int?` | Type: `int` or `nil` |
-| `expr?.field` | Null-conditional access |
+
+| Form               | Role                                                  |
+| ------------------ | ----------------------------------------------------- |
+| `int?`             | Type: `int` or `nil`                                  |
+| `expr?.field`      | Null-conditional access                               |
 | `expr ?? fallback` | Null-coalescing: `expr` if non-`nil`, else `fallback` |
+
 
 ### Notes
 
@@ -486,23 +497,21 @@ func Connect(host string, port int = DefaultPort) {
 
 #### Enum and nil defaults
 
-Go has no `enum` keyword; use typed constants with `iota` (or a named integer type). Pointer parameters use `nil` where a “optional / nullable” default is intended.
+Use an `enum` type for mode defaults (see [Enums](#enums)). Pointer parameters use `nil` where a nullable default is intended.
 
 ```go
-type Mode int
+enum Mode {
+	Read
+	Write
+	Both
+}
 
-const (
-	ModeRead Mode = iota
-	ModeWrite
-	ModeBoth
-)
-
-func Open(path string, mode Mode = ModeRead) {
+func Open(path string, mode Mode = Mode.Read) {
 	// ...
 }
 
 func Save(path *string = nil) {
-	// optional path: nil means “not provided”
+	// nil means “not provided”
 }
 ```
 
@@ -556,11 +565,13 @@ type C struct {
 
 Runtime defaults (`make`, `new`, non-const calls, package `var`s) are **not** supported in v1. See tier 1 and tier 2 above.
 
-| Tier | Allowed in defaults |
-|------|---------------------|
-| 1 | Literals, `nil`, named `const` |
-| 2 | Any Go constant expression (same rules as `const` declarations) |
-| — | Function calls, `make`, `new`, mutable `var`s |
+
+| Tier | Allowed in defaults                                             |
+| ---- | --------------------------------------------------------------- |
+| 1    | Literals, `nil`, named `const`                                  |
+| 2    | Any Go constant expression (same rules as `const` declarations) |
+| —    | Function calls, `make`, `new`, mutable `var`s                   |
+
 
 ### Other notes
 
@@ -631,14 +642,16 @@ LINQ extensions are provided as methods on supported sequence types (slices, arr
 
 Standard Go does not provide a built-in `set` type, queue/stack abstractions, or a generic binary tree. It does ship lower-level building blocks:
 
-| Need | Standard library today |
-|------|-------------------------|
-| Growable sequence | `[]T` + `append` (must reassign: `s = append(s, x)`) |
-| Set-like membership | `map[T]struct{}` (manual; no literal, no set algebra) |
-| Doubly linked list | `container/list` (not typed; not a dedicated queue/stack API) |
-| Min-heap | `container/heap` (you implement `heap.Interface`; min-heap only) |
-| Max-heap | `container/heap` with inverted `Less` |
-| Binary tree | Not in the standard library |
+
+| Need                | Standard library today                                           |
+| ------------------- | ---------------------------------------------------------------- |
+| Growable sequence   | `[]T` + `append` (must reassign: `s = append(s, x)`)             |
+| Set-like membership | `map[T]struct{}` (manual; no literal, no set algebra)            |
+| Doubly linked list  | `container/list` (not typed; not a dedicated queue/stack API)    |
+| Min-heap            | `container/heap` (you implement `heap.Interface`; min-heap only) |
+| Max-heap            | `container/heap` with inverted `Less`                            |
+| Binary tree         | Not in the standard library                                      |
+
 
 This fork adds first-class container types in the standard library (or as built-in generic types) with literal syntax where noted below.
 
@@ -726,14 +739,16 @@ other := linkedlist.FromSlice([]int{4, 5, 6})
 
 **When to use which**
 
-| | `list[T]` | `LinkedList[T]` |
-|---|-----------|-----------------|
-| Backing | Dynamic array (slice) | Doubly linked nodes |
-| Index access `At(i)` | O(1) | O(n) |
-| Append / pop at end | O(1) amortized | O(1) |
-| Insert / remove at front | O(n) shift | O(1) |
-| Insert / remove in middle | O(n) shift | O(1) with node cursor; O(n) by index |
-| Memory | Contiguous; less overhead per element | Pointer per node; extra allocations |
+
+|                           | `list[T]`                             | `LinkedList[T]`                      |
+| ------------------------- | ------------------------------------- | ------------------------------------ |
+| Backing                   | Dynamic array (slice)                 | Doubly linked nodes                  |
+| Index access `At(i)`      | O(1)                                  | O(n)                                 |
+| Append / pop at end       | O(1) amortized                        | O(1)                                 |
+| Insert / remove at front  | O(n) shift                            | O(1)                                 |
+| Insert / remove in middle | O(n) shift                            | O(1) with node cursor; O(n) by index |
+| Memory                    | Contiguous; less overhead per element | Pointer per node; extra allocations  |
+
 
 Use `LinkedList[T]` for frequent front/middle edits, stable iterators while mutating elsewhere (with cursor API), or algorithms that splice sublists. Use `list[T]` for index-heavy work and cache-friendly sequential access.
 
@@ -833,23 +848,165 @@ Operations: `Insert`, `Search`, `Delete`, `Min`, `Max`, `Inorder`, `Preorder`, `
 
 ### Summary
 
-| Type | Literal | Standard Go equivalent |
-|------|---------|-------------------------|
-| `list` | `list[T]{...}` | `[]T` + `append` |
-| `LinkedList` | — (`linkedlist.New`) | `container/list` (`any`, manual `Element`) |
-| `set` | `{}T{...}` | `map[T]struct{}` |
-| `queue` | — (`queue.New`) | slice + mutex, or `LinkedList` discipline |
-| `stack` | — (`stack.New`) | slice, or `container/list` |
-| `minheap` / `maxheap` | — | `container/heap` + custom `Less` |
-| `tree` | — | third-party or hand-rolled |
+
+| Type                  | Literal              | Standard Go equivalent                     |
+| --------------------- | -------------------- | ------------------------------------------ |
+| `list`                | `list[T]{...}`       | `[]T` + `append`                           |
+| `LinkedList`          | — (`linkedlist.New`) | `container/list` (`any`, manual `Element`) |
+| `set`                 | `{}T{...}`           | `map[T]struct{}`                           |
+| `queue`               | — (`queue.New`)      | slice + mutex, or `LinkedList` discipline  |
+| `stack`               | — (`stack.New`)      | slice, or `container/list`                 |
+| `minheap` / `maxheap` | —                    | `container/heap` + custom `Less`           |
+| `tree`                | —                    | third-party or hand-rolled                 |
+
 
 ---
 
-## Optional Features
+## Enums
 
-The following features are planned or under consideration; they are not required for the core language extensions above.
+Go supports Rust-style **algebraic enums** (tagged unions): each variant is one of several named forms, with optional payloads and optional explicit discriminants.
 
-### Operator Overloading
+### Declaration
+
+```go
+enum SomeEnum {
+	Value1
+	Value2(String)
+	Value3(int)
+	Value4 = 3
+}
+```
+
+- **Unit variant** — `Value1` carries no data.
+- **Tuple variant** — `Value2(String)`, `Value3(int)` attach one or more payload types (tuple variants).
+- **Explicit discriminant** — `Value4 = 3` assigns a fixed numeric tag (for C/interop or stable layout); variants without `=` get auto-incremented tags where applicable.
+
+Struct-style variants (named fields) are also supported:
+
+```go
+enum Message {
+	Quit
+	Write { text string, bytes int }
+	ChangeColor { r, g, b uint8 }
+}
+```
+
+### Construction
+
+When the expected type is known, **omit the enum name** and use the variant alone:
+
+```go
+var a SomeEnum = Value1
+var b SomeEnum = Value2("hello")
+c := Value3(42)              // type inferred from context
+```
+
+The qualified form is always valid:
+
+```go
+a := SomeEnum.Value1
+b := SomeEnum.Value2("hello")
+c := SomeEnum.Value3(42)
+d := SomeEnum.Value4
+
+m := Message.Write{ text: "hi", bytes: 5 }
+```
+
+### Switching on enums
+
+Use a **`switch` statement** or **`switch` expression** to branch on the active variant and bind payloads. There is no `match` keyword.
+
+**Exhaustiveness** — the compiler requires every variant to be covered. If any variant is missing, it is a **compile-time error**. A `default` case is **not allowed** when switching on an enum (it would hide non-exhaustive matches).
+
+Inside a `switch` on an enum, **case labels omit the enum type name** — write `case Value1:` not `case SomeEnum.Value1:`.
+
+Switch statement:
+
+```go
+switch v {
+case Value1:
+	fmt.Println("value1")
+case Value2(s):
+	fmt.Println(s)
+case Value3(n):
+	fmt.Println(n)
+case Value4:
+	fmt.Println("value4")
+}
+```
+
+Switch expression:
+
+```go
+n := switch v {
+case Value1:
+	0
+case Value2(s):
+	len(s)
+case Value3(n):
+	n
+case Value4:
+	3
+}
+
+desc := switch m {
+case Quit:
+	"quit"
+case Write { text }:
+	text
+case ChangeColor { r, g, b }:
+	int(r) + int(g) + int(b)
+}
+```
+
+Invalid (compile error — missing `Value4`):
+
+```go
+// switch v {
+// case Value1:
+// case Value2(s):
+// case Value3(n):
+// } // ERROR: switch on SomeEnum is not exhaustive
+```
+
+Invalid (compile error — `default` not permitted):
+
+```go
+// switch v {
+// case Value1:
+// default:
+// } // ERROR: default case not allowed for enum switch
+```
+
+### Methods and generics
+
+Enums may have methods and type parameters:
+
+```go
+enum Option[T] {
+	None
+	Some(T)
+}
+
+func (o Option[int]) IsSome() bool {
+	switch o {
+	case Some(_):
+		return true
+	case None:
+		return false
+	}
+}
+```
+
+### Notes
+
+- Enums are distinct from `int?` nullable types and from `iota` constant groups.
+- Variant names live in the enum’s namespace. Use unqualified names when the type is known (`var a SomeEnum = Value1`, `case Value2(s):`) or the qualified form (`SomeEnum.Value2`) anywhere.
+- Memory layout is implementation-defined; explicit discriminants (`Value4 = 3`) document ABI intent.
+- `enum` variants may appear in default arguments when the default is a compile-time constant variant (e.g. `mode Mode = Mode.Read`).
+- When new variants are added to an enum, every `switch` on that type must be updated or the build fails (exhaustiveness checking).
+
+## Operator Overloading
 
 Types may define operators via special method syntax:
 

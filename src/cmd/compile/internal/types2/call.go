@@ -812,6 +812,11 @@ var cgoPrefixes = [...]string{
 }
 
 func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool) {
+	if nc, ok := e.X.(*syntax.NullCondExpr); ok {
+		check.nullCondSelector(x, e, nc)
+		return
+	}
+
 	// these must be declared before the "goto Error" statements
 	var (
 		obj      Object

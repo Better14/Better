@@ -585,6 +585,10 @@ func (pw *pkgWriter) typIdx(typ types2.Type, dict *writerDict) typeInfo {
 		w.Code(pkgbits.TypePointer)
 		w.typ(typ.Elem())
 
+	case *types2.Optional:
+		w.Code(pkgbits.TypePointer)
+		w.typ(typ.Elem())
+
 	case *types2.Signature:
 		base.Assertf(typ.TypeParams() == nil, "unexpected type params: %v", typ)
 		w.Code(pkgbits.TypeSignature)
@@ -1962,6 +1966,18 @@ func (w *writer) expr(expr syntax.Expr) {
 		w.funcLit(expr)
 
 	case *syntax.SelectorExpr:
+		if nc, ok := syntax.Unparen(expr.X).(*syntax.NullCondExpr); ok {
+			tv := w.p.typeAndValue(expr)
+			sel, ok := w.p.info.Selections[expr]
+			assert(ok && sel.Kind() == types2.FieldVal)
+			w.Code(exprNullCond)
+			w.pos(expr)
+			w.typ(tv.Type)
+			w.expr(nc.X)
+			w.selector(sel.Obj())
+			break
+		}
+
 		sel, ok := w.p.info.Selections[expr]
 		assert(ok)
 
@@ -2054,6 +2070,16 @@ func (w *writer) expr(expr syntax.Expr) {
 			w.op(unOps[expr.Op])
 			w.pos(expr)
 			w.expr(expr.X)
+			break
+		}
+
+		if expr.Op == syntax.NullCoalesce {
+			tv := w.p.typeAndValue(expr)
+			w.Code(exprNullCoalesce)
+			w.pos(expr)
+			w.typ(tv.Type)
+			w.expr(expr.X)
+			w.implicitConvExpr(tv.Type, expr.Y)
 			break
 		}
 
@@ -2457,6 +2483,13 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 
 	// Omit implicit no-op conversions.
 	identical := dst == nil || types2.Identical(src, dst)
+	if o, ok := types2.AsOptional(dst); ok && implicit {
+		ptr := types2.NewPointer(o.Elem())
+		if types2.AssignableTo(src, o.Elem()) && !types2.Identical(src, ptr) {
+			identical = false
+			dst = o
+		}
+	}
 	if implicit && identical {
 		w.expr(expr)
 		return

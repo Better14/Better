@@ -156,6 +156,16 @@ func (e *escape) exprSkipInit(k hole, n ir.Node) {
 		n := n.(*ir.ForceExpr)
 		e.call([]hole{k, e.heapHole()}, n.X)
 
+	case ir.ONULLCOND:
+		n := n.(*ir.NullCondExpr)
+		e.discard(n.X)
+		e.expr(k, n.End)
+
+	case ir.ONULLCOALESCE:
+		n := n.(*ir.NullCoalesceExpr)
+		e.expr(k, n.X)
+		e.discard(n.Y)
+
 	case ir.ONEW:
 		n := n.(*ir.UnaryExpr)
 		e.spill(k, n)

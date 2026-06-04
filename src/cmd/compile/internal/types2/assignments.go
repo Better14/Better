@@ -84,6 +84,10 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 			check.updateExprVal(x.expr, val)
 		}
 		if newType != x.typ() {
+			if o, ok := newType.Underlying().(*Optional); ok && x.mode() == constant_ {
+				// Keep untyped/typed constant as elem type; conversion to T? happens at compile time.
+				newType = o.elem
+			}
 			x.typ_ = newType
 			check.updateExprType(x.expr, newType, false)
 		}

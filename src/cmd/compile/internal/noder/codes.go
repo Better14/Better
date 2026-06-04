@@ -65,6 +65,8 @@ const (
 	exprRuntimeBuiltin // a reference to a runtime function from transformed syntax. Followed by string name, e.g., "panicrangeexit"
 	exprTry            // e.?  (e has type (T, error); yields T, early returns on error)
 	exprForce          // e.!  (e has type (T, error); yields T, panics on error)
+	exprNullCond       // e?.field / e?.[i] — null-conditional access
+	exprNullCoalesce   // e ?? f — null coalescing
 )
 
 type codeAssign int

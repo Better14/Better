@@ -406,6 +406,21 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 		}
 	}
 
+	// untyped nil assignable to nullable and nil-able types
+	if x.mode() == nilvalue && isNullish(T) {
+		return true, 0
+	}
+
+	// T or *T assignable to Optional(T)
+	if o, ok := Tu.(*Optional); ok && Vp == nil && Tp == nil {
+		if Identical(V, o.elem) || Identical(Vu, o.elem.Underlying()) {
+			return true, 0
+		}
+		if p, ok := Vu.(*Pointer); ok && Identical(p.base, o.elem) {
+			return true, 0
+		}
+	}
+
 	// optimization: if we don't have type parameters, we're done
 	if Vp == nil && Tp == nil {
 		return false, IncompatibleAssign

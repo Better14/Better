@@ -311,6 +311,9 @@ const (
 	OTRY   // X? — X is (T, error); lowers to guard + return
 	OFORCE // X! — X is (T, error); lowers to guard + panic(err)
 
+	ONULLCOND     // ?. access on nullable value
+	ONULLCOALESCE // ?? null coalescing
+
 	OEND
 )
 

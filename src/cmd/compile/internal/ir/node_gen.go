@@ -1261,6 +1261,74 @@ func (n *NilExpr) editChildrenWithHidden(edit func(Node) Node) {
 	n.editChildren(edit)
 }
 
+func (n *NullCoalesceExpr) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
+func (n *NullCoalesceExpr) copy() Node {
+	c := *n
+	c.init = copyNodes(c.init)
+	return &c
+}
+func (n *NullCoalesceExpr) doChildren(do func(Node) bool) bool {
+	if doNodes(n.init, do) {
+		return true
+	}
+	if n.X != nil && do(n.X) {
+		return true
+	}
+	if n.Y != nil && do(n.Y) {
+		return true
+	}
+	return false
+}
+func (n *NullCoalesceExpr) doChildrenWithHidden(do func(Node) bool) bool {
+	return n.doChildren(do)
+}
+func (n *NullCoalesceExpr) editChildren(edit func(Node) Node) {
+	editNodes(n.init, edit)
+	if n.X != nil {
+		n.X = edit(n.X).(Node)
+	}
+	if n.Y != nil {
+		n.Y = edit(n.Y).(Node)
+	}
+}
+func (n *NullCoalesceExpr) editChildrenWithHidden(edit func(Node) Node) {
+	n.editChildren(edit)
+}
+
+func (n *NullCondExpr) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
+func (n *NullCondExpr) copy() Node {
+	c := *n
+	c.init = copyNodes(c.init)
+	return &c
+}
+func (n *NullCondExpr) doChildren(do func(Node) bool) bool {
+	if doNodes(n.init, do) {
+		return true
+	}
+	if n.X != nil && do(n.X) {
+		return true
+	}
+	if n.End != nil && do(n.End) {
+		return true
+	}
+	return false
+}
+func (n *NullCondExpr) doChildrenWithHidden(do func(Node) bool) bool {
+	return n.doChildren(do)
+}
+func (n *NullCondExpr) editChildren(edit func(Node) Node) {
+	editNodes(n.init, edit)
+	if n.X != nil {
+		n.X = edit(n.X).(Node)
+	}
+	if n.End != nil {
+		n.End = edit(n.End).(Node)
+	}
+}
+func (n *NullCondExpr) editChildrenWithHidden(edit func(Node) Node) {
+	n.editChildren(edit)
+}
+
 func (n *ParenExpr) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
 func (n *ParenExpr) copy() Node {
 	c := *n
