@@ -169,6 +169,12 @@ func (check *Checker) instantiateSignature(pos syntax.Pos, expr syntax.Expr, typ
 }
 
 func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
+	if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
+		if kind, handled := check.tryLinqCall(x, call, sel); handled {
+			return kind
+		}
+	}
+
 	var inst *syntax.IndexExpr // function instantiation, if any
 	if iexpr, _ := call.Fun.(*syntax.IndexExpr); iexpr != nil {
 		if check.indexExpr(x, iexpr) {
@@ -794,6 +800,9 @@ func (check *Checker) arguments(call *syntax.CallExpr, sig *Signature, targs []T
 			arg := args[i]
 			asig := arg.typ().(*Signature)
 			k := j + asig.TypeParams().Len()
+			if k > len(targs) {
+				break
+			}
 			// targs[j:k] are the inferred type arguments for asig
 			arg.typ_ = check.instantiateSignature(call.Pos(), arg.expr, asig, targs[j:k], nil) // TODO(gri) provide xlist if possible (partial instantiations)
 			check.record(arg)                                                                  // record here because we didn't use the usual expr evaluators
@@ -805,6 +814,9 @@ func (check *Checker) arguments(call *syntax.CallExpr, sig *Signature, targs []T
 	if len(args) > 0 {
 		context := check.sprintf("argument to %s", call.Fun)
 		for i, a := range args {
+			if i >= sigParams.Len() {
+				break
+			}
 			check.assignment(a, sigParams.vars[i].typ, context)
 		}
 	}

@@ -4,14 +4,12 @@
 
 // Package linq provides LINQ-style query operations with lazy evaluation.
 //
-// Lazy pipelines compose with LazyWhere, LazySelect, and terminals such as
-// LazyFirst or LazyToSlice. Eager helpers include Where, Select, Sum, and OrderBy.
+// Import this package to use C#-style method chains on slices and lazy sequences:
 //
-// Example:
+//	import "linq"
 //
 //	nums := []int{1, 2, 3, 4, 5}
-//	first, ok := linq.LazyFirst(linq.LazySelect(
-//	    linq.LazyWhere(linq.FromSlice(nums), func(n int) bool { return n%2 == 0 }),
-//	    func(n int) int { return n * 2 },
-//	))
+//	out := nums.Where(n => n < 5).Select(n => n + 1).ToList()
+//
+// Pipelines are lazy until a terminal operator (First, ToList, Sum, Any, All, etc.).
 package linq

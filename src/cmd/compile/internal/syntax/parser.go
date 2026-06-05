@@ -1097,7 +1097,19 @@ func (p *parser) operand(keep_parens bool) Expr {
 
 	switch p.tok {
 	case _Name:
-		return p.name()
+		id := p.name()
+		if p.tok == _FatArrow {
+			p.next()
+			f := new(Field)
+			f.pos = id.Pos()
+			f.Name = id
+			lam := new(LambdaExpr)
+			lam.pos = id.Pos()
+			lam.ParamList = []*Field{f}
+			lam.Body = p.expr()
+			return lam
+		}
+		return id
 
 	case _Literal:
 		return p.oliteral()
