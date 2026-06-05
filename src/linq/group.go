@@ -5,13 +5,13 @@
 package linq
 
 // Group is one key and its elements, as produced by GroupBy.
-type Group[K comparable, T any] struct {
+type Group[K comparable, V any] struct {
 	Key K
-	items []T
+	items []V
 }
 
 // Count returns the number of elements in the group.
-func (g Group[K, T]) Count() int { return len(g.items) }
+func (g Group[K, V]) Count() int { return len(g.items) }
 
 // Values returns the elements in the group.
-func (g Group[K, T]) Values() []T { return g.items }
+func (g Group[K, V]) Values() []V { return g.items }

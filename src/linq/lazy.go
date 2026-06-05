@@ -4,6 +4,8 @@
 
 package linq
 
+import "cmp"
+
 // Lazy is a deferred sequence: chain package functions until a terminal call.
 type Lazy[T any] struct {
 	next func() (T, bool)
@@ -26,6 +28,21 @@ func FromSlice[T any](s []T) Lazy[T] {
 // Where filters l and returns a lazy sequence.
 func (l Lazy[T]) Where(pred func(T) bool) Lazy[T] {
 	return LazyWhere(l, pred)
+}
+
+// Select projects each element to type U.
+func (l Lazy[T]) Select[U any](fn func(T) U) Lazy[U] {
+	return LazySelectBy(l, fn)
+}
+
+// OrderBy sorts by key when the sequence is enumerated.
+func (l Lazy[T]) OrderBy[K cmp.Ordered](key func(T) K) Lazy[T] {
+	return LazyOrderBy(l, key)
+}
+
+// OrderByDescending sorts descending by key when enumerated.
+func (l Lazy[T]) OrderByDescending[K cmp.Ordered](key func(T) K) Lazy[T] {
+	return LazyOrderByDescending(l, key)
 }
 
 // Take returns at most n elements.
