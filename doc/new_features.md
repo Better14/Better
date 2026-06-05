@@ -639,14 +639,15 @@ Such a declaration is a **generic method**. It must be **instantiated** (explici
 
 In C#, `Where`, `Select`, etc. are **extension methods** on `IEnumerable<T>` — any type implementing that interface picks them up.
 
-In this fork, enumerables get LINQ-style methods in three ways:
+Go does not have `IEnumerable<T>`, but this fork adds **[Extension Methods](#extension-methods)** — the general mechanism C# uses, adapted for Go generics and `iter.Seq[T]`. Until extensions are implemented, enumerables also use the legacy paths below:
 
 
 | Enumerable shape | How methods attach | Example |
 | ---------------- | ------------------ | ------- |
-| Slice / array `[]T` | Compiler **desugars** method syntax to `linq` package calls when `import "linq"` | `nums.Where(n => n%2 == 0)` → `linq.Where(nums, …)` |
+| Slice / array `[]T` | **Extension methods** (planned) or legacy compiler **desugar** to `linq` when `import "linq"` | `a.Where(s => s == "a")` |
+| `iter.Seq[T]` | **Extension methods** on `iter.Seq[T]` | `seq.Where(pred)` |
 | Named generic sequence type | Real **receiver methods** on the type | `func (l Lazy[T]) Where(…)`, `func (l list[T]) Where(…)` |
-| Other iterables | Methods on the container type, or convert then chain | `set.Values().Where(…)` |
+| Other iterables | Extension methods after adaptation, or convert then chain | `set.Values().Where(…)` |
 
 
 Go still does **not** allow methods on `[]T` itself (slice types are not defined types). To add methods directly in library code, use a defined generic type such as `type List[T any] []T` or the std `list[T]`, `Lazy[T]`, etc.
@@ -661,22 +662,325 @@ Go still does **not** allow methods on `[]T` itself (slice types are not defined
 
 ### Relation to LINQ
 
-Built-in LINQ syntax (`nums.Where(…).Select(…).ToList()`) combines:
+Built-in LINQ syntax (`nums.Where(…).Select(…).ToList()`) is intended to be implemented with **[Extension Methods](#extension-methods)** on `iter.Seq[T]` (with automatic `slices.Values` for `[]T`). Until that lands, the compiler also uses:
 
-1. **Desugaring** for slices/arrays (and continued chains on `linq.Lazy[T]`) in the type checker.
-2. **Receiver methods** on `linq.Lazy[T]` and container types where the compiler supports them.
-3. **Package functions** in `import "linq"` as the lowering target and fallback when receiver generic methods are not yet usable.
+1. **Legacy desugaring** for slices/arrays (and continued chains on `linq.Lazy[T]`) via a fixed `linqMethods` table.
+2. **Receiver methods** on `linq.Lazy[T]` and container types where supported.
+3. **Package functions** in `import "linq"` as the lowering target.
 
 See [Built-in LINQ](#built-in-linq) below for usage examples.
 
+## Extension Methods
+
+Extension methods use **ordinary `func` syntax with a receiver**. There is no `extension` keyword. The compiler classifies the declaration from the **receiver type** and resolves **method call syntax** at use sites.
+
+Requires Go 1.27+ (generic receivers, generic methods). Not valid in upstream Go.
+
+### Goals
+
+**Any type — with or without generic arguments:**
+
+```go
+func (i int) Square() int { return i * i }
+
+func (s mypkg.String) Length() int { return len(s) } // mypkg.String defined elsewhere
+```
+
+**Foreign struct — extension in another package:**
+
+```go
+// person/person.go
+package person
+
+type Person struct { Name string }
+
+// personext/hello.go
+package personext
+
+import "person"
+
+func (p person.Person) Hello() string {
+    return "Hi, my name is " + p.Name
+}
+
+// app/app.go
+package app
+
+import (
+    "person"
+    "personext"
+)
+
+func myFunc() {
+    a := person.Person{}
+    a.Hello() // method syntax — not personext.Hello(a)
+}
+```
+
+**Generics / iter:**
+
+```go
+// query/where.go
+func (seq iter.Seq[T]) Where[T any](pred func(T) bool) iter.Seq[T] { ... }
+
+// app.go
+import "query"
+
+a := []string{"a", "b", "c"}
+b := a.Where(s => s == "a")
+```
+
+### How a declaration becomes an extension
+
+A `func` with a receiver is an **extension** when it cannot be a normal Go method on that receiver, **or** the receiver’s named base type is defined in **another** package.
+
+| Situation | Example | Kind |
+| --------- | ------- | ---- |
+| **Predeclared** type (`int`, `string`, `bool`, …) | `func (i int) Square() int` | **Extension** |
+| **Composite** with type params | `func (s []T) Where(...)` | **Extension** |
+| **Named type in another package** | `func (p person.Person) Hello() string` | **Extension** |
+| **Named generic type in another package** | `func (seq iter.Seq[T]) Where(...)` | **Extension** |
+| **Named type in this package** | `func (p Person) Greet() string` in `package person` | **Ordinary method** |
+
+Extensions work **with or without** type arguments on the receiver: `Person`, `*Person`, `[]T`, `iter.Seq[T]`, `int`, `mypkg.String`, etc.
+
+There is no opt-in marker.
+
+### Syntax (same as `func` + receiver)
+
+Extensions use the normal method declaration form:
+
+```go
+MethodDecl = "func" Receiver MethodName [ TypeParameters ] Signature [ FunctionBody ] .
+Receiver   = "(" identifier ReceiverType ")" .
+```
+
+#### Type parameters on the receiver
+
+The receiver type may use type parameters that are **declared by the receiver**, matching Go 1.27’s rules for methods on generic types—extended so the base type may live in another package:
+
+```go
+func (seq iter.Seq[T]) Where(pred func(T) bool) iter.Seq[T]
+```
+
+Here `T` is declared by `(seq iter.Seq[T])` and is in scope for the whole declaration (signature + body). The type parameter corresponds to `V` in `iter`’s definition `type Seq[V any] func(...)`.
+
+#### Type parameters on the method name
+
+Method-local type parameters appear after the name, as for [generic methods](#generic-methods-go-127):
+
+```go
+func (seq iter.Seq[T]) Select[U any](fn func(T) U) iter.Seq[U] { ... }
+```
+
+`T` from the receiver; `U` introduced on `Select`.
+
+#### `Where[T any]` with `iter.Seq[T]`
+
+This form is **valid and equivalent** to omitting the method type parameter list when it would only restate `T`:
+
+```go
+func (seq iter.Seq[T]) Where[T any](pred func(T) bool) iter.Seq[T]
+func (seq iter.Seq[T]) Where(pred func(T) bool) iter.Seq[T]          // same
+```
+
+Rules:
+
+- If the method has `[T any]` and the receiver is `…Seq[T]`, the `T` in both places must denote the **same** type parameter (same name and shared scope).
+- Method type parameters that **introduce new names** (`Select[U any]`, `OrderBy[K cmp.Ordered]`, …) must not reuse receiver parameter names for different roles.
+- Parameter names in function types (`pred func(a T) bool`) are optional; `a` is not related to outer variables.
+
+Invalid:
+
+```go
+func (seq iter.Seq[T]) Where[U any](pred func(T) bool) iter.Seq[T]  // U unused / wrong
+func (o *T) Where[T any](pred func(T) bool) any                      // *T not a defined base type
+```
+
+#### Direct extension on slices
+
+```go
+func (s []T) Where(pred func(T) bool) iter.Seq[T] {
+    return Where(slices.Values(s), pred) // call iter.Seq extension in same package
+}
+```
+
+`T` is declared by `[]T` in the receiver. No `import` of a wrapper type required at call sites.
+
+### Visibility and imports
+
+At the call site you always use **method syntax**: `a.Hello()`, not `personext.Hello(a)`.
+
+| Import | Required in calling file? |
+| ------ | ------------------------- |
+| Type package (`import "person"`) | **Yes** — to name `person.Person` |
+| Extension package (`import "personext"`) | **Yes** — so the compiler can resolve extensions on `person.Person` |
+| Dot import (`import . "personext"`) | **No** — never required |
+
+A normal import of the extension package is enough. You do **not** qualify calls as `personext.Hello(a)` and you do **not** need a dot import.
+
+```go
+import (
+    "person"
+    "personext"
+)
+
+a := person.Person{}
+a.Hello()
+```
+
+The extension package must appear in **that file’s** import block (transitive imports are not enough: importing only `person` does not bring in `personext`). Export data from `personext` lists which receiver types and methods it extends.
+
+#### Resolution for `x.M(args)`
+
+1. **Instance method** on `x`’s type — always wins.
+2. **Extension methods** named `M` from packages **imported in the current file** whose receiver type matches `x`.
+3. If multiple extensions match → **ambiguity error**.
+
+Extensions are resolved at **compile time**, not via reflection.
+
+### Receiver matching and adaptation
+
+Extension `func (seq iter.Seq[T]) Where(...)` matches:
+
+| Value type `x` | Behavior |
+| -------------- | -------- |
+| `iter.Seq[T]` | Direct match |
+| `[]T`, `[N]T` | **Adapt:** pass `slices.Values(x)` as the synthetic first argument |
+| Other | No match unless assignable to receiver after inference |
+
+```go
+a.Where(s => s == "a")
+// → query.Where(slices.Values(a), s => s == "a")
+```
+
+Optional slice extension `(s []T) Where` avoids adaptation at the cost of a second declaration.
+
+### Lowering (implementation model)
+
+An extension is compiled as a generic function in its package; the receiver becomes the first parameter:
+
+```go
+// source (extension syntax)
+func (seq iter.Seq[T]) Where[T any](pred func(T) bool) iter.Seq[T] { ... }
+
+// compiled shape (conceptual)
+func Where[T any](seq iter.Seq[T], pred func(T) bool) iter.Seq[T] { ... }
+```
+
+Call site:
+
+```go
+x.Where(args)  →  query.Where(/* adapted */ x, args...)
+```
+
+The type checker rewrites the AST to a package-level call.
+
+### Cross-package `Person` example
+
+```go
+// person/person.go
+package person
+
+type Person struct { Name string }
+```
+
+```go
+// personext/hello.go
+package personext
+
+import "person"
+
+func (p person.Person) Hello() string {
+    return "Hi, my name is " + p.Name
+}
+```
+
+```go
+// app/app.go
+package app
+
+import (
+    "person"
+    "personext"
+)
+
+func Run() {
+    a := person.Person{Name: "Ada"}
+    a.Hello()
+}
+```
+
+### `int` / `String` extensions
+
+```go
+// builtinext/int.go
+package builtinext
+
+func (i int) Square() int { return i * i }
+```
+
+```go
+// app.go
+import "builtinext"
+
+func example() {
+    x := 5
+    y := x.Square() // 25 → builtinext.Square(x)
+}
+```
+
+### LINQ / `iter.Seq` example
+
+```go
+// query/where.go
+package query
+
+import "iter"
+
+func (seq iter.Seq[T]) Where[T any](pred func(T) bool) iter.Seq[T] { ... }
+```
+
+```go
+// main.go
+package main
+
+import "query"
+
+func main() {
+    a := []string{"a", "b", "c"}
+    b := a.Where(s => s == "a")
+}
+```
+
+### Parser and type checker changes
+
+1. **Classifier** — predeclared, composite, or foreign receiver → `Extension` object.
+2. **Export data** — receiver type identity, method name, type params, defining package.
+3. **Selector** — instance method first, then extensions from **imported** extension packages; desugar to `pkg.M(x, args…)`.
+4. **Adaptation** — `[]T` / `[N]T` → `slices.Values` when extension is on `iter.Seq[T]`.
+
+### Relation to generic methods and LINQ
+
+- **Ordinary method:** `func (p Person) Greet()` in `package person`.
+- **Extension:** `func (p person.Person) Hello()` in `package personext`.
+- **LINQ:** implement as extensions on `iter.Seq[T]` / `[]T`; remove legacy `linqMethods` desugar.
+
+### Limitations
+
+- **Ambiguity:** two imported extension packages define the same method on the same receiver type → error.
+- **Instance methods win** over extensions.
+- **Import required:** the calling file must import each extension package it relies on (normal import, not dot import).
+- **Not in upstream Go.**
+
 ## Built-in LINQ
 
-Go includes built-in LINQ-style query operations that mirror C# naming and semantics. Import the `linq` package to enable method syntax on slices, arrays, and `linq.Lazy[T]` chains.
+Go includes built-in LINQ-style query operations that mirror C# naming and semantics. Prefer **[Extension Methods](#extension-methods)** for new code; `import "linq"` currently enables legacy method desugaring on slices and `linq.Lazy[T]`.
 
 - Same method names as C# (`Where`, `Select`, `OrderBy`, `GroupBy`, `First`, `ToList`, etc.)
 - Lazy evaluation where applicable (e.g. deferred iteration until materialization)
 - Minimal allocations; iterators and pipelines should avoid unnecessary intermediate slices
-- Method calls on `[]T` / arrays are **lowered** to `linq` package functions; see [Generic Methods (Go 1.27)](#generic-methods-go-127)
+- Target model: extensions on `iter.Seq[T]` with `[]T` adaptation; see [Extension Methods](#extension-methods)
 
 Step-by-step example:
 
