@@ -321,7 +321,9 @@ func (check *Checker) collectRecv(rparam *syntax.Field, scopePos syntax.Pos) (*V
 	// Delay validation of receiver type as it may cause premature expansion of types
 	// the receiver type is dependent on (see go.dev/issue/51232, go.dev/issue/51233).
 	check.later(func() {
-		check.validRecv(rbase, recv)
+		if !check.isExtensionRecv(recv.typ) {
+			check.validRecv(rbase, recv)
+		}
 	}).describef(recv, "validRecv(%s)", recv)
 
 	return recv, recvTParamsList

@@ -4,6 +4,8 @@
 
 package linq
 
+import "cmp"
+
 // Lazy is a deferred sequence: chain package functions until a terminal call.
 type Lazy[T any] struct {
 	next func() (T, bool)
@@ -26,6 +28,76 @@ func FromSlice[T any](s []T) Lazy[T] {
 // Where filters l and returns a lazy sequence.
 func (l Lazy[T]) Where(pred func(T) bool) Lazy[T] {
 	return LazyWhere(l, pred)
+}
+
+// Select projects each element to type U.
+func (l Lazy[T]) Select[U any](fn func(T) U) Lazy[U] {
+	return LazySelectBy(l, fn)
+}
+
+// OrderBy sorts by key when the sequence is enumerated.
+func (l Lazy[T]) OrderBy[K cmp.Ordered](key func(T) K) Lazy[T] {
+	return LazyOrderBy(l, key)
+}
+
+// OrderByDescending sorts descending by key when enumerated.
+func (l Lazy[T]) OrderByDescending[K cmp.Ordered](key func(T) K) Lazy[T] {
+	return LazyOrderByDescending(l, key)
+}
+
+// Take returns at most n elements.
+func (l Lazy[T]) Take(n int) Lazy[T] {
+	return LazyTake(l, n)
+}
+
+// Skip skips the first n elements.
+func (l Lazy[T]) Skip(n int) Lazy[T] {
+	return LazySkip(l, n)
+}
+
+// Distinct returns distinct elements (comparable T).
+func (l Lazy[T]) Distinct() Lazy[T] {
+	return LazyDistinct(l)
+}
+
+// GroupBy groups by key.
+func (l Lazy[T]) GroupBy[K comparable](key func(T) K) Lazy[Group[K, T]] {
+	return LazyGroupBy(l, key)
+}
+
+// ToList materializes the sequence.
+func (l Lazy[T]) ToList() []T {
+	return ToListLazy(l)
+}
+
+// First returns the first element, or panics if empty.
+func (l Lazy[T]) First() T {
+	return FirstLazy(l)
+}
+
+// FirstOrDefault returns the first element or the zero value.
+func (l Lazy[T]) FirstOrDefault() T {
+	return FirstOrDefaultLazy(l)
+}
+
+// Sum returns the sum of numeric elements.
+func (l Lazy[T]) Sum() U {
+	return LazySum(l)
+}
+
+// Any reports whether any element satisfies pred.
+func (l Lazy[T]) Any(pred func(T) bool) bool {
+	return LazyAny(l, pred)
+}
+
+// All reports whether all elements satisfy pred.
+func (l Lazy[T]) All(pred func(T) bool) bool {
+	return LazyAll(l, pred)
+}
+
+// Aggregate applies fn pairwise (first element is the seed).
+func (l Lazy[T]) Aggregate(fn func(T, T) T) T {
+	return LazyAggregate(l, fn)
 }
 
 func LazyWhere[T any](l Lazy[T], pred func(T) bool) Lazy[T] {

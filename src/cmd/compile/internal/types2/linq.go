@@ -163,10 +163,10 @@ func linqElemType(typ Type) Type {
 func (check *Checker) typecheckLinqLambdas(call *syntax.CallExpr, pname *PkgName, funcName string, recv Type) {
 	obj := pname.imported.scope.Lookup(funcName)
 	fn, ok := obj.(*Func)
-	if !ok || fn.typ() == nil {
+	if !ok || fn.typ == nil {
 		return
 	}
-	sig, ok := fn.typ().(*Signature)
+	sig, ok := fn.typ.(*Signature)
 	if !ok {
 		return
 	}

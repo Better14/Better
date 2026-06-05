@@ -4,70 +4,10 @@
 
 package linq
 
-import (
-	"cmp"
-	"slices"
-)
+import "cmp"
 
-// --- slice/array entry (lazy pipelines) ---
-//
-// Go does not allow methods on []T. Slice LINQ syntax (nums.Where(...)) is
-// desugared by the compiler to these package functions when "linq" is imported.
-// On linq.Lazy[T], use the receiver methods in lazy.go (e.g. l.Where(pred)).
-
-// Where filters s and returns a lazy sequence.
-func Where[T any](s []T, pred func(T) bool) Lazy[T] {
-	return LazyWhere(FromSlice(s), pred)
-}
-
-// Select projects s and returns a lazy sequence.
-func Select[T, U any](s []T, fn func(T) U) Lazy[U] {
-	return LazySelectBy(FromSlice(s), fn)
-}
-
-// OrderBy sorts by key when the sequence is enumerated.
-func OrderBy[T any, K cmp.Ordered](s []T, key func(T) K) Lazy[T] {
-	return LazyOrderBy(FromSlice(s), key)
-}
-
-// OrderByDescending sorts descending by key when enumerated.
-func OrderByDescending[T any, K cmp.Ordered](s []T, key func(T) K) Lazy[T] {
-	return LazyOrderByDescending(FromSlice(s), key)
-}
-
-// Take returns at most n elements from s.
-func Take[T any](s []T, n int) Lazy[T] {
-	return LazyTake(FromSlice(s), n)
-}
-
-// Skip skips the first n elements of s.
-func Skip[T any](s []T, n int) Lazy[T] {
-	return LazySkip(FromSlice(s), n)
-}
-
-// Distinct returns distinct elements (comparable T).
-func Distinct[T comparable](s []T) Lazy[T] {
-	return LazyDistinct(FromSlice(s))
-}
-
-// GroupBy groups s by key.
-func GroupBy[T any, K comparable](s []T, key func(T) K) Lazy[Group[K, T]] {
-	return LazyGroupBy(FromSlice(s), key)
-}
-
-// ToList returns a copy of s.
-func ToList[T any](s []T) []T {
-	return slices.Clone(s)
-}
-
-// First returns the first element of s, or panics if s is empty.
-func First[T any](s []T) T {
-	v, ok := FirstValue(s)
-	if !ok {
-		panic("linq: sequence contains no elements")
-	}
-	return v
-}
+// Slice LINQ syntax (nums.Where(...)) uses extension methods in slice_ext.go.
+// Lazy[T] chains use generic receiver methods in lazy.go.
 
 // FirstValue returns the first element of s and whether it exists.
 func FirstValue[T any](s []T) (T, bool) {
@@ -78,37 +18,7 @@ func FirstValue[T any](s []T) (T, bool) {
 	return s[0], true
 }
 
-// FirstOrDefault returns the first element of s, or the zero value.
-func FirstOrDefault[T any](s []T) T {
-	v, ok := FirstValue(s)
-	if ok {
-		return v
-	}
-	var z T
-	return z
-}
-
-// Any reports whether any element satisfies pred.
-func Any[T any](s []T, pred func(T) bool) bool {
-	return LazyAny(FromSlice(s), pred)
-}
-
-// All reports whether all elements satisfy pred.
-func All[T any](s []T, pred func(T) bool) bool {
-	return LazyAll(FromSlice(s), pred)
-}
-
-// Aggregate applies fn pairwise over s (first element is the seed).
-func Aggregate[T any](s []T, fn func(T, T) T) T {
-	return LazyAggregate(FromSlice(s), fn)
-}
-
-// Sum returns the sum of numeric elements in s.
-func Sum[U Number](s []U) U {
-	return LazySum(FromSlice(s))
-}
-
-// --- lazy chain continuations (compiler maps method calls here) ---
+// --- lazy chain continuations ---
 
 // LazyOrderBy sorts by key when enumerated.
 func LazyOrderBy[T any, K cmp.Ordered](l Lazy[T], key func(T) K) Lazy[T] {

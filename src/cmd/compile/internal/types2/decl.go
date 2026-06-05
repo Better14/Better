@@ -685,6 +685,15 @@ func (check *Checker) funcDecl(obj *Func, decl *declInfo) {
 	fdecl := decl.fdecl
 	check.funcType(sig, fdecl.Recv, fdecl.TParamList, fdecl.Type)
 
+	if sig.recv != nil && check.isExtensionRecv(sig.recv.typ) {
+		check.finishExtensionFunc(obj, sig)
+		if alt := check.pkg.scope.Lookup(obj.name); alt == nil {
+			check.declare(check.pkg.scope, fdecl.Name, obj, nopos)
+		} else if f, ok := alt.(*Func); !ok || !f.IsExtension() {
+			check.errorf(fdecl.Name, DuplicateDecl, "%s already declared in this package", obj.name)
+		}
+	}
+
 	// Set the scope's extent to the complete "func (...) { ... }"
 	// so that Scope.Innermost works correctly.
 	sig.scope.pos = fdecl.Pos()
