@@ -775,37 +775,40 @@ func (seq iter.Seq[T]) Select[U any](fn func(T) U) iter.Seq[U] { ... }
 
 `T` from the receiver; `U` introduced on `Select`.
 
-#### `Where[T any]` with `iter.Seq[T]`
+#### Restating receiver type parameters (`Where[T any]`)
 
-This form is **valid and equivalent** to omitting the method type parameter list when it would only restate `T`:
+When a method uses the receiver’s type parameter `T`, the method name must **explicitly** restate `T` in its type parameter list. The first type parameter must be that same `T` (with a constraint such as `any`); additional parameters follow for new names.
 
 ```go
 func (seq iter.Seq[T]) Where[T any](pred func(T) bool) iter.Seq[T]
-func (seq iter.Seq[T]) Where(pred func(T) bool) iter.Seq[T]          // same
+func (seq iter.Seq[T]) Select[T, U any](fn func(T) U) iter.Seq[U]
 ```
 
 Rules:
 
-- If the method has `[T any]` and the receiver is `…Seq[T]`, the `T` in both places must denote the **same** type parameter (same name and shared scope).
-- Method type parameters that **introduce new names** (`Select[U any]`, `OrderBy[K cmp.Ordered]`, …) must not reuse receiver parameter names for different roles.
+- The first method type parameter must be the receiver’s `T` (same name); it binds to the receiver type parameter, not a new declaration.
+- Further method type parameters introduce new names (`Select[T, U any]`, `OrderBy[T, K cmp.Ordered]`, …).
+- Omitting `[T …]` when the signature uses `T` is an error on **extension** receivers such as `[]T`.
+- On ordinary generic receivers (`Lazy[T]`, `iter.Seq[T]`), restating `T` is optional but supported the same way.
 - Parameter names in function types (`pred func(a T) bool`) are optional; `a` is not related to outer variables.
 
 Invalid:
 
 ```go
-func (seq iter.Seq[T]) Where[U any](pred func(T) bool) iter.Seq[T]  // U unused / wrong
-func (o *T) Where[T any](pred func(T) bool) any                      // *T not a defined base type
+func (s []T) Where(pred func(T) bool) any              // must be Where[T any](…)
+func (seq iter.Seq[T]) Where[U any](pred func(T) bool) iter.Seq[T]  // first name must be T
+func (o *T) Where[T any](pred func(T) bool) any       // *T not a defined base type
 ```
 
 #### Direct extension on slices
 
 ```go
-func (s []T) Where(pred func(T) bool) iter.Seq[T] {
-    return Where(slices.Values(s), pred) // call iter.Seq extension in same package
+func (s []T) Where[T any](pred func(T) bool) iter.Seq[T] {
+    return Where(slices.Values(s), pred)
 }
 ```
 
-`T` is declared by `[]T` in the receiver. No `import` of a wrapper type required at call sites.
+`T` is declared by `[]T` in the receiver and must be restated on the method name when used in the signature. No `import` of a wrapper type required at call sites.
 
 ### Visibility and imports
 
