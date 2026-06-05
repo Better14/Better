@@ -9,6 +9,20 @@ import (
 	. "internal/types/errors"
 )
 
+// extensionSliceElemTypeParam reports whether rtyp is []T with a single
+// identifier element name T that is not yet defined in scope.
+func extensionSliceElemTypeParam(rtyp syntax.Expr) (*syntax.Name, bool) {
+	st, ok := syntax.Unparen(rtyp).(*syntax.SliceType)
+	if !ok {
+		return nil, false
+	}
+	name, ok := syntax.Unparen(st.Elem).(*syntax.Name)
+	if !ok || name.Value == "" || name.Value == "_" {
+		return nil, false
+	}
+	return name, true
+}
+
 // isExtensionRecv reports whether typ is a valid extension receiver base type
 // for a method declared in defPkg.
 func (check *Checker) isExtensionRecv(typ Type) bool {
@@ -43,13 +57,16 @@ func (check *Checker) finishExtensionFunc(obj *Func, sig *Signature) {
 
 	if sig.rparams != nil {
 		rlist := sig.rparams.list()
+		sig.rparams = nil
 		if sig.tparams == nil {
-			sig.tparams = bindTParams(rlist)
+			sig.tparams = &TypeParamList{tparams: rlist}
 		} else {
 			combined := append(rlist, sig.tparams.list()...)
-			sig.tparams = bindTParams(combined)
+			for i, t := range combined {
+				t.index = i
+			}
+			sig.tparams = &TypeParamList{tparams: combined}
 		}
-		sig.rparams = nil
 	}
 
 	if sig.params == nil {
@@ -87,6 +104,14 @@ type extensionMatch struct {
 	fn      *Func
 	pkgName *PkgName
 	adapt   bool // wrap receiver with slices.Values
+	slice   bool // convert array receiver to slice for []T extensions
+}
+
+// hasInstanceMethod reports whether typ has a concrete or interface method name.
+func (check *Checker) hasInstanceMethod(typ Type, addressable bool, name string) bool {
+	obj, _, _ := lookupFieldOrMethod(typ, addressable, check.pkg, name, false)
+	_, ok := obj.(*Func)
+	return ok
 }
 
 func (check *Checker) extensionCandidates(recvType Type, method string) []extensionMatch {
@@ -132,7 +157,14 @@ func (check *Checker) matchExtension(recvType Type, fn *Func) (extensionMatch, b
 	param0 := sig.params.At(0).typ
 
 	if check.extensionTypesMatch(recvType, param0) {
-		return extensionMatch{fn: fn, adapt: false}, true
+		return extensionMatch{fn: fn}, true
+	}
+
+	// [N]T can use extensions declared on []T.
+	if arr, ok := Unalias(recvType).Underlying().(*Array); ok {
+		if sl, ok := Unalias(param0).Underlying().(*Slice); ok && Identical(arr.elem, sl.elem) {
+			return extensionMatch{fn: fn, slice: true}, true
+		}
 	}
 
 	if seqElem := iterSeqElem(param0); seqElem != nil {
@@ -174,7 +206,12 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 		return statement, false
 	}
 
-	matches := check.extensionCandidates(recv.typ(), sel.Sel.Value)
+	method := sel.Sel.Value
+	if check.hasInstanceMethod(recv.typ(), recv.mode() == variable, method) {
+		return statement, false
+	}
+
+	matches := check.extensionCandidates(recv.typ(), method)
 	if len(matches) == 0 {
 		return statement, false
 	}
@@ -187,6 +224,9 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 	m := matches[0]
 
 	recvExpr := sel.X
+	if m.slice {
+		recvExpr = &syntax.SliceExpr{X: sel.X}
+	}
 	if m.adapt {
 		if !check.verifyVersionf(call, go1_27, "slices.Values") {
 			x.invalidate()
