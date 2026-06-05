@@ -86,6 +86,7 @@ func ParseGOEXPERIMENT(goos, goarch, goexp string) (*ExperimentFlags, error) {
 		GreenTeaGC:            true,
 		JSONv2:                true,
 		SizeSpecializedMalloc: true,
+		GenericMethods:        true,
 	}
 	flags := &ExperimentFlags{
 		Flags:    baseline,

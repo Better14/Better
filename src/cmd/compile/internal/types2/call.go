@@ -170,6 +170,9 @@ func (check *Checker) instantiateSignature(pos syntax.Pos, expr syntax.Expr, typ
 
 func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 	if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
+		if kind, handled := check.tryExtensionCall(x, call, sel); handled {
+			return kind
+		}
 		if kind, handled := check.tryLinqCall(x, call, sel); handled {
 			return kind
 		}

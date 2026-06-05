@@ -445,7 +445,13 @@ func (pr *pkgReader) objIdx(idx pkgbits.Index) (*types2.Package, string) {
 			}
 			tparams := r.typeParamNames(false, false)
 			sig := r.signature(nil, nil, tparams)
-			return types2.NewFunc(pos, objPkg, objName, sig)
+			fn := types2.NewFunc(pos, objPkg, objName, sig)
+			if sig.Params() != nil && sig.Params().Len() > 0 {
+				if extensionImportRecv(objPkg, sig.Params().At(0).Type()) {
+					fn.SetExtension(true)
+				}
+			}
+			return fn
 
 		case pkgbits.ObjType:
 			pos := r.pos()
@@ -639,4 +645,30 @@ func newAliasTypeName(aliases bool, pos syntax.Pos, pkg *types2.Package, name st
 	}
 	assert(len(tparams) == 0)
 	return types2.NewTypeName(pos, pkg, name, rhs)
+}
+
+// extensionImportRecv reports whether typ is the first parameter type of an
+// exported extension method (receiver lowered to a parameter).
+func extensionImportRecv(defPkg *types2.Package, typ types2.Type) bool {
+	for {
+		p, ok := typ.(*types2.Pointer)
+		if !ok {
+			break
+		}
+		typ = p.Elem()
+	}
+	typ = types2.Unalias(typ)
+	switch T := typ.(type) {
+	case *types2.Basic:
+		return true
+	case *types2.Slice, *types2.Array, *types2.Map, *types2.Chan:
+		return true
+	case *types2.Named:
+		if T.Obj() == nil || T.Obj().Pkg() == nil {
+			return false
+		}
+		return T.Obj().Pkg() != defPkg
+	default:
+		return false
+	}
 }
