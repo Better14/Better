@@ -210,6 +210,18 @@ func (check *Checker) collectRecv(rparam *syntax.Field, scopePos syntax.Pos) (*V
 	var recvType Type = Typ[Invalid]
 	var recvTParamsList *TypeParamList
 	if rtparams == nil {
+		// Extension: func (s []T) declares T via the slice element type.
+		if name, ok := extensionSliceElemTypeParam(rparam.Type); ok && check.lookup(name.Value) == nil {
+			tpar := check.declareTypeParam(name, scopePos)
+			recvTParamsList = bindTParams([]*TypeParam{tpar})
+			recvType = NewSlice(tpar)
+			if rptr {
+				recvType = NewPointer(recvType)
+			}
+			check.recordUse(name, tpar.obj)
+			check.recordTypeAndValue(name, typexpr, tpar, nil)
+			check.recordParenthesizedRecvTypes(rparam.Type, recvType)
+		} else {
 		// If there are no type parameters, we can simply typecheck rparam.Type.
 		// If that is a generic type, varType will complain.
 		// Further receiver constraints will be checked later, with validRecv.
@@ -229,6 +241,7 @@ func (check *Checker) collectRecv(rparam *syntax.Field, scopePos syntax.Pos) (*V
 				break
 			}
 			a, _ = baseType.(*Alias)
+		}
 		}
 	} else {
 		// If there are type parameters, rbase must denote a generic base type.

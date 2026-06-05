@@ -173,7 +173,8 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 		if kind, handled := check.tryExtensionCall(x, call, sel); handled {
 			return kind
 		}
-		if kind, handled := check.tryLinqCall(x, call, sel); handled {
+		// LINQ desugaring for import "linq" (see linq_lazy.go).
+		if kind, handled := check.tryLazyCall(x, call, sel); handled {
 			return kind
 		}
 	}
