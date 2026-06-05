@@ -6,10 +6,37 @@ package linq_test
 
 import (
 	"linq"
+	"slices"
 	"testing"
 )
 
-func TestLazyPipeline(t *testing.T) {
+func TestChainWhereSelectToList(t *testing.T) {
+	nums := []int{1, 2, 3, 4, 5}
+	out := nums.Where(func(n int) bool { return n < 5 }).Select(func(n int) int { return n + 1 }).ToList()
+	want := []int{2, 3, 4, 5}
+	if !slices.Equal(out, want) {
+		t.Fatalf("got %v, want %v", out, want)
+	}
+}
+
+func TestChainFirst(t *testing.T) {
+	nums := []int{1, 2, 3, 4, 5}
+	first := nums.Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 }).First()
+	if first != 4 {
+		t.Fatalf("got %v, want 4", first)
+	}
+}
+
+func TestChainLambdaArrow(t *testing.T) {
+	nums := []int{1, 2, 3, 4, 5}
+	out := nums.Where(n => n < 5).Select(n => n + 1).ToList()
+	want := []int{2, 3, 4, 5}
+	if !slices.Equal(out, want) {
+		t.Fatalf("got %v, want %v", out, want)
+	}
+}
+
+func TestLazyPackageAPI(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
 	pipe := linq.LazySelect(linq.LazyWhere(linq.FromSlice(nums),
 		func(n int) bool { return n%2 == 0 }),
@@ -20,10 +47,10 @@ func TestLazyPipeline(t *testing.T) {
 	}
 }
 
-func TestWhereSum(t *testing.T) {
+func TestSumChain(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	evens := linq.Where(nums, func(n int) bool { return n%2 == 0 })
-	if linq.Sum(evens) != 6 {
-		t.Fatalf("sum evens: %v", evens)
+	sum := nums.Where(func(n int) bool { return n%2 == 0 }).Sum()
+	if sum != 6 {
+		t.Fatalf("sum: %v", sum)
 	}
 }

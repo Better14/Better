@@ -10,6 +10,14 @@ import (
 )
 
 func (check *Checker) lambdaExpr(x *operand, e *syntax.LambdaExpr, hint Type) {
+	if hint == nil && check.Types != nil {
+		if tv, ok := check.Types[e]; ok && tv.Type != nil {
+			x.mode_ = value
+			x.typ_ = tv.Type
+			x.expr = e
+			return
+		}
+	}
 	if hint == nil {
 		check.errorf(e, InvalidSyntaxTree, "lambda expression requires type context")
 		x.invalidate()

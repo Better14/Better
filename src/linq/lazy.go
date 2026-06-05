@@ -23,6 +23,11 @@ func FromSlice[T any](s []T) Lazy[T] {
 	}}
 }
 
+// Where filters l and returns a lazy sequence.
+func (l Lazy[T]) Where(pred func(T) bool) Lazy[T] {
+	return LazyWhere(l, pred)
+}
+
 func LazyWhere[T any](l Lazy[T], pred func(T) bool) Lazy[T] {
 	src := l.next
 	return Lazy[T]{next: func() (T, bool) {

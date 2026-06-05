@@ -9,51 +9,21 @@ import (
 	"slices"
 )
 
-// Where filters s, returning a new slice.
-func Where[T any](s []T, pred func(T) bool) []T {
-	return LazyToSlice(LazyWhere(FromSlice(s), pred))
-}
-
-// Select maps s with fn.
-func Select[T any](s []T, fn func(T) T) []T {
-	return LazyToSlice(LazySelect(FromSlice(s), fn))
-}
-
-// SelectBy maps s to a new element type.
-func SelectBy[T, U any](s []T, fn func(T) U) []U {
-	return LazyToSlice(LazySelectBy(FromSlice(s), fn))
-}
-
-// First returns the first element of s.
-func First[T any](s []T) (T, bool) {
-	if len(s) == 0 {
-		var z T
-		return z, false
-	}
-	return s[0], true
-}
-
-
+// Number is a type set for numeric Sum.
 type Number interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
 	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
 	~float32 | ~float64
 }
 
-func Sum[U Number](s []U) U {
-	var acc U
-	for _, v := range s {
-		acc += v
-	}
-	return acc
-}
-
-func OrderBy[T any, K cmp.Ordered](s []T, key func(T) K) []T {
+// sortOrderBy sorts s by key (eager materialization helper).
+func sortOrderBy[T any, K cmp.Ordered](s []T, key func(T) K) []T {
 	out := slices.Clone(s)
 	slices.SortFunc(out, func(a, b T) int { return cmp.Compare(key(a), key(b)) })
 	return out
 }
 
+// DistinctComparable returns distinct elements of s (eager).
 func DistinctComparable[T comparable](s []T) []T {
 	seen := make(map[T]struct{})
 	var out []T

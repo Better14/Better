@@ -580,13 +580,103 @@ Runtime defaults (`make`, `new`, non-const calls, package `var`s) are **not** su
 - Default arguments are not supported on `=>` lambdas; use a named `func` or a wrapper.
 - Not valid in upstream Go.
 
+## Generic Methods (Go 1.27)
+
+Go 1.27 extends generic types with **methods whose receivers are generic**. This is the mechanism behind C#-style “attach query methods to any enumerable” — but Go expresses it through **named generic types** and (for built-in slices) **compiler desugaring**, not C# `static` extension methods.
+
+### Methods on generic types
+
+If the receiver base type is generic, the receiver specification must declare matching type parameters. Those parameters are in scope for the method body (like type parameters on a generic struct):
+
+```go
+type Pair[A, B any] struct {
+	a A
+	b B
+}
+
+func (p Pair[A, B]) Swap() Pair[B, A] {
+	return Pair[B, A]{a: p.b, b: p.a}
+}
+```
+
+A method on `Lazy[T]` uses the same pattern:
+
+```go
+type Lazy[T any] struct { /* iterator state */ }
+
+func (l Lazy[T]) Where(pred func(T) bool) Lazy[T] {
+	// filter l using pred; return a new lazy pipeline
+}
+```
+
+Here `T` comes from the receiver `Lazy[T]` — you do **not** write a separate `[T any]` on the method when `T` is already declared by the receiver.
+
+Invalid (receiver must be a defined type, not a bare type parameter):
+
+```go
+func (o *T) Where(pred func(T) bool) Lazy[T]  // invalid
+```
+
+### Generic methods (extra type parameters on the method)
+
+A method may declare **additional** type parameters after the method name, like a generic function bound to a receiver. This mirrors C# `Select` projecting to a new element type:
+
+```go
+type List[E any] []E
+
+func (l List[E]) Select[F any](f func(E) F) List[F] {
+	r := make(List[F], len(l))
+	for i, x := range l {
+		r[i] = f(x)
+	}
+	return r
+}
+```
+
+Such a declaration is a **generic method**. It must be **instantiated** (explicitly or by inference) before it can be called, the same as generic functions.
+
+### C# extension methods vs Go
+
+In C#, `Where`, `Select`, etc. are **extension methods** on `IEnumerable<T>` — any type implementing that interface picks them up.
+
+In this fork, enumerables get LINQ-style methods in three ways:
+
+
+| Enumerable shape | How methods attach | Example |
+| ---------------- | ------------------ | ------- |
+| Slice / array `[]T` | Compiler **desugars** method syntax to `linq` package calls when `import "linq"` | `nums.Where(n => n%2 == 0)` → `linq.Where(nums, …)` |
+| Named generic sequence type | Real **receiver methods** on the type | `func (l Lazy[T]) Where(…)`, `func (l list[T]) Where(…)` |
+| Other iterables | Methods on the container type, or convert then chain | `set.Values().Where(…)` |
+
+
+Go still does **not** allow methods on `[]T` itself (slice types are not defined types). To add methods directly in library code, use a defined generic type such as `type List[T any] []T` or the std `list[T]`, `Lazy[T]`, etc.
+
+### Limitations (Go 1.27 and this fork)
+
+- **No methods on slice types.** Use a type alias/definition (`type List[E any] []E`), a wrapper (`Lazy[T]`), or slice LINQ desugaring (below).
+- **Receiver base type** must be a defined type in the same package; it cannot be a pointer or interface type, and generic aliases have restrictions (see the language spec).
+- **Generic methods with method-local type parameters** (e.g. `Select[F any]` on `Lazy[T]`) are part of the Go 1.27 language, but the compiler in this fork may **ICE** when exporting some generic methods from generic types (`internal compiler error` in `noder/writer.go`). Until that is fixed, operations that need an extra type parameter (`Select`, `OrderBy` with key type `K`, `GroupBy` with key type `K`) may remain **package functions** (`linq.Select`, `linq.LazySelectBy`, …) even when simpler methods (`Where`, `Take`, `Skip`) work as receivers.
+- **Instantiation:** generic methods must be instantiated; type inference at the call site applies when the compiler can infer method type arguments from arguments (same rules as generic functions).
+- **Not in upstream Go** before 1.27.
+
+### Relation to LINQ
+
+Built-in LINQ syntax (`nums.Where(…).Select(…).ToList()`) combines:
+
+1. **Desugaring** for slices/arrays (and continued chains on `linq.Lazy[T]`) in the type checker.
+2. **Receiver methods** on `linq.Lazy[T]` and container types where the compiler supports them.
+3. **Package functions** in `import "linq"` as the lowering target and fallback when receiver generic methods are not yet usable.
+
+See [Built-in LINQ](#built-in-linq) below for usage examples.
+
 ## Built-in LINQ
 
-Go includes built-in LINQ-style query operations that mirror C# naming and semantics.
+Go includes built-in LINQ-style query operations that mirror C# naming and semantics. Import the `linq` package to enable method syntax on slices, arrays, and `linq.Lazy[T]` chains.
 
 - Same method names as C# (`Where`, `Select`, `OrderBy`, `GroupBy`, `First`, `ToList`, etc.)
 - Lazy evaluation where applicable (e.g. deferred iteration until materialization)
 - Minimal allocations; iterators and pipelines should avoid unnecessary intermediate slices
+- Method calls on `[]T` / arrays are **lowered** to `linq` package functions; see [Generic Methods (Go 1.27)](#generic-methods-go-127)
 
 Step-by-step example:
 
@@ -636,7 +726,16 @@ found := users.Where(u => u.Active).Select(u => u.Email).FirstOrDefault()
 
 Predicate and projection arguments are typically single-expression lambdas using `=>`; parameter types are inferred from the LINQ method signature.
 
-LINQ extensions are provided as methods on supported sequence types (slices, arrays, and other iterable types as defined by the standard library).
+```go
+import "linq"
+
+nums := []int{1, 2, 3, 4, 5}
+evens := nums.Where(n => n%2 == 0)       // desugared to linq.Where
+doubled := evens.Select(n => n * 2)    // linq.LazySelectBy on Lazy[int]
+first := doubled.First()                 // terminal: materializes one element
+```
+
+LINQ extensions are provided as methods on supported sequence types (slices, arrays, `linq.Lazy[T]`, and other iterable types as defined by the standard library). Under the hood, slice/array calls desugar to `linq` functions; named types such as `Lazy[T]` may define real receiver methods where supported.
 
 ## Data Structures
 
