@@ -9,6 +9,30 @@ import (
 	. "internal/types/errors"
 )
 
+// extensionFuncShape reports whether fn looks like an exported extension
+// (receiver lowered to the first parameter) from pkg.
+func extensionFuncShape(pkg *Package, fn *Func) bool {
+	if fn == nil || pkg == nil || fn.pkg != pkg {
+		return false
+	}
+	sig := fn.Signature()
+	if sig == nil || sig.Recv() != nil || sig.Params() == nil || sig.Params().Len() == 0 {
+		return false
+	}
+	typ := sig.Params().At(0).Type()
+	typ, _ = deref(typ)
+	typ = Unalias(typ)
+	switch typ.(type) {
+	case *Basic, *Slice, *Array, *Map, *Chan:
+		return true
+	case *Named:
+		if n := typ.(*Named); n.obj != nil && n.obj.pkg != nil {
+			return n.obj.pkg != pkg
+		}
+	}
+	return false
+}
+
 // extensionSliceElemTypeParam reports whether rtyp is []T with a single
 // identifier element name T that is not yet defined in scope.
 func extensionSliceElemTypeParam(rtyp syntax.Expr) (*syntax.Name, bool) {
@@ -129,7 +153,10 @@ func (check *Checker) extensionCandidates(recvType Type, method string) []extens
 			}
 			obj := scope.Lookup(name)
 			fn, ok := obj.(*Func)
-			if !ok || !fn.IsExtension() || seen[fn] {
+			if !ok || seen[fn] {
+				continue
+			}
+			if !fn.IsExtension() && !extensionFuncShape(pkg, fn) {
 				continue
 			}
 			if m, ok := check.matchExtension(recvType, fn); ok {
@@ -184,6 +211,21 @@ func (check *Checker) extensionTypesMatch(recv, param Type) bool {
 	x.typ_ = recv
 	if ok, _ := x.assignableTo(check, param, nil); ok {
 		return true
+	}
+	// Match concrete slices against extension signatures on []T (element type param).
+	if recvSl, ok := Unalias(recv).Underlying().(*Slice); ok {
+		if paramSl, ok := Unalias(param).Underlying().(*Slice); ok {
+			if tp, ok := paramSl.elem.(*TypeParam); ok && isValid(recvSl.elem) {
+				c := tp.Constraint()
+				if !isValid(c) || Identical(Unalias(c), universeAny.Type()) {
+					return true
+				}
+			}
+			x.typ_ = recvSl.elem
+			if ok, _ := x.assignableTo(check, paramSl.elem, nil); ok {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -260,11 +302,8 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 
 	pkgIdent := m.pkgName
 	if pkgIdent == nil {
-		// same package
-		call.Fun = &syntax.SelectorExpr{
-			X:   syntax.NewName(call.Pos(), check.pkg.name),
-			Sel: syntax.NewName(call.Pos(), sel.Sel.Value),
-		}
+		// same package: use an unqualified function name
+		call.Fun = syntax.NewName(call.Pos(), sel.Sel.Value)
 	} else {
 		call.Fun = &syntax.SelectorExpr{
 			X:   syntax.NewName(call.Pos(), pkgIdent.name),

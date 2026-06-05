@@ -204,6 +204,7 @@ func (check *Checker) collectRecv(rparam *syntax.Field, scopePos syntax.Pos) (*V
 		// Extension: func (s []T) declares T via the slice element type.
 		if name, ok := extensionSliceElemTypeParam(rparam.Type); ok && check.lookup(name.Value) == nil {
 			tpar := check.declareTypeParam(name, scopePos)
+			tpar.SetConstraint(universeAny.Type())
 			recvTParamsList = bindTParams([]*TypeParam{tpar})
 			recvType = NewSlice(tpar)
 			if rptr {
