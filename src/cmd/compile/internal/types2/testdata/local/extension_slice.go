@@ -2,7 +2,7 @@
 
 package p
 
-func (s []T) Where(pred func(T) bool) []T {
+func (s []T) Where[T any](pred func(T) bool) []T {
 	var out []T
 	for _, v := range s {
 		if pred(v) {

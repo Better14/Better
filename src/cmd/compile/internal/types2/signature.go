@@ -157,8 +157,16 @@ func (check *Checker) funcType(sig *Signature, recvPar *syntax.Field, tparams []
 	}
 
 	// collect and declare function type parameters
-	if tparams != nil {
-		check.collectTypeParams(&sig.tparams, tparams)
+	methodTParams := tparams
+	if recvTPar, ok := extensionSliceRecvTypeParam(recv, rparams); ok {
+		methodTParams = check.prepareReceiverMethodTypeParams(recvTPar, methodTParams, ftyp, true)
+	} else if rparams != nil && rparams.Len() == 1 && len(methodTParams) > 0 {
+		if methodTParams[0].Name != nil && methodTParams[0].Name.Value == rparams.At(0).obj.name {
+			methodTParams = check.prepareReceiverMethodTypeParams(rparams.At(0), methodTParams, ftyp, false)
+		}
+	}
+	if len(methodTParams) > 0 {
+		check.collectTypeParams(&sig.tparams, methodTParams)
 	}
 
 	// collect ordinary and result parameters

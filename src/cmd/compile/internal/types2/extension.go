@@ -70,6 +70,48 @@ func (check *Checker) isExtensionRecv(typ Type) bool {
 	}
 }
 
+// extensionSliceRecvTypeParam reports whether recv/rparams describe an extension
+// on []T with T declared by the receiver element type.
+func extensionSliceRecvTypeParam(recv *Var, rparams *TypeParamList) (*TypeParam, bool) {
+	if recv == nil || rparams == nil || rparams.Len() != 1 {
+		return nil, false
+	}
+	sl, ok := Unalias(recv.typ).Underlying().(*Slice)
+	if !ok {
+		return nil, false
+	}
+	tp := rparams.At(0)
+	if Identical(sl.elem, tp) {
+		return tp, true
+	}
+	return nil, false
+}
+
+// prepareReceiverMethodTypeParams handles a method type parameter list whose first
+// entry restates a receiver type parameter (e.g. Where[T any] on []T or Lazy[T]).
+// When required is true (extension []T), list must be non-empty and start with T.
+// Additional entries are returned for collectTypeParams (e.g. Select[T, U any] → [U any]).
+func (check *Checker) prepareReceiverMethodTypeParams(recvTPar *TypeParam, list []*syntax.Field, at poser, required bool) []*syntax.Field {
+	recvName := recvTPar.obj.name
+	if len(list) == 0 {
+		if required {
+			check.errorf(at, BadDecl, "extension method on []%s must declare type parameter %s (e.g. …[%s any](…))", recvName, recvName, recvName)
+		}
+		return nil
+	}
+	if list[0].Name == nil || list[0].Name.Value != recvName {
+		if required {
+			check.errorf(list[0].Pos(), BadDecl, "first type parameter must be %s", recvName)
+		}
+		return list
+	}
+	bound := check.bound(list[0].Type)
+	if isValid(bound) {
+		recvTPar.SetConstraint(bound)
+	}
+	return list[1:]
+}
+
 // finishExtensionFunc lowers an extension method to a package-level function by
 // moving the receiver to the first parameter and merging receiver type parameters
 // into the function's type parameter list.
