@@ -15,9 +15,11 @@ func (check *Checker) switchExpr(x *operand, e *syntax.SwitchExpr) {
 	if e.Tag != nil {
 		check.expr(nil, &tag, e.Tag)
 		check.assignment(&tag, nil, "switch expression")
-		if tag.isValid() && !Comparable(tag.typ()) && !hasNil(tag.typ()) {
-			check.errorf(&tag, InvalidExprSwitch, "cannot switch on %s (%s is not comparable)", &tag, tag.typ())
-			tag.invalidate()
+		if tag.isValid() {
+			if _, ok := AsEnum(tag.typ()); !ok && !Comparable(tag.typ()) && !hasNil(tag.typ()) {
+				check.errorf(&tag, InvalidExprSwitch, "cannot switch on %s (%s is not comparable)", &tag, tag.typ())
+				tag.invalidate()
+			}
 		}
 	} else {
 		tag.mode_ = constant_
@@ -31,6 +33,11 @@ func (check *Checker) switchExpr(x *operand, e *syntax.SwitchExpr) {
 	}
 	if !tag.isValid() {
 		x.invalidate()
+		return
+	}
+
+	if enumTyp, ok := AsEnum(tag.typ()); ok {
+		check.enumSwitchExpr(x, e, tag.typ(), enumTyp)
 		return
 	}
 

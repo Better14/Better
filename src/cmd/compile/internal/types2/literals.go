@@ -105,6 +105,10 @@ func (check *Checker) funcLit(x *operand, e *syntax.FuncLit) {
 }
 
 func (check *Checker) compositeLit(x *operand, e *syntax.CompositeLit, hint Type) {
+	if check.tryEnumCompositeLit(x, e, hint) {
+		return
+	}
+
 	var typ, base Type
 	var isElem bool // true if composite literal is an element of an enclosing composite literal
 

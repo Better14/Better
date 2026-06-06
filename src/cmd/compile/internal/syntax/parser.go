@@ -441,6 +441,10 @@ func (p *parser) fileOrNil() *File {
 			p.next()
 			f.DeclList = p.appendGroup(f.DeclList, p.typeDecl)
 
+		case _Enum:
+			p.next()
+			f.DeclList = p.appendGroup(f.DeclList, p.enumDecl)
+
 		case _Var:
 			p.next()
 			f.DeclList = p.appendGroup(f.DeclList, p.varDecl)
@@ -458,7 +462,7 @@ func (p *parser) fileOrNil() *File {
 			} else {
 				p.syntaxError("non-declaration statement outside function body")
 			}
-			p.advance(_Import, _Const, _Type, _Var, _Func)
+			p.advance(_Import, _Const, _Type, _Enum, _Var, _Func)
 			continue
 		}
 
@@ -468,7 +472,7 @@ func (p *parser) fileOrNil() *File {
 
 		if p.tok != _EOF && !p.got(_Semi) {
 			p.syntaxError("after top level declaration")
-			p.advance(_Import, _Const, _Type, _Var, _Func)
+			p.advance(_Import, _Const, _Type, _Enum, _Var, _Func)
 		}
 	}
 	// p.tok == _EOF
@@ -678,6 +682,106 @@ func (p *parser) typeDecl(group *Group) Decl {
 	}
 
 	return d
+}
+
+// EnumSpec = identifier [ TypeParams ] "{" { EnumVariant ";" } "}" .
+func (p *parser) enumDecl(group *Group) Decl {
+	if trace {
+		defer p.trace("enumDecl")()
+	}
+
+	d := new(EnumDecl)
+	d.pos = p.pos()
+	d.Group = group
+	d.Pragma = p.takePragma()
+
+	d.Name = p.name()
+	if p.tok == _Lbrack {
+		pos := p.pos()
+		p.next()
+		switch p.tok {
+		case _Name:
+			var x Expr = p.name()
+			if p.tok != _Lbrack {
+				p.xnest++
+				x = p.binaryExpr(p.pexpr(x, false), 0)
+				p.xnest--
+			}
+			if pname, ptype := extractName(x, p.tok == _Comma); pname != nil && (ptype != nil || p.tok != _Rbrack) {
+				d.TParamList = p.paramList(pname, ptype, _Rbrack, true, false)
+			} else {
+				p.syntaxError("invalid type parameter list in enum declaration")
+				p.advance(_Semi, _Rparen)
+				return d
+			}
+		default:
+			p.syntaxError("invalid type parameter list in enum declaration")
+			p.advance(_Semi, _Rparen)
+			return d
+		}
+		_ = pos
+	}
+
+	p.want(_Lbrace)
+	p.list("enum declaration", _Semi, _Rbrace, func() bool {
+		if v := p.enumVariant(); v != nil {
+			d.Variants = append(d.Variants, v)
+		}
+		return false
+	})
+
+	return d
+}
+
+func (p *parser) enumVariant() *EnumVariant {
+	if trace {
+		defer p.trace("enumVariant")()
+	}
+
+	v := new(EnumVariant)
+	v.pos = p.pos()
+	v.Name = p.name()
+
+	switch p.tok {
+	case _Assign:
+		p.next()
+		v.Tag = p.expr()
+
+	case _Lparen:
+		p.next()
+		p.list("enum tuple variant", _Comma, _Rparen, func() bool {
+			v.Types = append(v.Types, p.type_())
+			return false
+		})
+
+	case _Lbrace:
+		p.next()
+		v.Fields = p.enumStructFields()
+	}
+
+	return v
+}
+
+func (p *parser) enumStructFields() []*Field {
+	if trace {
+		defer p.trace("enumStructFields")()
+	}
+
+	var fields []*Field
+	p.list("enum struct variant", _Comma, _Rbrace, func() bool {
+		f := new(Field)
+		f.pos = p.pos()
+		if p.tok != _Name {
+			p.syntaxError("expected field name")
+			p.advance(_Comma, _Rbrace)
+			return false
+		}
+		f.Name = p.name()
+		f.Type = p.type_()
+		fields = append(fields, f)
+		return false
+	})
+	return fields
 }
 
 // extractName splits the expression x into (name, expr) if syntactically

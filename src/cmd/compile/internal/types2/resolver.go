@@ -25,6 +25,7 @@ type declInfo struct {
 	init      syntax.Expr      // init/orig expression, or nil (for const and var declarations only)
 	inherited bool             // if set, the init expression is inherited from a previous constant declaration
 	tdecl     *syntax.TypeDecl // type declaration, or nil
+	edecl     *syntax.EnumDecl // enum declaration, or nil
 	fdecl     *syntax.FuncDecl // func declaration, or nil
 
 	// The deps field tracks initialization expression dependencies.
@@ -413,6 +414,10 @@ func (check *Checker) collectObjects() {
 				obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
 				check.declarePkgObj(s.Name, obj, &declInfo{file: fileScope, version: check.version, tdecl: s})
 
+			case *syntax.EnumDecl:
+				obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
+				check.declarePkgObj(s.Name, obj, &declInfo{file: fileScope, version: check.version, edecl: s})
+
 			case *syntax.FuncDecl:
 				name := s.Name.Value
 				obj := NewFunc(s.Name.Pos(), pkg, name, nil) // signature set later
@@ -695,7 +700,8 @@ func (check *Checker) packageObjects() {
 		// phase 1: non-alias type declarations
 		for _, obj := range check.objList {
 			if tname, _ := obj.(*TypeName); tname != nil {
-				if check.objMap[tname].tdecl.Alias {
+				d := check.objMap[tname]
+				if d != nil && d.tdecl != nil && d.tdecl.Alias {
 					aliasList = append(aliasList, tname)
 				} else {
 					check.objDecl(obj)

@@ -14,18 +14,18 @@ func RunStealOrderTest() {
 			panic("too few coprimes")
 		}
 		for co := 0; co < len(ord.coprimes); co++ {
-			enum := ord.start(uint32(co))
+			renum := ord.start(uint32(co))
 			checked := make([]bool, procs)
 			for p := 0; p < procs; p++ {
 				x := enum.position()
 				if checked[x] {
-					println("procs:", procs, "inc:", enum.inc)
+					println("procs:", procs, "inc:", renum.inc)
 					panic("duplicate during enumeration")
 				}
 				checked[x] = true
-				enum.next()
+				renum.next()
 			}
-			if !enum.done() {
+			if !renum.done() {
 				panic("not done")
 			}
 		}
@@ -38,10 +38,10 @@ func RunStealOrderTest() {
 		// We want at least procs*len(ord.coprimes) different pos+inc values
 		// before we start repeating.
 		for i := 0; i < procs*len(ord.coprimes); i++ {
-			enum := ord.start(uint32(i))
-			j := enum.pos*uint32(procs) + enum.inc
+			renum := ord.start(uint32(i))
+			j := renum.pos*uint32(procs) + renum.inc
 			if checked[j] {
-				println("procs:", procs, "pos:", enum.pos, "inc:", enum.inc)
+				println("procs:", procs, "pos:", renum.pos, "inc:", renum.inc)
 				panic("duplicate pos+inc during enumeration")
 			}
 			checked[j] = true

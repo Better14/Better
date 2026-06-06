@@ -168,7 +168,11 @@ func (check *Checker) instantiateSignature(pos syntax.Pos, expr syntax.Expr, typ
 	return inst
 }
 
-func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
+func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exprKind {
+	if check.tryEnumVariantCall(x, call, hint) {
+		return expression
+	}
+
 	if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
 		if kind, handled := check.tryExtensionCall(x, call, sel); handled {
 			return kind
@@ -991,6 +995,10 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 	// its base type must also be complete.
 	if p, ok := x.typ().Underlying().(*Pointer); ok && !check.isComplete(p.base) {
 		goto Error
+	}
+
+	if check.enumSelector(x, e, x.typ(), x.mode() == typexpr) {
+		return
 	}
 
 	obj, index, indirect = lookupFieldOrMethod(x.typ(), x.mode() == variable, check.pkg, sel, false)

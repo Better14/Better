@@ -724,9 +724,15 @@ func (check *Checker) switchStmt(inner stmtContext, s *syntax.SwitchStmt) {
 		// By checking assignment of x to an invisible temporary
 		// (as a compiler would), we get all the relevant checks.
 		check.assignment(&x, nil, "switch expression")
-		if x.isValid() && !Comparable(x.typ()) && !hasNil(x.typ()) {
-			check.errorf(&x, InvalidExprSwitch, "cannot switch on %s (%s is not comparable)", &x, x.typ())
-			x.invalidate()
+		if x.isValid() {
+			if enumTyp, ok := AsEnum(x.typ()); ok {
+				check.enumSwitchStmt(inner, s, x.typ(), enumTyp)
+				return
+			}
+			if !Comparable(x.typ()) && !hasNil(x.typ()) {
+				check.errorf(&x, InvalidExprSwitch, "cannot switch on %s (%s is not comparable)", &x, x.typ())
+				x.invalidate()
+			}
 		}
 	} else {
 		// spec: "A missing switch expression is

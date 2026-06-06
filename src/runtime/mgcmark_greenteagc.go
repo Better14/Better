@@ -797,11 +797,11 @@ func freeDeadSpanSPMCs() {
 func (w *gcWork) tryStealSpan() objptr {
 	pp := getg().m.p.ptr()
 
-	for enum := stealOrder.start(cheaprand()); !enum.done(); enum.next() {
-		if !work.spanqMask.read(enum.position()) {
+	for renum := stealOrder.start(cheaprand()); !renum.done(); renum.next() {
+		if !work.spanqMask.read(renum.position()) {
 			continue
 		}
-		p2 := allp[enum.position()]
+		p2 := allp[renum.position()]
 		if pp == p2 {
 			continue
 		}
@@ -815,7 +815,7 @@ func (w *gcWork) tryStealSpan() objptr {
 		// the bit on each P if there's local work we missed. This race
 		// should generally be rare, since the window between noticing
 		// an empty local queue and this bit being set is quite small.
-		work.spanqMask.clear(int32(enum.position()))
+		work.spanqMask.clear(int32(renum.position()))
 	}
 	return 0
 }

@@ -444,6 +444,20 @@ func (p *printer) printRawNode(n Node) {
 		}
 		p.print(_Rparen)
 
+	case *EnumPattern:
+		p.print(n.Variant, blank, _Lbrace)
+		if len(n.Args) > 0 {
+			for i, a := range n.Args {
+				if i > 0 {
+					p.print(_Comma, blank)
+				}
+				p.printNode(a)
+			}
+		} else {
+			p.printFieldList(n.Fields, nil, _Comma)
+		}
+		p.print(_Rbrace)
+
 	case *Operation:
 		if n.Y == nil {
 			// unary expr
@@ -722,6 +736,54 @@ func (p *printer) printRawNode(n Node) {
 		}
 		p.print(n.Type)
 
+	case *EnumDecl:
+		if n.Group == nil {
+			p.print(_Enum, blank)
+		}
+		p.print(n.Name)
+		if n.TParamList != nil {
+			p.printParameterList(n.TParamList, _Type)
+		}
+		p.print(blank, _Lbrace)
+		if len(n.Variants) > 0 {
+			if p.linebreaks {
+				p.print(newline, indent)
+			}
+			for i, v := range n.Variants {
+				if i > 0 {
+					if p.linebreaks {
+						p.print(_Semi, newline)
+					} else {
+						p.print(_Semi, blank)
+					}
+				}
+				if v == nil {
+					continue
+				}
+				p.print(v.Name)
+				if v.Tag != nil {
+					p.print(blank, _Assign, blank, v.Tag)
+				} else if len(v.Types) > 0 {
+					p.print(_Lparen)
+					for j, t := range v.Types {
+						if j > 0 {
+							p.print(_Comma, blank)
+						}
+						p.printNode(t)
+					}
+					p.print(_Rparen)
+				} else if len(v.Fields) > 0 {
+					p.print(blank, _Lbrace)
+					p.printFieldList(v.Fields, nil, _Comma)
+					p.print(_Rbrace)
+				}
+			}
+			if p.linebreaks {
+				p.print(outdent, newline)
+			}
+		}
+		p.print(_Rbrace)
+
 	case *VarDecl:
 		if n.Group == nil {
 			p.print(_Var, blank)
@@ -868,6 +930,8 @@ func groupFor(d Decl) (token, *Group) {
 		return _Const, d.Group
 	case *TypeDecl:
 		return _Type, d.Group
+	case *EnumDecl:
+		return _Enum, d.Group
 	case *VarDecl:
 		return _Var, d.Group
 	case *FuncDecl:

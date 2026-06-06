@@ -1091,6 +1091,15 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		goto Error // error was reported before
 
 	case *syntax.Name:
+		if hint != nil {
+			if obj := check.lookupEnumVariant(hint, e.Value); obj != nil {
+				check.recordUse(e, obj)
+				check.enumVariantOperand(x, obj, e)
+				if x.isValid() {
+					return expression
+				}
+			}
+		}
 		check.ident(x, e, false)
 
 	case *syntax.DotsType:
@@ -1226,7 +1235,11 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		goto Error
 
 	case *syntax.CallExpr:
-		return check.callExpr(x, e)
+		return check.callExpr(x, e, hint)
+
+	case *syntax.EnumPattern:
+		check.error(e, InvalidSyntaxTree, "enum pattern not allowed outside enum switch")
+		goto Error
 
 	case *syntax.ListExpr:
 		// catch-all for unexpected expression lists
