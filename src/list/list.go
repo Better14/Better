@@ -87,17 +87,6 @@ func (l *List[T]) ToSlice() []T { return append([]T(nil), l.data...) }
 
 func (l *List[T]) Clear() { l.data = nil }
 
-func (l *List[T]) Pop() (T, bool) {
-	if len(l.data) == 0 {
-		var z T
-		return z, false
-	}
-	i := len(l.data) - 1
-	v := l.data[i]
-	l.data = l.data[:i]
-	return v, true
-}
-
 func (l *List[T]) Insert(i int, v T) {
 	l.ensureCapacity(1)
 	l.data = append(l.data, *new(T))
@@ -110,12 +99,12 @@ func (l *List[T]) RemoveAt(i int) {
 	l.data = l.data[:len(l.data)-1]
 }
 
-// Package-level index operators enable l[i] and l[i] = v syntax.
+// Index operator methods enable l[i] and l[i] = v syntax.
 
-func [][T any](l *List[T], i int) T {
+func (l *List[T]) [][T any](i int) T {
 	return l.At(i)
 }
 
-func []=[T any](l *List[T], i int, v T) {
+func (l *List[T]) []=[T any](i int, v T) {
 	l.Set(i, v)
 }

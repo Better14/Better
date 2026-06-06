@@ -20,6 +20,7 @@ type Package struct {
 	goVersion string // minimum Go version required for package (by Config.GoVersion, typically from go.mod)
 
 	overloadFuncs map[string][]*Func // package-level operator/overload functions
+	overloadMeths map[methodKey][]*Func
 }
 
 // NewPackage returns a new Package for the given package path and name.

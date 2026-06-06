@@ -54,9 +54,27 @@ func (check *Checker) pkgForRecv(typ Type) *Package {
 	return nil
 }
 
-// operatorFuncsForRecv returns [] or []= overloads from the current package or
-// from the package that defines the receiver type.
+func (check *Checker) indexOperatorMethods(name string, recv Type) []*Func {
+	recvName := recvBaseNameFromType(recv)
+	if recvName == "" {
+		return nil
+	}
+	key := methodKey{recvName: recvName, name: name}
+	if cands := check.overloadMeths[key]; len(cands) > 0 {
+		return cands
+	}
+	if pkg := check.pkgForRecv(recv); pkg != nil && pkg.overloadMeths != nil {
+		return pkg.overloadMeths[key]
+	}
+	return nil
+}
+
+// operatorFuncsForRecv returns [] or []= overloads for recv, preferring receiver
+// methods and falling back to package-level operators.
 func (check *Checker) operatorFuncsForRecv(name string, recv Type) []*Func {
+	if cands := check.indexOperatorMethods(name, recv); len(cands) > 0 {
+		return cands
+	}
 	if cands := check.operatorFuncs(name); len(cands) > 0 {
 		return cands
 	}
@@ -119,7 +137,32 @@ func (check *Checker) selectOperatorFunc(name string, nargs int, args []*operand
 	return nil
 }
 
-// selectIndexOperator picks a package-level [] or []= overload for an index expression.
+func (check *Checker) indexOperatorCall(pos syntax.Pos, name string, recvExpr, index, value syntax.Expr, fn *Func) *syntax.CallExpr {
+	sig := fn.typ.(*Signature)
+	if sig.Recv() != nil {
+		args := []syntax.Expr{index}
+		if value != nil {
+			args = append(args, value)
+		}
+		return &syntax.CallExpr{
+			Fun: &syntax.SelectorExpr{
+				X:   recvExpr,
+				Sel: syntax.NewName(pos, name),
+			},
+			ArgList: args,
+		}
+	}
+	args := []syntax.Expr{recvExpr, index}
+	if value != nil {
+		args = append(args, value)
+	}
+	return &syntax.CallExpr{
+		Fun:     syntax.NewName(pos, name),
+		ArgList: args,
+	}
+}
+
+// selectIndexOperator picks a [] or []= overload for an index expression.
 // A single generic candidate is accepted without assignability pre-check (inference
 // happens in callOperator). Multiple candidates use silent overload resolution.
 func (check *Checker) selectIndexOperator(cands []*Func, call *syntax.CallExpr, args []*operand) *Func {
@@ -141,12 +184,6 @@ func (check *Checker) callOperator(x *operand, pos syntax.Pos, fn *Func, call *s
 	if sig == nil {
 		x.invalidate()
 		return
-	}
-	if name, ok := call.Fun.(*syntax.Name); ok {
-		check.recordUse(name, fn)
-		if sig.TypeParams().Len() == 0 {
-			check.recordTypeAndValue(call.Fun, value, sig, nil)
-		}
 	}
 	switch {
 	case sig.results == nil || sig.results.Len() == 0:
@@ -222,15 +259,19 @@ func (check *Checker) tryIndexOperatorOverload(x *operand, e *syntax.IndexExpr) 
 	if len(cands) == 0 {
 		return false
 	}
-	call := &syntax.CallExpr{
-		Fun:     syntax.NewName(e.Pos(), "[]"),
-		ArgList: []syntax.Expr{e.X, index},
+	var preload []*operand
+	if cands[0].typ.(*Signature).Recv() != nil {
+		preload = []*operand{&i}
+	} else {
+		preload = []*operand{&l, &i}
 	}
-	fn := check.selectIndexOperator(cands, call, []*operand{&l, &i})
+	call := check.indexOperatorCall(e.Pos(), "[]", e.X, index, nil, cands[0])
+	fn := check.selectIndexOperator(cands, call, preload)
 	if fn == nil {
 		return false
 	}
-	check.callOperator(x, e.Pos(), fn, call, call.ArgList, nil)
+	call = check.indexOperatorCall(e.Pos(), "[]", e.X, index, nil, fn)
+	check.expr(nil, x, call)
 	if !x.isValid() {
 		return false
 	}
@@ -272,19 +313,24 @@ func (check *Checker) tryIndexAssignOperatorOverload(lhs, rhs syntax.Expr, x *op
 	if len(cands) == 0 {
 		return false
 	}
-	call := &syntax.CallExpr{
-		Fun:     syntax.NewName(lhs.Pos(), "[]="),
-		ArgList: []syntax.Expr{idx.X, index, rhs},
+	var preload []*operand
+	if cands[0].typ.(*Signature).Recv() != nil {
+		preload = []*operand{&i, &v}
+	} else {
+		preload = []*operand{&l, &i, &v}
 	}
-	fn := check.selectIndexOperator(cands, call, []*operand{&l, &i, &v})
+	call := check.indexOperatorCall(lhs.Pos(), "[]=", idx.X, index, rhs, cands[0])
+	fn := check.selectIndexOperator(cands, call, preload)
 	if fn == nil {
 		return false
 	}
 	if x == nil {
 		x = new(operand)
 	}
-	check.callOperator(x, lhs.Pos(), fn, call, call.ArgList, nil)
-	if !x.isValid() {
+	call = check.indexOperatorCall(lhs.Pos(), "[]=", idx.X, index, rhs, fn)
+	check.rawExpr(nil, x, call, nil, true)
+	check.record(x)
+	if !x.isValid() || x.mode() != novalue {
 		return false
 	}
 	check.recordIndexAssignCall(idx, call)
