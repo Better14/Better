@@ -142,6 +142,9 @@ func (w *typeWriter) typ(typ Type) {
 		w.string("[]")
 		w.typ(t.elem)
 
+	case *Enum:
+		w.typ(t.structType)
+
 	case *Struct:
 		w.string("struct{")
 		for i, f := range t.fields {

@@ -155,7 +155,11 @@ func (check *Checker) objDecl(obj Object) {
 		check.varDecl(obj, d.lhs, d.vtyp, d.init)
 	case *TypeName:
 		// invalid recursive types are detected via path
-		check.typeDecl(obj, d.tdecl)
+		if d.edecl != nil {
+			check.enumDecl(obj, d.edecl)
+		} else {
+			check.typeDecl(obj, d.tdecl)
+		}
 		check.collectMethods(obj) // methods can only be added to top-level types
 	case *Func:
 		// functions may be recursive - no need to track dependencies
@@ -382,7 +386,9 @@ func (check *Checker) varDecl(obj *Var, lhs []*Var, typ, init syntax.Expr) {
 	if lhs == nil || len(lhs) == 1 {
 		assert(lhs == nil || lhs[0] == obj)
 		var x operand
-		check.expr(newTarget(obj.typ, obj.name), &x, init)
+		check.rawExpr(newTarget(obj.typ, obj.name), &x, init, obj.typ, false)
+		check.exclude(&x, 1<<novalue|1<<builtin|1<<typexpr)
+		check.singleValue(&x)
 		check.initVar(obj, &x, "variable declaration")
 		return
 	}
@@ -847,6 +853,14 @@ func (check *Checker) declStmt(list []syntax.Decl) {
 			check.declare(check.scope, s.Name, obj, scopePos)
 			check.push(obj) // mark as grey
 			check.typeDecl(obj, s)
+			check.pop()
+
+		case *syntax.EnumDecl:
+			obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
+			scopePos := s.Name.Pos()
+			check.declare(check.scope, s.Name, obj, scopePos)
+			check.push(obj)
+			check.enumDecl(obj, s)
 			check.pop()
 
 		default:

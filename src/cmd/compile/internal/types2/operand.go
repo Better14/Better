@@ -268,6 +268,8 @@ func compositeKind(typ Type) string {
 		return "tuple"
 	case *Union:
 		return "union"
+	case *Enum:
+		return "enum"
 	default:
 		panic("unreachable")
 	}

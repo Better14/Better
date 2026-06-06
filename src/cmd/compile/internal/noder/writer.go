@@ -602,6 +602,10 @@ func (pw *pkgWriter) typIdx(typ types2.Type, dict *writerDict) typeInfo {
 		w.Code(pkgbits.TypeStruct)
 		w.structType(typ)
 
+	case *types2.Enum:
+		w.Code(pkgbits.TypeStruct)
+		w.structType(typ.Underlying().(*types2.Struct))
+
 	case *types2.Interface:
 		// Handle "any" as reference to its TypeName.
 		// The underlying "any" interface is canonical, so this logic handles both
@@ -1230,7 +1234,13 @@ func (w *writer) typeExt(obj *types2.TypeName) {
 
 	w.Sync(pkgbits.SyncTypeExt)
 
-	w.pragmaFlag(asPragmaFlag(decl.Pragma))
+	var pragma syntax.Pragma
+	if decl.EnumDecl != nil {
+		pragma = decl.EnumDecl.Pragma
+	} else {
+		pragma = decl.TypeDecl.Pragma
+	}
+	w.pragmaFlag(asPragmaFlag(pragma))
 
 	// No LSym.SymIdx info yet.
 	w.Int64(-1)
@@ -2907,6 +2917,7 @@ func (w *writer) op(op ir.Op) {
 
 type typeDeclGen struct {
 	*syntax.TypeDecl
+	*syntax.EnumDecl
 	gen int
 
 	// Implicit type parameters in scope at this type declaration.
@@ -2995,6 +3006,20 @@ func (c *declCollector) Visit(n syntax.Node) syntax.Visitor {
 		// type declarations within function literals within parameterized
 		// type declarations, but types2 the function literals will be
 		// constant folded away.
+		return c.withTParams(obj)
+
+	case *syntax.EnumDecl:
+		obj := pw.info.Defs[n.Name].(*types2.TypeName)
+		d := typeDeclGen{EnumDecl: n, implicits: c.implicits}
+
+		pw.checkPragmas(n.Pragma, 0, false)
+
+		if c.withinFunc {
+			*c.typegen++
+			d.gen = *c.typegen
+		}
+
+		pw.typDecls[obj] = d
 		return c.withTParams(obj)
 
 	case *syntax.VarDecl:
@@ -3163,6 +3188,16 @@ func (w *writer) pkgDecl(decl syntax.Decl) {
 			break
 		}
 
+		w.Code(declOther)
+		w.pkgObjs(decl.Name)
+
+	case *syntax.EnumDecl:
+		if len(decl.TParamList) != 0 {
+			break
+		}
+		if decl.Name.Value == "_" {
+			break
+		}
 		w.Code(declOther)
 		w.pkgObjs(decl.Name)
 

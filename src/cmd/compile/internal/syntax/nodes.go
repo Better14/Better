@@ -92,6 +92,25 @@ type (
 		decl
 	}
 
+	// Name [ TypeParams ] { Variants }
+	EnumDecl struct {
+		Group      *Group // nil means not part of a group
+		Pragma     Pragma
+		Name       *Name
+		TParamList []*Field      // nil means no type parameters
+		Variants   []*EnumVariant
+		decl
+	}
+
+	// Name [ "=" Tag ] | Name ( Types ) | Name { Fields }
+	EnumVariant struct {
+		Name   *Name
+		Tag    Expr     // nil means auto-incremented tag
+		Types  []Expr   // tuple variant payload types
+		Fields []*Field // struct variant fields
+		node
+	}
+
 	// NameList Type
 	// NameList Type = Values
 	// NameList      = Values
@@ -271,6 +290,15 @@ type (
 	// ElemList[0], ElemList[1], ...
 	ListExpr struct {
 		ElemList []Expr
+		expr
+	}
+
+	// Variant { Fields... }
+	EnumPattern struct {
+		Variant *Name
+		Args    []*Name  // tuple bindings (optional syntax)
+		Fields  []*Field // struct bindings
+		Rbrace  Pos
 		expr
 	}
 

@@ -180,6 +180,11 @@ func comparableType(T Type, dynamic bool, seen map[Type]bool) *typeError {
 			}
 		}
 
+	case *Enum:
+		if comparableType(t.structType, dynamic, seen) != nil {
+			return typeErrorf("enum containing %s cannot be compared", t.structType)
+		}
+
 	case *Array:
 		if comparableType(t.elem, dynamic, seen) != nil {
 			return typeErrorf("%s cannot be compared", T)

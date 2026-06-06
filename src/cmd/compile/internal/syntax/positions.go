@@ -150,6 +150,29 @@ func EndPos(n Node) Pos {
 			return n.Pos()
 		case *TypeDecl:
 			m = n.Type
+		case *EnumDecl:
+			if l := len(n.Variants); l > 0 {
+				v := n.Variants[l-1]
+				if v != nil {
+					if v.Tag != nil {
+						m = v.Tag
+						continue
+					}
+					if len(v.Types) > 0 {
+						m = v.Types[len(v.Types)-1]
+						continue
+					}
+					if len(v.Fields) > 0 {
+						m = v.Fields[len(v.Fields)-1]
+						continue
+					}
+					if v.Name != nil {
+						m = v.Name
+						continue
+					}
+				}
+			}
+			return n.Pos()
 		case *VarDecl:
 			if n.Values != nil {
 				m = n.Values
@@ -181,6 +204,8 @@ func EndPos(n Node) Pos {
 			p := n.Pos()
 			return MakePos(p.Base(), p.Line(), p.Col()+uint(len(n.Value)))
 		case *CompositeLit:
+			return n.Rbrace
+		case *EnumPattern:
 			return n.Rbrace
 		case *KeyValueExpr:
 			m = n.Value

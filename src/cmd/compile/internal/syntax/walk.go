@@ -89,6 +89,23 @@ func (w walker) node(n Node) {
 		w.fieldList(n.TParamList)
 		w.node(n.Type)
 
+	case *EnumDecl:
+		w.node(n.Name)
+		w.fieldList(n.TParamList)
+		for _, v := range n.Variants {
+			if v == nil {
+				continue
+			}
+			w.node(v.Name)
+			if v.Tag != nil {
+				w.node(v.Tag)
+			}
+			for _, t := range v.Types {
+				w.node(t)
+			}
+			w.fieldList(v.Fields)
+		}
+
 	case *VarDecl:
 		w.nameList(n.NameList)
 		if n.Type != nil {
@@ -174,6 +191,11 @@ func (w walker) node(n Node) {
 	case *CallExpr:
 		w.node(n.Fun)
 		w.exprList(n.ArgList)
+
+	case *EnumPattern:
+		w.node(n.Variant)
+		w.nameList(n.Args)
+		w.fieldList(n.Fields)
 
 	case *ListExpr:
 		w.exprList(n.ElemList)
