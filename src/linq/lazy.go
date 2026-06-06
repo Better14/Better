@@ -4,88 +4,38 @@
 
 package linq
 
-import "cmp"
+import (
+	"cmp"
+	"slices"
+)
 
-// Lazy is a deferred sequence: chain package functions until a terminal call.
-type Lazy[T any] struct {
-	next func() (T, bool)
+// Slice LINQ syntax (nums.Where(...)) uses extension methods in slice_ext.go
+// when import "linq" is present. Lazy[T] uses receiver methods in linq.go.
+
+// FirstValue returns the first element of s and whether it exists.
+func FirstValue[T any](s []T) (T, bool) {
+	if len(s) == 0 {
+		var z T
+		return z, false
+	}
+	return s[0], true
 }
 
-// FromSlice returns a lazy iterator over s.
-func FromSlice[T any](s []T) Lazy[T] {
-	i := 0
-	return Lazy[T]{next: func() (T, bool) {
-		if i >= len(s) {
-			var z T
-			return z, false
-		}
-		v := s[i]
-		i++
-		return v, true
-	}}
+// --- lazy chain continuations (package functions for direct use) ---
+
+// LazyOrderBy sorts by key when enumerated.
+func LazyOrderBy[T any, K cmp.Ordered](l Lazy[T], key func(T) K) Lazy[T] {
+	return FromSlice(sortOrderBy(LazyToSlice(l), key))
 }
 
-// Where filters l and returns a lazy sequence.
-func (l Lazy[T]) Where[T any](pred func(T) bool) Lazy[T] {
-	return LazyWhere(l, pred)
+// LazyOrderByDescending sorts descending by key when enumerated.
+func LazyOrderByDescending[T any, K cmp.Ordered](l Lazy[T], key func(T) K) Lazy[T] {
+	return FromSlice(sortOrderByDescending(LazyToSlice(l), key))
 }
 
-// Select projects each element to type U.
-func (l Lazy[T]) Select[T, U any](fn func(T) U) Lazy[U] {
-	return LazySelectBy(l, fn)
-}
-
-// OrderBy sorts by key when the sequence is enumerated.
-func (l Lazy[T]) OrderBy[T, K cmp.Ordered](key func(T) K) Lazy[T] {
-	return LazyOrderBy(l, key)
-}
-
-// OrderByDescending sorts descending by key when enumerated.
-func (l Lazy[T]) OrderByDescending[T, K cmp.Ordered](key func(T) K) Lazy[T] {
-	return LazyOrderByDescending(l, key)
-}
-
-// Take returns at most n elements.
-func (l Lazy[T]) Take[T any](n int) Lazy[T] {
-	return LazyTake(l, n)
-}
-
-// Skip skips the first n elements.
-func (l Lazy[T]) Skip[T any](n int) Lazy[T] {
-	return LazySkip(l, n)
-}
-
-// ToList materializes the sequence.
-func (l Lazy[T]) ToList[T any]() []T {
-	return ToListLazy(l)
-}
-
-// First returns the first element, or panics if empty.
-func (l Lazy[T]) First[T any]() T {
-	return FirstLazy(l)
-}
-
-// FirstOrDefault returns the first element or the zero value.
-func (l Lazy[T]) FirstOrDefault[T any]() T {
-	return FirstOrDefaultLazy(l)
-}
-
-// Any reports whether any element satisfies pred.
-func (l Lazy[T]) Any[T any](pred func(T) bool) bool {
-	return LazyAny(l, pred)
-}
-
-// All reports whether all elements satisfy pred.
-func (l Lazy[T]) All[T any](pred func(T) bool) bool {
-	return LazyAll(l, pred)
-}
-
-// Aggregate applies fn pairwise (first element is the seed).
-func (l Lazy[T]) Aggregate[T any](fn func(T, T) T) T {
-	return LazyAggregate(l, fn)
-}
-
-func LazyWhere[T any](l Lazy[T], pred func(T) bool) Lazy[T] {
+// LazyDistinct returns distinct elements (comparable T).
+func LazyDistinct[T comparable](l Lazy[T]) Lazy[T] {
+	seen := make(map[T]struct{})
 	src := l.next
 	return Lazy[T]{next: func() (T, bool) {
 		for {
@@ -94,117 +44,95 @@ func LazyWhere[T any](l Lazy[T], pred func(T) bool) Lazy[T] {
 				var z T
 				return z, false
 			}
-			if pred(v) {
-				return v, true
+			if _, dup := seen[v]; dup {
+				continue
 			}
+			seen[v] = struct{}{}
+			return v, true
 		}
 	}}
 }
 
-func LazySelect[T any](l Lazy[T], fn func(T) T) Lazy[T] {
-	src := l.next
-	return Lazy[T]{next: func() (T, bool) {
-		v, ok := src()
+// LazyGroupBy groups by key.
+func LazyGroupBy[T any, K comparable](l Lazy[T], keyFn func(T) K) Lazy[Group[K, T]] {
+	groups := map[K][]T{}
+	var keys []K
+	for v, ok := l.next(); ok; v, ok = l.next() {
+		k := keyFn(v)
+		if _, seen := groups[k]; !seen {
+			keys = append(keys, k)
+			groups[k] = nil
+		}
+		groups[k] = append(groups[k], v)
+	}
+	idx := 0
+	return Lazy[Group[K, T]]{next: func() (Group[K, T], bool) {
+		if idx >= len(keys) {
+			var z Group[K, T]
+			return z, false
+		}
+		k := keys[idx]
+		g := Group[K, T]{Key: k, items: groups[k]}
+		idx++
+		return g, true
+	}}
+}
+
+// LazyAggregate applies fn pairwise (first element is the seed).
+func LazyAggregate[T any](l Lazy[T], fn func(T, T) T) T {
+	v, ok := l.next()
+	if !ok {
+		panic("linq: sequence contains no elements")
+	}
+	acc := v
+	for {
+		v, ok = l.next()
 		if !ok {
-			var z T
-			return z, false
+			return acc
 		}
-		return fn(v), true
-	}}
+		acc = fn(acc, v)
+	}
 }
 
-func LazySelectBy[T, U any](l Lazy[T], fn func(T) U) Lazy[U] {
-	src := l.next
-	return Lazy[U]{next: func() (U, bool) {
-		v, ok := src()
-		if !ok {
-			var z U
-			return z, false
-		}
-		return fn(v), true
-	}}
-}
-
-func LazySkip[T any](l Lazy[T], n int) Lazy[T] {
-	src := l.next
-	return Lazy[T]{next: func() (T, bool) {
-		for i := 0; i < n; i++ {
-			if _, ok := src(); !ok {
-				var z T
-				return z, false
-			}
-		}
-		return src()
-	}}
-}
-
-func LazyTake[T any](l Lazy[T], n int) Lazy[T] {
-	src := l.next
-	left := n
-	return Lazy[T]{next: func() (T, bool) {
-		if left <= 0 {
-			var z T
-			return z, false
-		}
-		left--
-		return src()
-	}}
-}
-
-func LazyToSlice[T any](l Lazy[T]) []T {
-	var out []T
+// LazySum returns the sum of a lazy numeric sequence.
+func LazySum[U Number](l Lazy[U]) U {
+	var acc U
 	for {
 		v, ok := l.next()
 		if !ok {
-			break
+			return acc
 		}
-		out = append(out, v)
+		acc += v
 	}
-	return out
 }
 
-func LazyFirst[T any](l Lazy[T]) (T, bool) {
-	return l.next()
+// ToList materializes a lazy sequence.
+func ToListLazy[T any](l Lazy[T]) []T {
+	return LazyToSlice(l)
 }
 
-func LazyFirstOrDefault[T any](l Lazy[T], def T) T {
-	v, ok := l.next()
+// First returns the first element of a lazy sequence, or panics if empty.
+func FirstLazy[T any](l Lazy[T]) T {
+	v, ok := LazyFirst(l)
+	if !ok {
+		panic("linq: sequence contains no elements")
+	}
+	return v
+}
+
+// FirstOrDefaultLazy returns the first element or the zero value.
+func FirstOrDefaultLazy[T any](l Lazy[T]) T {
+	v, ok := LazyFirst(l)
 	if ok {
 		return v
 	}
-	return def
+	var z T
+	return z
 }
 
-func LazyAny[T any](l Lazy[T], pred func(T) bool) bool {
-	for {
-		v, ok := l.next()
-		if !ok {
-			return false
-		}
-		if pred(v) {
-			return true
-		}
-	}
-}
-
-func LazyAll[T any](l Lazy[T], pred func(T) bool) bool {
-	for {
-		v, ok := l.next()
-		if !ok {
-			return true
-		}
-		if !pred(v) {
-			return false
-		}
-	}
-}
-
-func LazyCount[T any](l Lazy[T]) int {
-	n := 0
-	for {
-		if _, ok := l.next(); !ok {
-			return n
-		}
-		n++
-	}
+// sortOrderByDescending sorts a slice descending by key (eager helper).
+func sortOrderByDescending[T any, K cmp.Ordered](s []T, key func(T) K) []T {
+	out := slices.Clone(s)
+	slices.SortFunc(out, func(a, b T) int { return cmp.Compare(key(b), key(a)) })
+	return out
 }
