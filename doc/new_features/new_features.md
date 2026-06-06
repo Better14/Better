@@ -1322,7 +1322,7 @@ m := Message.Write{ text: "hi", bytes: 5 }
 
 Use a `**switch` statement** or `**switch` expression** to branch on the active variant and bind payloads. There is no `match` keyword.
 
-**Exhaustiveness** — the compiler requires every variant to be covered. If any variant is missing, it is a **compile-time error**. A `default` case is **not allowed** when switching on an enum (it would hide non-exhaustive matches).
+**Exhaustiveness** — if a switch has no `default` case, the compiler requires every variant to be covered; missing any variant is a **compile-time error**. A `default` case is **allowed** and satisfies exhaustiveness (you may switch on a subset of variants and handle the rest in `default`).
 
 Inside a `switch` on an enum, **case labels omit the enum type name** — write `case Value1:` not `case SomeEnum.Value1:`.
 
@@ -1365,7 +1365,7 @@ case ChangeColor { r, g, b }:
 }
 ```
 
-Invalid (compile error — missing `Value4`):
+Invalid (compile error — missing `Value4` and no `default`):
 
 ```go
 // switch v {
@@ -1375,13 +1375,15 @@ Invalid (compile error — missing `Value4`):
 // } // ERROR: switch on SomeEnum is not exhaustive
 ```
 
-Invalid (compile error — `default` not permitted):
+Valid ( `default` satisfies exhaustiveness):
 
 ```go
-// switch v {
-// case Value1:
-// default:
-// } // ERROR: default case not allowed for enum switch
+switch v {
+case Value1:
+	fmt.Println("value1")
+default:
+	fmt.Println("other")
+}
 ```
 
 ### Methods and generics
@@ -1410,7 +1412,7 @@ func (o Option[int]) IsSome() bool {
 - Variant names live in the enum’s namespace. Use unqualified names when the type is known (`var a SomeEnum = Value1`, `case Value2(s):`) or the qualified form (`SomeEnum.Value2`) anywhere.
 - Memory layout is implementation-defined; explicit discriminants (`Value4 = 3`) document ABI intent.
 - `enum` variants may appear in default arguments when the default is a compile-time constant variant (e.g. `mode Mode = Mode.Read`).
-- When new variants are added to an enum, every `switch` on that type must be updated or the build fails (exhaustiveness checking).
+- When new variants are added to an enum, every non-`default` `switch` on that type must be updated or the build fails (exhaustiveness checking).
 
 ## Operator Overloading
 

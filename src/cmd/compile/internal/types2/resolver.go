@@ -26,6 +26,7 @@ type declInfo struct {
 	inherited bool             // if set, the init expression is inherited from a previous constant declaration
 	tdecl     *syntax.TypeDecl // type declaration, or nil
 	edecl     *syntax.EnumDecl // enum declaration, or nil
+	enum      *Enum            // enum type info, or nil
 	fdecl     *syntax.FuncDecl // func declaration, or nil
 
 	// The deps field tracks initialization expression dependencies.

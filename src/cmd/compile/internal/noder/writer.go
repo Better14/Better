@@ -1983,6 +1983,14 @@ func (w *writer) expr(expr syntax.Expr) {
 			return
 		}
 
+		if c, ok := obj.(*types2.Const); ok {
+			w.Code(exprConst)
+			w.pos(expr)
+			w.typ(c.Type())
+			w.Value(c.Val())
+			return
+		}
+
 		obj := obj.(*types2.Var)
 		assert(!obj.IsField())
 

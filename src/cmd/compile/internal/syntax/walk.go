@@ -225,7 +225,9 @@ func (w walker) node(n Node) {
 		if n.Name != nil {
 			w.node(n.Name)
 		}
-		w.node(n.Type)
+		if n.Type != nil {
+			w.node(n.Type)
+		}
 		if n.Default != nil {
 			w.node(n.Default)
 		}

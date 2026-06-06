@@ -715,7 +715,7 @@ func (p *parser) enumDecl(group *Group) Decl {
 				x = p.binaryExpr(p.pexpr(x, false), 0)
 				p.xnest--
 			}
-			if pname, ptype := extractName(x, p.tok == _Comma); pname != nil && (ptype != nil || p.tok != _Rbrack) {
+			if pname, ptype := extractName(x, p.tok == _Comma); pname != nil {
 				d.TParamList = p.paramList(pname, ptype, _Rbrack, true, false)
 			} else {
 				p.syntaxError("invalid type parameter list in enum declaration")
@@ -777,16 +777,22 @@ func (p *parser) enumStructFields() []*Field {
 
 	var fields []*Field
 	p.list("enum struct variant", _Comma, _Rbrace, func() bool {
-		f := new(Field)
-		f.pos = p.pos()
+		fpos := p.pos()
 		if p.tok != _Name {
 			p.syntaxError("expected field name")
 			p.advance(_Comma, _Rbrace)
 			return false
 		}
-		f.Name = p.name()
-		f.Type = p.type_()
-		fields = append(fields, f)
+		name := p.name()
+		names := p.nameList(name)
+		typ := p.type_()
+		for _, n := range names {
+			f := new(Field)
+			f.pos = fpos
+			f.Name = n
+			f.Type = typ
+			fields = append(fields, f)
+		}
 		return false
 	})
 	return fields
@@ -2803,7 +2809,7 @@ func (p *parser) switchExprClause() *SwitchExprClause {
 	switch p.tok {
 	case _Case:
 		p.next()
-		c.Cases = p.exprList()
+		c.Cases = p.enumCaseList()
 
 	case _Default:
 		p.next()
@@ -2901,7 +2907,7 @@ func (p *parser) caseClause() *CaseClause {
 	switch p.tok {
 	case _Case:
 		p.next()
-		c.Cases = p.exprList()
+		c.Cases = p.enumCaseList()
 
 	case _Default:
 		p.next()
@@ -2916,6 +2922,55 @@ func (p *parser) caseClause() *CaseClause {
 	c.Body = p.stmtList()
 
 	return c
+}
+
+func (p *parser) enumCaseList() Expr {
+	x := p.enumCasePattern()
+	if p.got(_Comma) {
+		list := []Expr{x, p.enumCasePattern()}
+		for p.got(_Comma) {
+			list = append(list, p.enumCasePattern())
+		}
+		t := new(ListExpr)
+		t.pos = x.Pos()
+		t.ElemList = list
+		x = t
+	}
+	return x
+}
+
+func (p *parser) enumCasePattern() Expr {
+	if p.tok != _Name {
+		return p.expr()
+	}
+	name := p.name()
+	if p.tok == _Lbrace {
+		pat := new(EnumPattern)
+		pat.pos = name.Pos()
+		pat.Variant = name
+		p.next()
+		for p.tok != _EOF && p.tok != _Rbrace {
+			if p.tok != _Name {
+				p.syntaxError("expected identifier in enum struct pattern")
+				p.advance(_Comma, _Rbrace)
+				continue
+			}
+			f := new(Field)
+			f.pos = p.pos()
+			f.Name = p.name()
+			pat.Fields = append(pat.Fields, f)
+			if !p.got(_Comma) {
+				break
+			}
+		}
+		pat.Rbrace = p.pos()
+		p.want(_Rbrace)
+		return pat
+	}
+	p.xnest++
+	x := p.binaryExpr(p.pexpr(name, false), 0)
+	p.xnest--
+	return x
 }
 
 func (p *parser) commClause() *CommClause {
