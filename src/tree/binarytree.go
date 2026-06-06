@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package tree provides an ordered binary search tree.
+// Package tree provides container types; this file implements an ordered binary search tree.
 package tree
 
 import "cmp"
@@ -14,7 +14,7 @@ type node[K cmp.Ordered, V any] struct {
 	right *node[K, V]
 }
 
-// Tree is a BST keyed by K with values V.
+// Tree is a binary search tree keyed by K with values V.
 type Tree[K cmp.Ordered, V any] struct {
 	root *node[K, V]
 	size int
