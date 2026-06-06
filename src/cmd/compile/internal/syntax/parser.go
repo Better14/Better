@@ -3034,7 +3034,11 @@ func (p *parser) funcDeclName() *Name {
 		return n
 	case _Lbrack:
 		pos := p.pos()
-		p.next()
+		p.next() // [
+		if p.tok != _Rbrack {
+			return nil
+		}
+		p.next() // ]
 		name := "[]"
 		if p.tok == _Assign {
 			p.next()

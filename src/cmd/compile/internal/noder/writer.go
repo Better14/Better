@@ -1539,6 +1539,14 @@ func (w *writer) assignStmt(pos poser, lhs0, rhs0 syntax.Expr) {
 	lhs := syntax.UnpackListExpr(lhs0)
 	rhs := syntax.UnpackListExpr(rhs0)
 
+	if len(lhs) == 1 && len(rhs) == 1 {
+		if call := w.p.info.IndexAssignCalls[syntax.Unparen(lhs[0])]; call != nil {
+			w.Code(stmtExpr)
+			w.expr(call)
+			return
+		}
+	}
+
 	w.Code(stmtAssign)
 	w.pos(pos)
 
@@ -1550,6 +1558,9 @@ func (w *writer) assignStmt(pos poser, lhs0, rhs0 syntax.Expr) {
 
 	dstType := func(i int) types2.Type {
 		dst := lhs[i]
+		if call := w.p.info.IndexAssignCalls[syntax.Unparen(dst)]; call != nil {
+			return nil // type checked by []= desugaring
+		}
 
 		// Finding dstType is somewhat involved, because for VarDecl
 		// statements, the Names are only added to the info.{Defs,Uses}
@@ -1882,6 +1893,11 @@ func (w *writer) expr(expr syntax.Expr) {
 
 	expr = syntax.Unparen(expr) // skip parens; unneeded after typecheck
 
+	if call := w.p.info.IndexOperatorCalls[expr]; call != nil {
+		w.expr(call)
+		return
+	}
+
 	obj, inst := lookupObj(w.p, expr)
 	targs := asTypeSlice(inst.TypeArgs)
 
@@ -1921,7 +1937,8 @@ func (w *writer) expr(expr syntax.Expr) {
 		// to another shape-identical type to allow use in field
 		// selection, indexing, etc.
 		if typ := tv.Type; !tv.IsBuiltin() && !isTuple(typ) && !isUntyped(typ) {
-			if _, ok := types2.CoreType(typ).(*types2.Signature); !ok {
+			_, isCall := expr.(*syntax.CallExpr)
+			if _, ok := types2.CoreType(typ).(*types2.Signature); !ok && !isCall {
 				w.Code(exprReshape)
 				w.typ(typ)
 			}

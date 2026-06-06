@@ -320,6 +320,12 @@ type Info struct {
 	// CallOverloads maps CallExpr.Fun expressions to candidate overloads
 	// for that call. Populated for overloaded callees.
 	CallOverloads map[syntax.Expr][]*Func
+
+	// IndexOperatorCalls maps index expressions a[i] to desugared [](a, i) calls.
+	IndexOperatorCalls map[syntax.Expr]*syntax.CallExpr
+
+	// IndexAssignCalls maps index assignment left-hand sides a[i] to desugared []=(a, i, v) calls.
+	IndexAssignCalls map[syntax.Expr]*syntax.CallExpr
 }
 
 // MethodOverloadKey identifies an overloaded method set.

@@ -174,6 +174,18 @@ func (check *Checker) recordScope(node syntax.Node, scope *Scope) {
 	}
 }
 
+func (check *Checker) recordIndexOperatorCall(idx syntax.Expr, call *syntax.CallExpr) {
+	if m := check.IndexOperatorCalls; m != nil {
+		m[idx] = call
+	}
+}
+
+func (check *Checker) recordIndexAssignCall(idx syntax.Expr, call *syntax.CallExpr) {
+	if m := check.IndexAssignCalls; m != nil {
+		m[idx] = call
+	}
+}
+
 func (check *Checker) recordCallOverloads(expr syntax.Expr, funcs []*Func) {
 	if len(funcs) <= 1 {
 		return

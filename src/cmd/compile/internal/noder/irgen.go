@@ -69,7 +69,8 @@ func checkFiles(m posMap, noders []*noder) (*types2.Package, *types2.Info, map[*
 		Scopes:             make(map[syntax.Node]*types2.Scope),
 		Instances:          make(map[*syntax.Name]types2.Instance),
 		FileVersions:       make(map[*syntax.PosBase]string),
-		// expand as needed
+		IndexOperatorCalls: make(map[syntax.Expr]*syntax.CallExpr),
+		IndexAssignCalls:   make(map[syntax.Expr]*syntax.CallExpr),
 	}
 	conf.Error = func(err error) {
 		terr := err.(types2.Error)
