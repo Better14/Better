@@ -12,6 +12,21 @@ import (
 	. "internal/types/errors"
 )
 
+// supportsBuiltinIndex reports whether typ supports ordinary Go index syntax.
+func supportsBuiltinIndex(typ Type) bool {
+	switch typ.Underlying().(type) {
+	case *Array, *Slice, *Map:
+		return true
+	case *Basic:
+		return isString(typ)
+	case *Pointer:
+		if arr, _ := typ.Underlying().(*Pointer).base.Underlying().(*Array); arr != nil {
+			return true
+		}
+	}
+	return false
+}
+
 // If e is a valid function instantiation, indexExpr returns true.
 // In that case x represents the uninstantiated function value and
 // it is the caller's responsibility to instantiate the function.
@@ -44,6 +59,10 @@ func (check *Checker) indexExpr(x *operand, e *syntax.IndexExpr) (isFuncInst boo
 	// x should not be generic at this point, but be safe and check
 	check.nonGeneric(nil, x)
 	if !x.isValid() {
+		return false
+	}
+
+	if (x.mode() == value || x.mode() == variable) && !supportsBuiltinIndex(x.typ()) && check.tryIndexOperatorOverload(x, e) {
 		return false
 	}
 

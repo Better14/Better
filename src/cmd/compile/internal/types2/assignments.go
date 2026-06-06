@@ -250,6 +250,10 @@ func (check *Checker) lhsVar(lhs syntax.Expr) Type {
 // If x != nil, it must be the evaluation of rhs (and rhs will be ignored).
 // If the assignment check fails and x != nil, x.mode is set to invalid.
 func (check *Checker) assignVar(lhs, rhs syntax.Expr, x *operand, context string) {
+	if check.tryIndexAssignOperatorOverload(lhs, rhs, x) {
+		return
+	}
+
 	T := check.lhsVar(lhs) // nil if lhs is _
 	if !isValid(T) {
 		if x != nil {

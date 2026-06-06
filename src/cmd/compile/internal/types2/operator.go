@@ -7,6 +7,7 @@ package types2
 import (
 	"cmd/compile/internal/syntax"
 	. "internal/types/errors"
+	"strings"
 )
 
 var comparisonOpPairs = [][2]string{
@@ -41,6 +42,52 @@ func (check *Checker) operatorFuncs(name string) []*Func {
 	return check.overloadFuncs[name]
 }
 
+func (check *Checker) pkgForRecv(typ Type) *Package {
+	switch t := Unalias(typ).(type) {
+	case *Named:
+		if t.obj != nil {
+			return t.obj.pkg
+		}
+	case *Pointer:
+		return check.pkgForRecv(t.base)
+	}
+	return nil
+}
+
+// operatorFuncsForRecv returns [] or []= overloads from the current package or
+// from the package that defines the receiver type.
+func (check *Checker) operatorFuncsForRecv(name string, recv Type) []*Func {
+	if cands := check.operatorFuncs(name); len(cands) > 0 {
+		return cands
+	}
+	if pkg := check.pkgForRecv(recv); pkg != nil {
+		if cands := operatorFuncsInPackage(pkg, name); len(cands) > 0 {
+			return cands
+		}
+	}
+	return nil
+}
+
+func operatorFuncsInPackage(pkg *Package, name string) []*Func {
+	if pkg.overloadFuncs != nil {
+		if cands := pkg.overloadFuncs[name]; len(cands) > 0 {
+			return cands
+		}
+	}
+	var cands []*Func
+	for _, n := range pkg.scope.Names() {
+		if n != name && !strings.HasPrefix(n, name+"·") {
+			continue
+		}
+		if obj := pkg.scope.Lookup(n); obj != nil {
+			if fn, ok := obj.(*Func); ok {
+				cands = append(cands, fn)
+			}
+		}
+	}
+	return cands
+}
+
 func (check *Checker) selectOperatorFunc(name string, nargs int, args []*operand) *Func {
 	cands := check.operatorFuncs(name)
 	if len(cands) == 0 {
@@ -72,18 +119,39 @@ func (check *Checker) selectOperatorFunc(name string, nargs int, args []*operand
 	return nil
 }
 
-func (check *Checker) callOperator(x *operand, pos syntax.Pos, fn *Func, argExprs []syntax.Expr, args []*operand) {
+// selectIndexOperator picks a package-level [] or []= overload for an index expression.
+// A single generic candidate is accepted without assignability pre-check (inference
+// happens in callOperator). Multiple candidates use silent overload resolution.
+func (check *Checker) selectIndexOperator(cands []*Func, call *syntax.CallExpr, args []*operand) *Func {
+	if len(cands) == 1 {
+		return cands[0]
+	}
+	return check.selectOverloadSilent(call, cands, args)
+}
+
+func (check *Checker) callOperator(x *operand, pos syntax.Pos, fn *Func, call *syntax.CallExpr, argExprs []syntax.Expr, args []*operand) {
 	sig := fn.typ.(*Signature)
-	call := &syntax.CallExpr{Fun: syntax.NewName(pos, fn.name), ArgList: argExprs}
+	if call == nil {
+		call = &syntax.CallExpr{Fun: syntax.NewName(pos, fn.name), ArgList: argExprs}
+	}
+	if args == nil || sig.TypeParams().Len() > 0 {
+		args, _ = check.genericExprList(argExprs)
+	}
 	sig = check.arguments(call, sig, nil, nil, args, nil)
-	if sig == nil || sig.results == nil {
+	if sig == nil {
 		x.invalidate()
 		return
 	}
-	switch sig.results.Len() {
-	case 0:
+	if name, ok := call.Fun.(*syntax.Name); ok {
+		check.recordUse(name, fn)
+		if sig.TypeParams().Len() == 0 {
+			check.recordTypeAndValue(call.Fun, value, sig, nil)
+		}
+	}
+	switch {
+	case sig.results == nil || sig.results.Len() == 0:
 		x.mode_ = novalue
-	case 1:
+	case sig.results.Len() == 1:
 		x.mode_ = value
 		x.typ_ = sig.results.vars[0].typ
 	default:
@@ -111,7 +179,7 @@ func (check *Checker) tryBinaryOperatorOverload(x *operand, e syntax.Expr, lhs, 
 	if fn == nil {
 		return false
 	}
-	check.callOperator(x, e.Pos(), fn, []syntax.Expr{lhs, rhs}, []*operand{&l, &r})
+	check.callOperator(x, e.Pos(), fn, nil, []syntax.Expr{lhs, rhs}, []*operand{&l, &r})
 	if x.isValid() {
 		x.expr = e
 	}
@@ -127,10 +195,101 @@ func (check *Checker) tryUnaryOperatorOverload(x *operand, e *syntax.Operation) 
 	if fn == nil {
 		return false
 	}
-	check.callOperator(x, e.Pos(), fn, []syntax.Expr{e.X}, []*operand{x})
+	check.callOperator(x, e.Pos(), fn, nil, []syntax.Expr{e.X}, []*operand{x})
 	if x.isValid() {
 		x.expr = e
 	}
+	return true
+}
+
+// tryIndexOperatorOverload handles a[i] when the type of a defines func [](a, i...) U.
+func (check *Checker) tryIndexOperatorOverload(x *operand, e *syntax.IndexExpr) bool {
+	var l operand
+	check.expr(nil, &l, e.X)
+	if !l.isValid() || supportsBuiltinIndex(l.typ()) {
+		return false
+	}
+	index := check.singleIndex(e)
+	if index == nil {
+		return false
+	}
+	var i operand
+	check.expr(nil, &i, index)
+	if !i.isValid() {
+		return false
+	}
+	cands := check.operatorFuncsForRecv("[]", l.typ())
+	if len(cands) == 0 {
+		return false
+	}
+	call := &syntax.CallExpr{
+		Fun:     syntax.NewName(e.Pos(), "[]"),
+		ArgList: []syntax.Expr{e.X, index},
+	}
+	fn := check.selectIndexOperator(cands, call, []*operand{&l, &i})
+	if fn == nil {
+		return false
+	}
+	check.callOperator(x, e.Pos(), fn, call, call.ArgList, nil)
+	if !x.isValid() {
+		return false
+	}
+	check.recordIndexOperatorCall(e, call)
+	x.expr = call
+	return true
+}
+
+// tryIndexAssignOperatorOverload handles a[i] = v when a's type defines func []=(a, i..., v).
+func (check *Checker) tryIndexAssignOperatorOverload(lhs, rhs syntax.Expr, x *operand) bool {
+	idx, ok := syntax.Unparen(lhs).(*syntax.IndexExpr)
+	if !ok {
+		return false
+	}
+	var l operand
+	check.expr(nil, &l, idx.X)
+	if !l.isValid() || supportsBuiltinIndex(l.typ()) {
+		return false
+	}
+	index := check.singleIndex(idx)
+	if index == nil {
+		return false
+	}
+	var i operand
+	check.expr(nil, &i, index)
+	if !i.isValid() {
+		return false
+	}
+	var v operand
+	if x != nil {
+		v = *x
+	} else {
+		check.expr(nil, &v, rhs)
+	}
+	if !v.isValid() {
+		return false
+	}
+	cands := check.operatorFuncsForRecv("[]=", l.typ())
+	if len(cands) == 0 {
+		return false
+	}
+	call := &syntax.CallExpr{
+		Fun:     syntax.NewName(lhs.Pos(), "[]="),
+		ArgList: []syntax.Expr{idx.X, index, rhs},
+	}
+	fn := check.selectIndexOperator(cands, call, []*operand{&l, &i, &v})
+	if fn == nil {
+		return false
+	}
+	if x == nil {
+		x = new(operand)
+	}
+	check.callOperator(x, lhs.Pos(), fn, call, call.ArgList, nil)
+	if !x.isValid() {
+		return false
+	}
+	check.recordIndexAssignCall(idx, call)
+	x.mode_ = novalue
+	x.expr = lhs
 	return true
 }
 
@@ -149,7 +308,7 @@ func (check *Checker) tryIncDecOperatorOverload(s *syntax.AssignStmt, op syntax.
 		return false
 	}
 	var res operand
-	check.callOperator(&res, s.Pos(), fn, []syntax.Expr{s.Lhs}, []*operand{&arg})
+	check.callOperator(&res, s.Pos(), fn, nil, []syntax.Expr{s.Lhs}, []*operand{&arg})
 	if !res.isValid() {
 		return false
 	}

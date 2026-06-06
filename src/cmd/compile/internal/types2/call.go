@@ -398,6 +398,14 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr) exprKind {
 }
 
 func (check *Checker) selectOverload(call *syntax.CallExpr, cands []*Func, args []*operand) *Func {
+	return check.selectOverloadEx(call, cands, args, true)
+}
+
+func (check *Checker) selectOverloadSilent(call *syntax.CallExpr, cands []*Func, args []*operand) *Func {
+	return check.selectOverloadEx(call, cands, args, false)
+}
+
+func (check *Checker) selectOverloadEx(call *syntax.CallExpr, cands []*Func, args []*operand, reportErrors bool) *Func {
 	var matches []*Func
 	var scores []int
 	for _, fn := range cands {
@@ -469,7 +477,9 @@ func (check *Checker) selectOverload(call *syntax.CallExpr, cands []*Func, args 
 		return matches[0]
 	}
 	if len(matches) == 0 {
-		check.errorf(call, InvalidCall, "no matching overload for call to %s (%s)", call.Fun, check.overloadList(cands))
+		if reportErrors {
+			check.errorf(call, InvalidCall, "no matching overload for call to %s (%s)", call.Fun, check.overloadList(cands))
+		}
 		return nil
 	}
 	best := -1
@@ -487,7 +497,9 @@ func (check *Checker) selectOverload(call *syntax.CallExpr, cands []*Func, args 
 	if bestI >= 0 && !tie {
 		return matches[bestI]
 	}
-	check.errorf(call, InvalidCall, "ambiguous overloaded call to %s (%s)", call.Fun, check.overloadList(matches))
+	if reportErrors {
+		check.errorf(call, InvalidCall, "ambiguous overloaded call to %s (%s)", call.Fun, check.overloadList(matches))
+	}
 	return nil
 }
 
