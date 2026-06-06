@@ -725,6 +725,9 @@ func (check *Checker) packageObjects() {
 	if len(check.overloadFuncs) > 0 {
 		check.pkg.overloadFuncs = check.overloadFuncs
 	}
+	if len(check.overloadMeths) > 0 {
+		check.pkg.overloadMeths = check.overloadMeths
+	}
 }
 
 // unusedImports checks for unused imports.
