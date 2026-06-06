@@ -48,6 +48,11 @@ func (e *Enum) String() string   { return TypeString(e, nil) }
 func AsEnum(t Type) (*Enum, bool) {
 	t = Unalias(t)
 	if n, ok := t.(*Named); ok {
+		if n.check != nil && n.obj != nil {
+			if info := n.check.objMap[n.obj]; info != nil && info.enum != nil {
+				return info.enum, true
+			}
+		}
 		if e, ok := n.rhs().(*Enum); ok {
 			return e, true
 		}
@@ -78,6 +83,9 @@ func (check *Checker) enumDecl(obj *TypeName, edecl *syntax.EnumDecl) {
 	}
 
 	enumTyp := check.buildEnum(named, obj, edecl)
+	if info := check.objMap[obj]; info != nil {
+		info.enum = enumTyp
+	}
 	named.fromRHS = enumTyp
 	named.SetUnderlying(enumTyp.structType)
 }
@@ -258,6 +266,7 @@ func (check *Checker) enumVariantOperand(x *operand, obj Object, e syntax.Expr) 
 	case *Const:
 		x.mode_ = value
 		x.typ_ = obj.typ
+		x.val = obj.val
 		x.expr = e
 	case *Func:
 		x.mode_ = value
@@ -265,6 +274,9 @@ func (check *Checker) enumVariantOperand(x *operand, obj Object, e syntax.Expr) 
 		x.expr = e
 	default:
 		x.invalidate()
+	}
+	if x.isValid() {
+		check.recordTypeAndValue(e, x.mode(), x.typ(), x.val)
 	}
 }
 
@@ -286,6 +298,55 @@ func (check *Checker) enumSelector(x *operand, e *syntax.SelectorExpr, typ Type,
 	return true
 }
 
+func (check *Checker) enumTypeExpr(e syntax.Expr) Type {
+	switch e := e.(type) {
+	case *syntax.Name:
+		_, obj := check.lookupScope(e.Value)
+		tn, ok := obj.(*TypeName)
+		if !ok {
+			return nil
+		}
+		if tn.typ == nil || tn.Pkg() == check.pkg {
+			check.objDecl(tn)
+		}
+		typ := tn.Type()
+		if !isValid(typ) {
+			return nil
+		}
+		return typ
+
+	case *syntax.SelectorExpr:
+		if ident, ok := e.X.(*syntax.Name); ok {
+			_, obj := check.lookupScope(ident.Value)
+			pname, ok := obj.(*PkgName)
+			if !ok {
+				return nil
+			}
+			exp := pname.imported.scope.Lookup(e.Sel.Value)
+			tn, ok := exp.(*TypeName)
+			if !ok {
+				return nil
+			}
+			typ := tn.Type()
+			if !isValid(typ) {
+				return nil
+			}
+			return typ
+		}
+		return nil
+
+	case *syntax.IndexExpr:
+		typ := check.typ(e)
+		if !isValid(typ) {
+			return nil
+		}
+		return typ
+
+	default:
+		return nil
+	}
+}
+
 func (check *Checker) tryEnumVariantCall(x *operand, call *syntax.CallExpr, hint Type) bool {
 	var enumType Type
 	var variant *EnumVariant
@@ -304,14 +365,11 @@ func (check *Checker) tryEnumVariantCall(x *operand, call *syntax.CallExpr, hint
 		}
 		fun = f
 		check.recordUse(f, obj)
+		check.recordTypeAndValue(f, value, obj.Type(), nil)
 
 	case *syntax.SelectorExpr:
-		var left operand
-		check.exprOrType(&left, f.X, true)
-		if left.mode() != typexpr {
-			return false
-		}
-		enumTyp, ok := AsEnum(left.typ())
+		typ := check.enumTypeExpr(f.X)
+		enumTyp, ok := AsEnum(typ)
 		if !ok {
 			return false
 		}
@@ -319,13 +377,14 @@ func (check *Checker) tryEnumVariantCall(x *operand, call *syntax.CallExpr, hint
 		if obj == nil {
 			return false
 		}
-		enumType = left.typ()
+		enumType = typ
 		variant = enumVariantByName(enumTyp, f.Sel.Value)
 		if variant == nil {
 			return false
 		}
 		fun = f
 		check.recordUse(f.Sel, obj)
+		check.recordTypeAndValue(f, value, obj.Type(), nil)
 
 	default:
 		return false
@@ -373,6 +432,7 @@ func (check *Checker) tryEnumVariantCall(x *operand, call *syntax.CallExpr, hint
 	x.mode_ = value
 	x.typ_ = enumType
 	x.expr = call
+	check.recordTypeAndValue(call, value, enumType, nil)
 	return true
 }
 
@@ -413,12 +473,8 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *syntax.CompositeLit, hi
 	if !ok {
 		return false
 	}
-	var left operand
-	check.exprOrType(&left, sel.X, true)
-	if left.mode() != typexpr {
-		return false
-	}
-	enumTyp, ok := AsEnum(left.typ())
+	typ := check.enumTypeExpr(sel.X)
+	enumTyp, ok := AsEnum(typ)
 	if !ok {
 		return false
 	}
@@ -481,15 +537,19 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *syntax.CompositeLit, hi
 	}
 
 	x.mode_ = value
-	x.typ_ = left.typ()
+	x.typ_ = typ
 	x.expr = e
 	return true
 }
 
 func (check *Checker) enumSwitchStmt(inner stmtContext, s *syntax.SwitchStmt, tag Type, enumTyp *Enum) {
+	check.multipleSwitchDefaults(s.Body)
+
+	hasDefault := false
 	for _, clause := range s.Body {
 		if clause != nil && clause.Cases == nil {
-			check.errorf(clause, InvalidSyntaxTree, "default case not allowed for enum switch")
+			hasDefault = true
+			break
 		}
 	}
 
@@ -512,17 +572,23 @@ func (check *Checker) enumSwitchStmt(inner stmtContext, s *syntax.SwitchStmt, ta
 		check.closeScope()
 	}
 
-	for _, v := range enumTyp.variants {
-		if !covered[v.name] {
-			check.errorf(s, InvalidSyntaxTree, "switch on %s is not exhaustive: missing case %s", tag, v.name)
+	if !hasDefault {
+		for _, v := range enumTyp.variants {
+			if !covered[v.name] {
+				check.errorf(s, InvalidSyntaxTree, "switch on %s is not exhaustive: missing case %s", tag, v.name)
+			}
 		}
 	}
 }
 
 func (check *Checker) enumSwitchExpr(x *operand, e *syntax.SwitchExpr, tag Type, enumTyp *Enum) {
+	check.multipleSwitchDefaults(switchExprClausesToCaseClauses(e.Body))
+
+	hasDefault := false
 	for _, clause := range e.Body {
 		if clause != nil && clause.Cases == nil {
-			check.errorf(clause, InvalidSyntaxTree, "default case not allowed for enum switch")
+			hasDefault = true
+			break
 		}
 	}
 
@@ -546,9 +612,11 @@ func (check *Checker) enumSwitchExpr(x *operand, e *syntax.SwitchExpr, tag Type,
 		arms = append(arms, &arm)
 	}
 
-	for _, v := range enumTyp.variants {
-		if !covered[v.name] {
-			check.errorf(e, InvalidSyntaxTree, "switch on %s is not exhaustive: missing case %s", tag, v.name)
+	if !hasDefault {
+		for _, v := range enumTyp.variants {
+			if !covered[v.name] {
+				check.errorf(e, InvalidSyntaxTree, "switch on %s is not exhaustive: missing case %s", tag, v.name)
+			}
 		}
 	}
 

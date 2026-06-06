@@ -13,36 +13,75 @@ enum SomeEnum {
 	Value4 = 3
 }
 
+enum Message {
+	Quit
+	Write { text string, bytes int }
+	ChangeColor { r, g, b uint8 }
+}
+
 func main() {
 	var a SomeEnum = SomeEnum.Value1
-	var b SomeEnum = SomeEnum.Value2("hello")
-	c := SomeEnum.Value3(42)
+	var msg SomeEnum = SomeEnum.Value2("hello")
+	var c SomeEnum = SomeEnum.Value3(42)
 
-	switch v := b; v {
+	if a == msg {
+		panic("unexpected equality")
+	}
+
+	switch v := msg; v {
 	case Value1:
 		panic("wrong variant")
 	case Value2(s):
 		if s != "hello" {
 			panic(s)
 		}
-	case Value3(n):
-		panic(n)
+	case Value3(x):
+		panic(x)
 	case Value4:
 		panic("value4")
 	}
 
-	n := switch c {
+	num := switch c {
 	case Value1:
 		0
 	case Value2(s):
 		len(s)
-	case Value3(n):
-		n
+	case Value3(x):
+		x
 	case Value4:
 		3
 	}
-	if n != 42 {
-		panic(n)
+	if num != 42 {
+		panic(num)
+	}
+
+	m := Message.Write{ text: "hi", bytes: 5 }
+	desc := switch m {
+	case Quit:
+		"quit"
+	case Write { text }:
+		text
+	case ChangeColor { r, g, b }:
+		string([]byte{r, g, b})
+	}
+	if desc != "hi" {
+		panic(desc)
+	}
+
+	color := Message.ChangeColor { r: 1, g: 2, b: 3 }
+	switch color {
+	case ChangeColor { r, g, b }:
+		if r != 1 || g != 2 || b != 3 {
+			panic("struct pattern binding failed")
+		}
+	default:
+		panic("unexpected message variant")
+	}
+
+	switch a {
+	case Value1:
+	default:
+		panic("default should not run")
 	}
 
 	_ = a
