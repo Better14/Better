@@ -30,9 +30,11 @@ After:
 ```go
 func myFunc() int! {
 	a := myFunc2()!.value
-	return a, nil
+	return a
 }
 ```
+
+A `T!` function may return a single value `v`; the compiler treats it as `return v, nil`. You may still write `return v, nil` or `return zero, err` explicitly.
 
 `int!` is semantically equivalent to `(int, error)`.
 
@@ -56,11 +58,6 @@ func someFunc() int! {
 }
 
 func readUser() User! {
-	u := fetch()!.value
-	return u, nil
-}
-
-func readUser2() User! {
 	u := fetch()!.value
 	return u
 }
@@ -97,11 +94,9 @@ This is a conceptual model for documentation; syntax-level behavior is defined b
 ## Usage Patterns
 
 ```go
-var a := int!                              // a has type int! (value + error)
-if a.err != nil { _ = a.value }
-if a.err == nil { _ = a.value } else { _ = a.err }
-var a, err := int!                         // destructure into value and error
-x := someFunc()!.value                     // propagate error or read .value
+var a int! = 0                            // a has type int! (value + error)
+if a.err == nil { doSomething(a.value) } else { handleError(a.err) }
+val, err := a                              // destructure into value and error
 y := someFunc()!.someProperty              // propagate error or access a field
 ```
 
@@ -109,4 +104,4 @@ y := someFunc()!.someProperty              // propagate error or access a field
 
 - `T!` is the canonical shorthand for `(T, error)`.
 - Use `expr!.value` or `expr!.field` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
-- Do not use `expr!` alone; it is not a panic unwrap. Handle unexpected failures with explicit `if err != nil { panic(err) }` or `log.Fatal` as today.
+- You can still do `if err != nil { panic(err) }` or `log.Fatal` as today.
