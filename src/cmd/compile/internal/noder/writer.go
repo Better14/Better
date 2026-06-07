@@ -11,7 +11,6 @@ import (
 	"go/version"
 	"internal/buildcfg"
 	"internal/pkgbits"
-	"os"
 	"slices"
 	"strings"
 
@@ -195,6 +194,8 @@ type writer struct {
 	closureVarsIdx map[*types2.Var]int // index of previously seen free variables
 
 	dict *writerDict
+
+	enumSubst map[string]enumPayloadSubst // active during enum switch expr arms
 
 	// derived tracks whether the type being written out references any
 	// type parameters. It's unused for writing non-type things.
@@ -1188,9 +1189,6 @@ func (w *writer) funcExt(obj *types2.Func) {
 
 	sig, block := obj.Type().(*types2.Signature), decl.Body
 	body, closureVars := w.p.bodyIdx(sig, block, w.dict)
-	if len(closureVars) > 0 {
-		fmt.Fprintln(os.Stderr, "CLOSURE", closureVars)
-	}
 	assert(len(closureVars) == 0)
 
 	w.Sync(pkgbits.SyncFuncExt)
@@ -1753,6 +1751,12 @@ func (w *writer) switchStmt(stmt *syntax.SwitchStmt) {
 			tagValue = constant.MakeBool(true)
 		}
 
+		if enumTyp, ok := types2.AsEnum(tagType); ok && tag != nil {
+			w.writeEnumSwitchBody(stmt, enumTyp, tag)
+			w.closeScope(stmt.Rbrace)
+			return
+		}
+
 		if tagValue != nil {
 			// If the switch tag has a constant value, look for a case
 			// clause that we always branch to.
@@ -1908,6 +1912,27 @@ func (w *writer) expr(expr syntax.Expr) {
 		return
 	}
 
+	switch e := expr.(type) {
+	case *syntax.Name:
+		if w.tryWriteEnumName(e) {
+			return
+		}
+		if w.enumSubst != nil {
+			if sub, ok := w.enumSubst[e.Value]; ok {
+				w.writeEnumPayloadExpr(e.Pos(), sub.tag, sub.index, sub.typ)
+				return
+			}
+		}
+	case *syntax.SelectorExpr:
+		if w.tryWriteEnumSelector(e) {
+			return
+		}
+	case *syntax.CallExpr:
+		if w.tryWriteEnumVariantCall(e) {
+			return
+		}
+	}
+
 	obj, inst := lookupObj(w.p, expr)
 	targs := asTypeSlice(inst.TypeArgs)
 
@@ -1973,10 +1998,19 @@ func (w *writer) expr(expr syntax.Expr) {
 		}
 
 		if c, ok := obj.(*types2.Const); ok {
+			if name, ok := expr.(*syntax.Name); ok && w.tryWriteEnumName(name) {
+				return
+			}
 			w.Code(exprConst)
 			w.pos(expr)
 			w.typ(c.Type())
 			w.Value(c.Val())
+			return
+		}
+
+		if fn, ok := obj.(*types2.Func); ok && types2.IsEnumVariant(fn) {
+			w.Code(exprGlobal)
+			w.obj(fn, nil)
 			return
 		}
 
@@ -2018,6 +2052,12 @@ func (w *writer) expr(expr syntax.Expr) {
 		}
 
 		sel, ok := w.p.info.Selections[expr]
+		if !ok {
+			if w.tryWriteEnumSelector(expr) {
+				break
+			}
+			w.p.fatalf(expr, "missing Selection entry: %v", syntax.String(expr))
+		}
 		assert(ok)
 
 		switch sel.Kind() {
@@ -2090,6 +2130,12 @@ func (w *writer) expr(expr syntax.Expr) {
 		w.implicitConvExpr(tv.Type, expr.Else)
 
 	case *syntax.SwitchExpr:
+		if expr.Tag != nil {
+			if enumTyp, ok := types2.AsEnum(w.p.typeOf(expr.Tag)); ok {
+				w.enumSwitchExpr(expr, enumTyp)
+				break
+			}
+		}
 		tv := w.p.typeAndValue(expr)
 		w.Code(exprSwitchExpr)
 		w.pos(expr)
@@ -2177,6 +2223,9 @@ func (w *writer) expr(expr syntax.Expr) {
 		w.implicitConvExpr(commonType, expr.Y)
 
 	case *syntax.CallExpr:
+		if w.tryWriteEnumVariantCall(expr) {
+			break
+		}
 		tv := w.p.typeAndValue(expr.Fun)
 		if tv.IsType() {
 			assert(len(expr.ArgList) == 1)
@@ -2580,6 +2629,9 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 }
 
 func (w *writer) compLit(lit *syntax.CompositeLit) {
+	if w.tryWriteEnumCompositeLit(lit) {
+		return
+	}
 	typ := w.p.typeOf(lit)
 
 	w.Sync(pkgbits.SyncCompLit)
