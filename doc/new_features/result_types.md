@@ -113,6 +113,58 @@ func example() int! {
 
 Assigning plain `T` to `T!` sets `value` and leaves `err` as `nil`. Assigning an `error` to `T!` sets `err` and leaves `value` at the zero value of `T`. You can also set `a.err` directly on an existing `T!` value.
 
+### Assignability: `T!` is not `T`
+
+`T!` and `T` are distinct types. A result value cannot be passed or assigned where a plain `T` is required without an explicit unwrap.
+
+```go
+func myPrint(a int) {
+	fmt.Println(a)
+}
+
+func main() {
+	var a int!
+	myPrint(a) // compile error: int! is not assignable to int
+}
+```
+
+To call `myPrint`, unwrap `a` in one of these ways:
+
+**Error check** — only use the value when there is no error:
+
+```go
+func main() {
+	var a int!
+	if a.err == nil {
+		myPrint(a.value)
+	}
+}
+```
+
+**Null coalescing** — supply a default when `err != nil`:
+
+```go
+func main() {
+	var a int!
+	myPrint(a ?? 0) // int! ?? int → int
+}
+```
+
+When the left operand is `T!`, `??` uses the `.value` field if `err == nil`; otherwise it evaluates and uses the right-hand side (short-circuit). The result type is `T` when the right operand is `T`.
+
+**Direct `.value` access** — reading `.value` without checking panics if `err != nil`:
+
+```go
+func main() {
+	var a int!
+	myPrint(a.value) // panics if a.err != nil
+}
+```
+
+The same rules apply to assignment, return values, and other contexts that expect `T` rather than `T!`.
+
+See [Null-coalescing operator (`??`)](nullable_types.md#null-coalescing-operator-) in nullable types for general `??` syntax; for `T!`, the left-hand side is treated as failed when `err != nil` (not when the value is `nil`).
+
 ## Notes
 
 - `T!` is the canonical shorthand for `(T, error)` in function signatures and a value type elsewhere.

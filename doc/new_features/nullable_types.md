@@ -194,7 +194,7 @@ if count == nil {
 }
 ```
 
-`??` applies to nullable types and other nil-able values (`*T`, maps, slices, pointers). It does **not** apply to `T!` error results; handle errors with `if err != nil`, `!.value`, or explicit checks.
+`??` applies to nullable types and other nil-able values (`*T`, maps, slices, pointers). For [`T!`](result_types.md) result values, `??` uses the success value when `err == nil` and the fallback when `err != nil`; see [Assignability: `T!` is not `T`](result_types.md#assignability-t-is-not-t).
 
 
 | Form               | Role                                                  |

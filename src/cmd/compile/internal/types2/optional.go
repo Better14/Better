@@ -150,8 +150,29 @@ func (check *Checker) nullCoalesce(x *operand, e syntax.Expr, lhs, rhs syntax.Ex
 	if !x.isValid() {
 		return
 	}
+	if res, ok := x.typ().Underlying().(*Result); ok {
+		check.expr(nil, &y, rhs)
+		if !y.isValid() {
+			x.invalidate()
+			x.expr = y.expr
+			return
+		}
+		if ok, _ := y.assignableTo(check, res.elem, nil); ok {
+			x.typ_ = res.elem
+		} else if vres, ok2 := y.typ().Underlying().(*Result); ok2 && Identical(res.elem, vres.elem) {
+			x.typ_ = res.elem
+		} else {
+			check.errorf(e, MismatchedTypes, "invalid operation: ?? (cannot use %s as %s)", y.typ(), res.elem)
+			x.invalidate()
+		}
+		if x.isValid() {
+			x.mode_ = value
+			x.expr = e
+		}
+		return
+	}
 	if !isNullish(x.typ()) {
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: ?? requires nullable left operand, got %s", x.typ())
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: ?? requires nullable or result left operand, got %s", x.typ())
 		x.invalidate()
 		return
 	}
@@ -264,7 +285,7 @@ func (check *Checker) nullableGuardIdent(x, y syntax.Expr, nonNil bool) (*Var, b
 	}
 	obj := check.lookup(name.Value)
 	v, ok := obj.(*Var)
-	if !ok || nullableElem(v.typ()) == nil {
+	if !ok || nullableElem(v.typ) == nil {
 		return nil, false, false
 	}
 	return v, nonNil, true

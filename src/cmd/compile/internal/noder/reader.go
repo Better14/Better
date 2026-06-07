@@ -2462,12 +2462,30 @@ func (r *reader) expr() (res ir.Node) {
 		y := r.expr()
 		return ir.NewNullCoalesceExpr(pos, typ, x, y)
 
+	case exprResultCoalesce:
+		pos := r.pos()
+		typ := r.typ()
+		x := r.expr()
+		y := r.expr()
+		n := ir.NewNullCoalesceExpr(pos, typ, x, y)
+		n.ForResult = true
+		return n
+
 	case exprOptionalUnwrap:
 		checkNil := r.Bool()
 		pos := r.pos()
 		typ := r.typ()
 		x := r.expr()
 		return ir.NewNullUnwrapExpr(pos, typ, x, checkNil)
+
+	case exprResultUnwrap:
+		checkErr := r.Bool()
+		pos := r.pos()
+		typ := r.typ()
+		x := r.expr()
+		n := ir.NewNullUnwrapExpr(pos, typ, x, checkErr)
+		n.ForResult = true
+		return n
 
 	case exprResultWrap:
 		fromErr := r.Bool()

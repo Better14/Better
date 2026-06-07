@@ -67,8 +67,10 @@ const (
 	exprForce          // e.!  (e has type (T, error); yields T, panics on error)
 	exprNullCond       // e?.field / e?.[i] — null-conditional access
 	exprNullCoalesce   // e ?? f — null coalescing
+	exprResultCoalesce // e ?? f — result coalescing (T!)
 	exprResultWrap       // wrap T as T! {value, nil} or error as T! {zero, err}; Bool selects
 	exprOptionalUnwrap   // unwrap T? to T; Bool: panic if nil
+	exprResultUnwrap     // unwrap T!.value to T; Bool: panic if err != nil
 	exprIfExpr         // if e { a } else { b }
 	exprSwitchExpr     // switch e { case ...: body ... }
 )

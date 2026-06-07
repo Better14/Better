@@ -1364,6 +1364,28 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		n := n.(*ir.NullUnwrapExpr)
 		pos := n.Pos()
 		x := o.expr1(n.X, nil)
+		if n.ForResult {
+			res := o.newTemp(n.Type(), n.Type().HasPointers())
+			val := typecheck.XDotField(pos, x, x.Type().Field(0).Sym)
+			if !n.CheckNil {
+				return val
+			}
+			err := typecheck.XDotField(pos, x, x.Type().Field(1).Sym)
+			nilErr := ir.NewNilExpr(pos, err.Type())
+			nilErr.SetTypecheck(1)
+			cmp := ir.NewBinaryExpr(pos, ir.ONE, err, nilErr)
+			cmp.SetType(types.Types[types.TBOOL])
+			cmp.SetTypecheck(1)
+			lit := ir.NewBasicLit(pos, types.UntypedString, constant.MakeString("unwrap of result value with error"))
+			msg := typecheck.DefaultLit(lit, types.Types[types.TSTRING])
+			panicStmt := mkcallstmt("gopanic", msg)
+			elseAs := ir.NewAssignStmt(pos, res, val)
+			elseAs.SetTypecheck(1)
+			ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{panicStmt}, []ir.Node{elseAs})
+			ifStmt.SetTypecheck(1)
+			o.out = append(o.out, ifStmt)
+			return res
+		}
 		star := ir.NewStarExpr(pos, x)
 		star.SetType(n.Type())
 		star.SetTypecheck(1)
@@ -1391,13 +1413,30 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		pos := n.Pos()
 		lhs := o.expr1(n.X, nil)
 		res := o.newTemp(n.Type(), n.Type().HasPointers())
+		o.init(n.Y)
+		y := typecheck.DefaultLit(n.Y, n.Type())
+		thenAs := ir.NewAssignStmt(pos, res, y)
+		thenAs.SetTypecheck(1)
+		if n.ForResult {
+			val := typecheck.XDotField(pos, lhs, lhs.Type().Field(0).Sym)
+			err := typecheck.XDotField(pos, lhs, lhs.Type().Field(1).Sym)
+			nilErr := ir.NewNilExpr(pos, err.Type())
+			nilErr.SetTypecheck(1)
+			cmp := ir.NewBinaryExpr(pos, ir.ONE, err, nilErr)
+			cmp.SetType(types.Types[types.TBOOL])
+			cmp.SetTypecheck(1)
+			elseAs := ir.NewAssignStmt(pos, res, val)
+			elseAs.SetTypecheck(1)
+			ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{thenAs}, []ir.Node{elseAs})
+			ifStmt.SetTypecheck(1)
+			o.out = append(o.out, ifStmt)
+			return res
+		}
 		niln := ir.NewNilExpr(pos, lhs.Type())
 		niln.SetTypecheck(1)
 		cmp := ir.NewBinaryExpr(pos, ir.OEQ, lhs, niln)
 		cmp.SetType(types.Types[types.TBOOL])
 		cmp.SetTypecheck(1)
-		o.init(n.Y)
-		y := typecheck.DefaultLit(n.Y, n.Type())
 		elseVal := n.Y
 		if lhs.Type().IsPtr() && !n.Type().IsPtr() {
 			star := ir.NewStarExpr(pos, lhs)
@@ -1409,8 +1448,6 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		}
 		elseAs := ir.NewAssignStmt(pos, res, elseVal)
 		elseAs.SetTypecheck(1)
-		thenAs := ir.NewAssignStmt(pos, res, y)
-		thenAs.SetTypecheck(1)
 		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{thenAs}, []ir.Node{elseAs})
 		ifStmt.SetTypecheck(1)
 		o.out = append(o.out, ifStmt)
