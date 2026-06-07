@@ -23,6 +23,7 @@ This directory documents language and library extensions planned or implemented 
 
 ## Standard library
 
+- [Structured errors (`errors.Error`)](errors.md) — message, stack trace, and inner error chain
 - [Built-in LINQ](linq.md)
 - [Data structures](data_structures.md) — `list`, `set`, `queue`, `stack`, heaps, trees
 
@@ -36,4 +37,5 @@ This directory documents language and library extensions planned or implemented 
 | `func f(a int, b int = 1)` | [default_arguments.md](default_arguments.md) |
 | `(x, y) => x + y` | [lambda_syntax.md](lambda_syntax.md) |
 | `nums.Where(…).Select(…)` | [linq.md](linq.md) |
+| `errors.New`, `err.Wrap`, `*errors.Error` | [errors.md](errors.md) |
 | `func (p Person) Hello()` (foreign receiver) | [extension_methods.md](extension_methods.md) |
