@@ -421,6 +421,11 @@ func (check *Checker) updateExprType(x syntax.Expr, typ Type, final bool) {
 		mode = value
 		val = nil
 	}
+	if _, ok := typ.Underlying().(*Result); ok && val != nil {
+		// Result values are lowered to structs; not compile-time constants.
+		mode = value
+		val = nil
+	}
 	check.recordTypeAndValue(x, mode, typ, val)
 }
 
@@ -493,6 +498,13 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 			return nil, nil, InvalidUntypedConversion
 		}
 	case *Optional:
+		_, val, code := check.implicitTypeAndValue(x, u.elem)
+		if code != 0 {
+			return nil, nil, code
+		}
+		return target, val, code
+
+	case *Result:
 		_, val, code := check.implicitTypeAndValue(x, u.elem)
 		if code != 0 {
 			return nil, nil, code
@@ -1497,6 +1509,17 @@ func (check *Checker) multiExpr(e syntax.Expr, allowCommaOk bool) (list []*opera
 			list[i] = &operand{mode_: value, expr: e, typ_: v.typ}
 		}
 		return
+	}
+
+	// Result(T) destructuring: val, err := r
+	if allowCommaOk && x.isValid() && (x.mode() == variable || x.mode() == value) {
+		if res, ok := x.typ().Underlying().(*Result); ok {
+			list = []*operand{
+				{mode_: value, expr: e, typ_: res.elem},
+				{mode_: value, expr: e, typ_: universeError},
+			}
+			return list, true
+		}
 	}
 
 	// exactly one (possibly invalid or comma-ok) value

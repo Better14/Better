@@ -93,15 +93,28 @@ This is a conceptual model for documentation; syntax-level behavior is defined b
 
 ## Usage Patterns
 
+`T!` is also a **value type** (lowered to a struct with `value` and `err` fields), in addition to the function-result shorthand.
+
 ```go
-var a int! = 0                            // a has type int! (value + error)
+var a int! = 0                            // value=0, err=nil
+var b int! = errors.New("Some error")
 if a.err == nil { doSomething(a.value) } else { handleError(a.err) }
 val, err := a                              // destructure into value and error
-y := someFunc()!.someProperty              // propagate error or access a field
 ```
+
+Inside a function with result type `T!`, use `!.value` / `!.field` for propagation:
+
+```go
+func example() int! {
+	y := someFunc()!.someProperty
+	return y
+}
+```
+
+Assigning plain `T` to `T!` sets `value` and leaves `err` as `nil`. Assigning an `error` to `T!` sets `err` and leaves `value` at the zero value of `T`. You can also set `a.err` directly on an existing `T!` value.
 
 ## Notes
 
-- `T!` is the canonical shorthand for `(T, error)`.
+- `T!` is the canonical shorthand for `(T, error)` in function signatures and a value type elsewhere.
 - Use `expr!.value` or `expr!.field` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
 - You can still do `if err != nil { panic(err) }` or `log.Fatal` as today.
