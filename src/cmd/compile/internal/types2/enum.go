@@ -10,6 +10,7 @@ import (
 	"go/constant"
 	. "internal/types/errors"
 	"strconv"
+	"strings"
 )
 
 // An Enum represents an enum type lowered to a struct with _tag and _pN payload fields.
@@ -48,6 +49,9 @@ func (e *Enum) String() string   { return TypeString(e, nil) }
 func AsEnum(t Type) (*Enum, bool) {
 	t = Unalias(t)
 	if n, ok := t.(*Named); ok {
+		if n.enumType != nil {
+			return n.enumType, true
+		}
 		if n.check != nil && n.obj != nil {
 			if info := n.check.objMap[n.obj]; info != nil && info.enum != nil {
 				return info.enum, true
@@ -61,6 +65,26 @@ func AsEnum(t Type) (*Enum, bool) {
 		return e, true
 	}
 	return nil, false
+}
+
+func (v *EnumVariant) Name() string     { return v.name }
+func (v *EnumVariant) Tag() int64       { return v.tag }
+func (v *EnumVariant) Obj() Object      { return v.obj }
+func (v *EnumVariant) Tuple() []Type    { return v.tuple }
+func (v *EnumVariant) Fields() []*Var   { return v.fields }
+
+// IsEnumVariant reports whether obj is an enum variant constructor or unit value.
+func IsEnumVariant(obj Object) bool {
+	switch obj := obj.(type) {
+	case *Const:
+		_, ok := AsEnum(obj.typ)
+		return ok
+	case *Func:
+		if p := obj.parent; p != nil {
+			return strings.HasPrefix(p.comment, "enum ")
+		}
+	}
+	return false
 }
 
 func (check *Checker) enumDecl(obj *TypeName, edecl *syntax.EnumDecl) {
@@ -86,6 +110,7 @@ func (check *Checker) enumDecl(obj *TypeName, edecl *syntax.EnumDecl) {
 	if info := check.objMap[obj]; info != nil {
 		info.enum = enumTyp
 	}
+	named.enumType = enumTyp
 	named.fromRHS = enumTyp
 	named.SetUnderlying(enumTyp.structType)
 }
@@ -266,7 +291,8 @@ func (check *Checker) enumVariantOperand(x *operand, obj Object, e syntax.Expr) 
 	case *Const:
 		x.mode_ = value
 		x.typ_ = obj.typ
-		x.val = obj.val
+		// Unit variants store the tag in Const.val, but the operand type is
+		// the enum, not int. Leave val unset so noder lowers to a struct lit.
 		x.expr = e
 	case *Func:
 		x.mode_ = value

@@ -1332,7 +1332,11 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		res := o.newTemp(n.Type(), n.Type().HasPointers())
 		tag := o.expr1(n.Tag, nil)
 		var cases []*ir.CaseClause
+		hasDefault := false
 		for _, c := range n.Cases {
+			if c.List == nil {
+				hasDefault = true
+			}
 			body := typecheck.DefaultLit(o.expr1(c.Body, nil), n.Type())
 			as := ir.NewAssignStmt(pos, res, body)
 			as.SetTypecheck(1)
@@ -1341,6 +1345,15 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 				list = append(list, o.expr1(cv, nil))
 			}
 			cases = append(cases, ir.NewCaseStmt(pos, list, []ir.Node{as}))
+		}
+		if !hasDefault {
+			// Exhaustive enum switch expressions omit default, but walkSwitchExpr
+			// needs a default arm to assign the result temp on all paths.
+			zero := typecheck.DefaultLit(ir.NewZero(pos, n.Type()), n.Type())
+			zero.SetTypecheck(1)
+			as := ir.NewAssignStmt(pos, res, zero)
+			as.SetTypecheck(1)
+			cases = append(cases, ir.NewCaseStmt(pos, nil, []ir.Node{as}))
 		}
 		sw := ir.NewSwitchStmt(pos, tag, cases)
 		sw.SetTypecheck(1)

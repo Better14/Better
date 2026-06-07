@@ -20,9 +20,9 @@ enum Message {
 }
 
 func main() {
-	var a SomeEnum = SomeEnum.Value1
-	var msg SomeEnum = SomeEnum.Value2("hello")
-	var c SomeEnum = SomeEnum.Value3(42)
+	var a SomeEnum = Value1
+	var msg SomeEnum = Value2("hello")
+	var c SomeEnum = Value3(42)
 
 	if a == msg {
 		panic("unexpected equality")
