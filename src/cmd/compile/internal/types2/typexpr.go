@@ -115,6 +115,9 @@ func (check *Checker) ident(x *operand, e *syntax.Name, wantType bool) {
 		if !isValid(typ) {
 			return
 		}
+		if narrow, ok := check.nullableNarrow[obj]; ok {
+			typ = narrow
+		}
 		x.mode_ = variable
 
 	case *Func:

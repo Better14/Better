@@ -1360,6 +1360,32 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		o.out = append(o.out, sw)
 		return res
 
+	case ir.ONULLUNWRAP:
+		n := n.(*ir.NullUnwrapExpr)
+		pos := n.Pos()
+		x := o.expr1(n.X, nil)
+		star := ir.NewStarExpr(pos, x)
+		star.SetType(n.Type())
+		star.SetTypecheck(1)
+		if !n.CheckNil {
+			return star
+		}
+		res := o.newTemp(n.Type(), n.Type().HasPointers())
+		niln := ir.NewNilExpr(pos, x.Type())
+		niln.SetTypecheck(1)
+		cmp := ir.NewBinaryExpr(pos, ir.OEQ, x, niln)
+		cmp.SetType(types.Types[types.TBOOL])
+		cmp.SetTypecheck(1)
+		lit := ir.NewBasicLit(pos, types.UntypedString, constant.MakeString("unwrap of nil nullable value"))
+		msg := typecheck.DefaultLit(lit, types.Types[types.TSTRING])
+		panicStmt := mkcallstmt("gopanic", msg)
+		elseAs := ir.NewAssignStmt(pos, res, star)
+		elseAs.SetTypecheck(1)
+		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{panicStmt}, []ir.Node{elseAs})
+		ifStmt.SetTypecheck(1)
+		o.out = append(o.out, ifStmt)
+		return res
+
 	case ir.ONULLCOALESCE:
 		n := n.(*ir.NullCoalesceExpr)
 		pos := n.Pos()

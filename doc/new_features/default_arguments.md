@@ -55,6 +55,42 @@ s.Start("localhost")     // port 80
 s.Start("localhost", 443)
 ```
 
+See [Function and method overloading](overloading.md) for general overload rules. An overload set must be unambiguous: if more than one overload matches a call equally well, it is a **compile error** (`ambiguous overloaded call`).
+
+#### Default arguments and ambiguous overloads
+
+Defaults let a caller omit trailing parameters, so an overload with optional parameters can match the **same argument count** as another overload. When that happens, the call is ambiguous.
+
+Invalid (ambiguous overload set — one-argument calls do not resolve uniquely):
+
+```go
+func myFunc(a int, b int = 5) {
+}
+
+func myFunc(a int) {
+}
+```
+
+For `myFunc(5)`, both overloads match:
+
+- `func myFunc(a int)` — `a = 5`
+- `func myFunc(a int, b int = 5)` — `a = 5`, `b` uses its default
+
+That call is a **compile error** (`ambiguous overloaded call`). Two-argument calls are fine: `myFunc(5, 10)` resolves only to the two-parameter overload.
+
+The same rule applies to methods and to overloads that differ only in how many trailing parameters have defaults. Overloads must not overlap in arity once defaults are applied at the call site.
+
+Valid (no arity overlap after defaults):
+
+```go
+func myFunc(a int) {}
+
+func myFunc(a int, b int) {} // second argument required; no default on b
+
+myFunc(5)    // func myFunc(a int)
+myFunc(5, 6) // func myFunc(a int, b int)
+```
+
 ### Default values (compile-time only)
 
 Default values must be known at compile time. Parameters may use literals and **constant expressions** built from them (not arbitrary runtime code).
@@ -149,6 +185,16 @@ func Send(to, message string, urgent bool = false) {
 ```
 
 ### Invalid examples
+
+#### Ambiguous overloads with default arguments (compile-time error)
+
+See [Default arguments and ambiguous overloads](#default-arguments-and-ambiguous-overloads) above. Overloads whose optional parameters overlap another overload’s arity are rejected at ambiguous call sites:
+
+```go
+// func myFunc(a int, b int = 5) {}
+// func myFunc(a int) {}
+// myFunc(5) // ERROR: ambiguous overloaded call
+```
 
 #### Non-constant defaults (compile-time error)
 

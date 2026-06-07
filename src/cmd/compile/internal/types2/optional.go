@@ -208,3 +208,64 @@ func (check *Checker) nullCoalesce(x *operand, e syntax.Expr, lhs, rhs syntax.Ex
 		x.expr = e
 	}
 }
+
+// nullableElem returns the element type if t is T?, or nil.
+func nullableElem(t Type) Type {
+	if o, ok := t.Underlying().(*Optional); ok {
+		return o.elem
+	}
+	return nil
+}
+
+// withNullableNarrow runs f with extra nullable variable narrowing in effect.
+func (check *Checker) withNullableNarrow(narrow map[*Var]Type, f func()) {
+	if len(narrow) == 0 {
+		f()
+		return
+	}
+	old := check.nullableNarrow
+	merged := make(map[*Var]Type, len(old)+len(narrow))
+	for v, t := range old {
+		merged[v] = t
+	}
+	for v, t := range narrow {
+		merged[v] = t
+	}
+	check.nullableNarrow = merged
+	f()
+	check.nullableNarrow = old
+}
+
+// parseNullableGuard recognizes v != nil, nil != v, and v == nil for nullable v.
+func (check *Checker) parseNullableGuard(cond syntax.Expr) (v *Var, nonNil bool, ok bool) {
+	op, ok := syntax.Unparen(cond).(*syntax.Operation)
+	if !ok {
+		return nil, false, false
+	}
+	switch op.Op {
+	case syntax.Neq:
+		return check.nullableGuardIdent(op.X, op.Y, true)
+	case syntax.Eql:
+		return check.nullableGuardIdent(op.X, op.Y, false)
+	default:
+		return nil, false, false
+	}
+}
+
+func (check *Checker) nullableGuardIdent(x, y syntax.Expr, nonNil bool) (*Var, bool, bool) {
+	if check.isNil(x) {
+		x, y = y, x
+	} else if !check.isNil(y) {
+		return nil, false, false
+	}
+	name, ok := syntax.Unparen(x).(*syntax.Name)
+	if !ok {
+		return nil, false, false
+	}
+	obj := check.lookup(name.Value)
+	v, ok := obj.(*Var)
+	if !ok || nullableElem(v.typ()) == nil {
+		return nil, false, false
+	}
+	return v, nonNil, true
+}

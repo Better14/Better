@@ -2036,6 +2036,18 @@ func (w *writer) expr(expr syntax.Expr) {
 		obj := obj.(*types2.Var)
 		assert(!obj.IsField())
 
+		if tv, ok := w.p.maybeTypeAndValue(expr); ok {
+			if o, ok := types2.AsOptional(obj.Type()); ok && types2.Identical(tv.Type, o.Elem()) {
+				w.Code(exprOptionalUnwrap)
+				w.Bool(false) // narrowed: non-nil branch, no panic check
+				w.pos(expr)
+				w.typ(o.Elem())
+				w.Code(exprLocal)
+				w.useLocal(expr.Pos(), obj)
+				return
+			}
+		}
+
 		w.Code(exprLocal)
 		w.useLocal(expr.Pos(), obj)
 		return
@@ -2627,6 +2639,14 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 			identical = false
 			dst = o
 		}
+	}
+	if o, ok := types2.AsOptional(src); ok && types2.Identical(dst, o.Elem()) {
+		w.Code(exprOptionalUnwrap)
+		w.Bool(true) // force cast: panic if nil
+		w.pos(expr)
+		w.typ(dst)
+		w.expr(expr)
+		return
 	}
 	if res, ok := types2.AsResult(dst); ok && implicit {
 		if types2.AssignableTo(src, res.Elem()) && !types2.Identical(src, dst) {

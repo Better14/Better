@@ -166,6 +166,10 @@ func (e *escape) exprSkipInit(k hole, n ir.Node) {
 		e.expr(k, n.X)
 		e.discard(n.Y)
 
+	case ir.ONULLUNWRAP:
+		n := n.(*ir.NullUnwrapExpr)
+		e.expr(k, n.X)
+
 	case ir.OIFEXPR:
 		n := n.(*ir.IfExpr)
 		e.discard(n.Cond)
