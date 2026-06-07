@@ -55,30 +55,32 @@ s.Start("localhost")     // port 80
 s.Start("localhost", 443)
 ```
 
-See [Function and method overloading](overloading.md) for general overload rules. An overload set must be unambiguous: if more than one overload matches a call equally well, it is a **compile error** (`ambiguous overloaded call`).
+See [Function and method overloading](overloading.md) for general overload rules.
 
 #### Default arguments and ambiguous overloads
 
-Defaults let a caller omit trailing parameters, so an overload with optional parameters can match the **same argument count** as another overload. When that happens, the call is ambiguous.
+Defaults let a caller omit trailing parameters, so an overload with optional parameters can match the **same argument count** as another overload. Such an overload set is **ill-formed** and must be rejected at compile time.
 
-Invalid (ambiguous overload set — one-argument calls do not resolve uniquely):
+**Rule:** When type-checking an overload set, the compiler considers every argument count and type tuple that any overload could accept (counting omitted trailing parameters filled from defaults). If more than one overload matches the same tuple equally well, the set is invalid. The compiler reports **`ambiguous overload set for f`** on the conflicting declaration(s). No call site is required; the declarations themselves do not compile.
+
+Invalid (**compile error** — ambiguous overload set):
 
 ```go
 func myFunc(a int, b int = 5) {
-}
+} // ERROR: ambiguous overload set for myFunc
 
 func myFunc(a int) {
-}
+} // ERROR: ambiguous overload set for myFunc (conflicts with myFunc(int, int = 5))
 ```
 
-For `myFunc(5)`, both overloads match:
+Why: a one-argument call `myFunc(5)` would match both overloads equally:
 
 - `func myFunc(a int)` — `a = 5`
 - `func myFunc(a int, b int = 5)` — `a = 5`, `b` uses its default
 
-That call is a **compile error** (`ambiguous overloaded call`). Two-argument calls are fine: `myFunc(5, 10)` resolves only to the two-parameter overload.
+Because that call would be ambiguous, the overload set is rejected when the package is type-checked. If a call site were reached anyway (for example in incomplete code), it would also be a **compile error** (`ambiguous overloaded call`).
 
-The same rule applies to methods and to overloads that differ only in how many trailing parameters have defaults. Overloads must not overlap in arity once defaults are applied at the call site.
+The same rule applies to methods and to any overloads whose effective arities overlap once defaults are applied.
 
 Valid (no arity overlap after defaults):
 
@@ -188,12 +190,12 @@ func Send(to, message string, urgent bool = false) {
 
 #### Ambiguous overloads with default arguments (compile-time error)
 
-See [Default arguments and ambiguous overloads](#default-arguments-and-ambiguous-overloads) above. Overloads whose optional parameters overlap another overload’s arity are rejected at ambiguous call sites:
+See [Default arguments and ambiguous overloads](#default-arguments-and-ambiguous-overloads) above. The overload set below does not compile:
 
 ```go
-// func myFunc(a int, b int = 5) {}
-// func myFunc(a int) {}
-// myFunc(5) // ERROR: ambiguous overloaded call
+// func myFunc(a int, b int = 5) {} // ERROR: ambiguous overload set for myFunc
+// func myFunc(a int) {}            // ERROR: ambiguous overload set for myFunc
+// myFunc(5)                        // would also ERROR: ambiguous overloaded call
 ```
 
 #### Non-constant defaults (compile-time error)
@@ -239,4 +241,5 @@ Runtime defaults (`make`, `new`, non-const calls, package `var`s) are **not** su
 - Default expressions are type-checked against the parameter type; untyped constants follow the same conversion rules as in `const` declarations.
 - A default may not refer to other parameters of the same function.
 - Default arguments are not supported on `=>` lambdas; use a named `func` or a wrapper.
+- Overload sets that become ambiguous because of default arguments are **compile errors at declaration time** (`ambiguous overload set for f`); see [Default arguments and ambiguous overloads](#default-arguments-and-ambiguous-overloads).
 - Not valid in upstream Go.
