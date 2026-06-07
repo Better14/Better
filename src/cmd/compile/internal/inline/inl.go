@@ -690,7 +690,7 @@ opSwitch:
 		// should try to account for that if we're going to account for captures.
 		v.budget -= 15
 
-	case ir.OGO, ir.ODEFER, ir.OTAILCALL, ir.OTRY, ir.OFORCE, ir.ONULLCOND, ir.ONULLCOALESCE, ir.OIFEXPR, ir.OSWITCHEXPR:
+	case ir.OGO, ir.ODEFER, ir.OTAILCALL, ir.OTRY, ir.OFORCE, ir.ONULLCOND, ir.ONULLCOALESCE, ir.ONULLUNWRAP, ir.OIFEXPR, ir.OSWITCHEXPR:
 		v.reason = "unhandled op " + n.Op().String()
 		return true
 

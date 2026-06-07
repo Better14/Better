@@ -170,7 +170,7 @@ func comparableType(T Type, dynamic bool, seen map[Type]bool) *typeError {
 			return typeErrorf("")
 		}
 
-	case *Pointer, *Chan:
+	case *Pointer, *Chan, *Optional:
 		// always comparable
 
 	case *Struct:

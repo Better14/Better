@@ -847,6 +847,22 @@ func NewNullCoalesceExpr(pos src.XPos, typ *types.Type, x, y Node) *NullCoalesce
 	return n
 }
 
+// A NullUnwrapExpr unwraps a nullable value to its element type.
+type NullUnwrapExpr struct {
+	miniExpr
+	X        Node
+	CheckNil bool // if true, panic when X is nil (force cast)
+}
+
+func NewNullUnwrapExpr(pos src.XPos, typ *types.Type, x Node, checkNil bool) *NullUnwrapExpr {
+	n := &NullUnwrapExpr{X: x, CheckNil: checkNil}
+	n.pos = pos
+	n.op = ONULLUNWRAP
+	n.SetType(typ)
+	n.SetTypecheck(1)
+	return n
+}
+
 // An IfExpr is an if expression.
 type IfExpr struct {
 	miniExpr

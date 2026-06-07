@@ -42,8 +42,9 @@ type environment struct {
 	inTParamList  bool                      // set if inside a type parameter list
 	sig           *Signature                // function signature if inside a function; nil otherwise
 	isPanic       map[*syntax.CallExpr]bool // set of panic call expressions (used for termination check)
-	hasLabel      bool                      // set if a function makes use of labels (only ~1% of functions); unused outside functions
-	hasCallOrRecv bool                      // set if an expression contains a function call or channel receive operation
+	hasLabel         bool                      // set if a function makes use of labels (only ~1% of functions); unused outside functions
+	hasCallOrRecv    bool                      // set if an expression contains a function call or channel receive operation
+	nullableNarrow   map[*Var]Type             // variables narrowed from T? to T within the current control-flow region
 }
 
 // lookupScope looks up name in the current environment and if an object

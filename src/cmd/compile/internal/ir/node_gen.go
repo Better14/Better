@@ -1295,6 +1295,34 @@ func (n *NullCoalesceExpr) editChildrenWithHidden(edit func(Node) Node) {
 	n.editChildren(edit)
 }
 
+func (n *NullUnwrapExpr) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
+func (n *NullUnwrapExpr) copy() Node {
+	c := *n
+	c.init = copyNodes(c.init)
+	return &c
+}
+func (n *NullUnwrapExpr) doChildren(do func(Node) bool) bool {
+	if doNodes(n.init, do) {
+		return true
+	}
+	if n.X != nil && do(n.X) {
+		return true
+	}
+	return false
+}
+func (n *NullUnwrapExpr) doChildrenWithHidden(do func(Node) bool) bool {
+	return n.doChildren(do)
+}
+func (n *NullUnwrapExpr) editChildren(edit func(Node) Node) {
+	editNodes(n.init, edit)
+	if n.X != nil {
+		n.X = edit(n.X).(Node)
+	}
+}
+func (n *NullUnwrapExpr) editChildrenWithHidden(edit func(Node) Node) {
+	n.editChildren(edit)
+}
+
 func (n *IfExpr) Format(s fmt.State, verb rune) { fmtNode(n, s, verb) }
 func (n *IfExpr) copy() Node {
 	c := *n

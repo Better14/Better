@@ -313,6 +313,7 @@ const (
 
 	ONULLCOND     // ?. access on nullable value
 	ONULLCOALESCE // ?? null coalescing
+	ONULLUNWRAP   // unwrap T? to T; may panic if nil
 
 	OIFEXPR // if cond { then } else { else }
 
