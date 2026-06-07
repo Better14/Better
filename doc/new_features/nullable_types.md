@@ -50,6 +50,54 @@ if v == nil {
 
 Conceptually, `int?` is a optional value (value + “has value” flag). The compiler may lower it to a struct or pointer; the source-level model is **value or `nil`**, not value + `error`.
 
+### Assignability: `T?` is not `T`
+
+`T?` and `T` are distinct types. A nullable value cannot be passed or assigned where a plain `T` is required without an explicit unwrap.
+
+```go
+func myPrint(a int) {
+	fmt.Println(a)
+}
+
+func main() {
+	var a int?
+	myPrint(a) // compile error: int? is not assignable to int
+}
+```
+
+To call `myPrint`, unwrap `a` in one of these ways:
+
+**Nil check** — only call when a value is present:
+
+```go
+func main() {
+	var a int?
+	if a != nil {
+		myPrint(a) // a is int in this branch
+	}
+}
+```
+
+**Force cast** — unwrap with `T(expr)`; panics if `expr` is `nil`:
+
+```go
+func main() {
+	var a int?
+	myPrint(int(a)) // panics if a == nil
+}
+```
+
+**Null coalescing** — supply a default when `a` is `nil`:
+
+```go
+func main() {
+	var a int?
+	myPrint(a ?? 0) // int? ?? int → int
+}
+```
+
+The same rules apply to assignment, return values, and other contexts that expect `T` rather than `T?`.
+
 ### Null-conditional operator (`?.`)
 
 The `?.` operator (null-conditional / “Elvis” access) short-circuits when the left-hand value is `nil`. No panic is raised; the rest of that access or assignment chain is skipped.
