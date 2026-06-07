@@ -997,6 +997,10 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 		goto Error
 	}
 
+	if check.resultSelector(x, e) {
+		return
+	}
+
 	if check.enumSelector(x, e, x.typ(), x.mode() == typexpr) {
 		return
 	}

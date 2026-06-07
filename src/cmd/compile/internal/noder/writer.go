@@ -590,6 +590,10 @@ func (pw *pkgWriter) typIdx(typ types2.Type, dict *writerDict) typeInfo {
 		w.Code(pkgbits.TypePointer)
 		w.typ(typ.Elem())
 
+	case *types2.Result:
+		w.Code(pkgbits.TypeStruct)
+		w.resultStructType(typ)
+
 	case *types2.Signature:
 		base.Assertf(typ.TypeParams() == nil, "unexpected type params: %v", typ)
 		w.Code(pkgbits.TypeSignature)
@@ -658,6 +662,10 @@ func (w *writer) structType(typ *types2.Struct) {
 		w.String(typ.Tag(i))
 		w.Bool(f.Embedded())
 	}
+}
+
+func (w *writer) resultStructType(res *types2.Result) {
+	w.structType(types2.ResultStruct(w.p.curpkg, res))
 }
 
 func (w *writer) unionType(typ *types2.Union) {
@@ -2618,6 +2626,25 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 		if types2.AssignableTo(src, o.Elem()) && !types2.Identical(src, ptr) {
 			identical = false
 			dst = o
+		}
+	}
+	if res, ok := types2.AsResult(dst); ok && implicit {
+		if types2.AssignableTo(src, res.Elem()) && !types2.Identical(src, dst) {
+			w.Code(exprResultWrap)
+			w.Bool(false) // wrap value; err = nil
+			w.pos(expr)
+			w.typ(dst)
+			w.implicitConvExpr(res.Elem(), expr)
+			return
+		}
+		errTyp := types2.Universe.Lookup("error").Type()
+		if types2.AssignableTo(src, errTyp) {
+			w.Code(exprResultWrap)
+			w.Bool(true) // wrap error; value = zero
+			w.pos(expr)
+			w.typ(dst)
+			w.expr(expr)
+			return
 		}
 	}
 	if implicit && identical {

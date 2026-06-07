@@ -88,6 +88,10 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 				// Keep untyped/typed constant as elem type; conversion to T? happens at compile time.
 				newType = o.elem
 			}
+			if r, ok := newType.Underlying().(*Result); ok && x.mode() == constant_ {
+				// Keep untyped/typed constant as elem type; conversion to T! happens at compile time.
+				newType = r.elem
+			}
 			x.typ_ = newType
 			check.updateExprType(x.expr, newType, false)
 		}
@@ -399,7 +403,19 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []syntax.Expr, returnStmt sy
 		context = "multiple assignment"
 	}
 
-	// return v for func () T? means return v, nil
+	// return r for func () T! when r has type T! (value type): return r.value, r.err
+	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
+		if rhs, ok := check.multiExpr(orig_rhs[0], true); ok && len(rhs) == 2 {
+			if rhs[0].isValid() && Identical(rhs[0].typ(), lhs[0].typ) && Identical(rhs[1].typ(), lhs[1].typ) {
+				check.initVar(lhs[0], rhs[0], context)
+				check.initVar(lhs[1], rhs[1], context)
+				check.recordCommaOkTypes(orig_rhs[0], rhs)
+				return
+			}
+		}
+	}
+
+	// return v for func () T? or T! means return v, nil
 	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
 		var x operand
 		check.expr(nil, &x, orig_rhs[0])

@@ -148,6 +148,12 @@ func (subst *subster) typ(typ Type) Type {
 			return &Optional{elem: elem}
 		}
 
+	case *Result:
+		elem := subst.typ(t.elem)
+		if elem != t.elem {
+			return &Result{elem: elem}
+		}
+
 	case *Tuple:
 		return subst.tuple(t)
 

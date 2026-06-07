@@ -318,6 +318,11 @@ func (c *comparer) identical(x, y Type, p *ifacePair) bool {
 			return c.identical(x.elem, y.elem, p)
 		}
 
+	case *Result:
+		if y, ok := y.(*Result); ok {
+			return c.identical(x.elem, y.elem, p)
+		}
+
 	case *Tuple:
 		// Two tuples types are identical if they have the same number of elements
 		// and corresponding elements have identical types.

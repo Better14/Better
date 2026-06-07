@@ -2462,6 +2462,30 @@ func (r *reader) expr() (res ir.Node) {
 		y := r.expr()
 		return ir.NewNullCoalesceExpr(pos, typ, x, y)
 
+	case exprResultWrap:
+		fromErr := r.Bool()
+		pos := r.pos()
+		typ := r.typ()
+		if typ.NumFields() != 2 {
+			base.FatalfAt(pos, "result wrap: want 2 fields, got %d", typ.NumFields())
+		}
+		var val, err ir.Node
+		if fromErr {
+			err = r.expr()
+			val = ir.NewZero(pos, typ.Field(0).Type)
+			val.SetTypecheck(1)
+		} else {
+			val = r.expr()
+			err = ir.NewNilExpr(pos, types.ErrorType)
+			err.SetTypecheck(1)
+		}
+		lit := ir.NewCompLitExpr(pos, ir.OSTRUCTLIT, typ, []ir.Node{
+			ir.NewStructKeyExpr(pos, typ.Field(0), val),
+			ir.NewStructKeyExpr(pos, typ.Field(1), err),
+		})
+		lit.SetTypecheck(1)
+		return lit
+
 	case exprIfExpr:
 		pos := r.pos()
 		typ := r.typ()
