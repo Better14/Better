@@ -5,8 +5,9 @@
 package fmt
 
 import (
-	"internal/fmtsort"
+	"errors"
 	"io"
+	"internal/fmtsort"
 	"os"
 	"reflect"
 	"strconv"
@@ -657,6 +658,10 @@ func (p *pp) handleMethods(arg any, value reflect.Value, verb rune) (handled boo
 			case error:
 				handled = true
 				defer p.catchPanic(arg, verb, "Error")
+				if e, ok := v.(*errors.Error); ok && p.fmt.plusV && verb == 'v' {
+					p.fmtString(arg, value, e.String(), verb)
+					return
+				}
 				p.fmtString(arg, value, v.Error(), verb)
 				return
 

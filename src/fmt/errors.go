@@ -45,9 +45,8 @@ func errorf(format string, a ...any) error {
 	case 0:
 		err = errors.New(s)
 	case 1:
-		w := &wrapError{msg: s}
-		w.err, _ = a[p.wrappedErrs[0]].(error)
-		err = w
+		wrapped, _ := a[p.wrappedErrs[0]].(error)
+		err = errors.NewWrapped(s, wrapped)
 	default:
 		if p.reordered {
 			slices.Sort(p.wrappedErrs)
@@ -65,19 +64,6 @@ func errorf(format string, a ...any) error {
 	}
 	p.free()
 	return err
-}
-
-type wrapError struct {
-	msg string
-	err error
-}
-
-func (e *wrapError) Error() string {
-	return e.msg
-}
-
-func (e *wrapError) Unwrap() error {
-	return e.err
 }
 
 type wrapErrors struct {

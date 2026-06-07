@@ -4,7 +4,9 @@
 
 // Package errors implements functions to manipulate errors.
 //
-// The [New] function creates errors whose only content is a text message.
+// The [New] function creates [*Error] values with a message and stack trace.
+// [Wrap] adds context layers with fresh stack traces. Use [Error.String] for
+// full serialization of the error chain and traces.
 //
 // An error e wraps another error if e's type has one of the methods
 //
@@ -61,17 +63,9 @@ package errors
 
 // New returns an error that formats as the given text.
 // Each call to New returns a distinct error value even if the text is identical.
+// The returned error is an [*Error] with a stack trace captured at the call site.
 func New(text string) error {
-	return &errorString{text}
-}
-
-// errorString is a trivial implementation of error.
-type errorString struct {
-	s string
-}
-
-func (e *errorString) Error() string {
-	return e.s
+	return newError(text)
 }
 
 // ErrUnsupported indicates that a requested operation cannot be performed,
