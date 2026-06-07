@@ -2085,6 +2085,14 @@ func (w *writer) expr(expr syntax.Expr) {
 			w.p.fatalf(expr, "unexpected selection kind: %v", sel.Kind())
 
 		case types2.FieldVal:
+			if res, ok := types2.AsResult(w.p.typeOf(expr.X)); ok && sel.Obj().Name() == "value" {
+				w.Code(exprResultUnwrap)
+				w.Bool(true) // panic if err != nil
+				w.pos(expr)
+				w.typ(res.Elem())
+				w.expr(expr.X)
+				break
+			}
 			w.Code(exprFieldVal)
 			w.expr(expr.X)
 			w.pos(expr)
@@ -2211,7 +2219,11 @@ func (w *writer) expr(expr syntax.Expr) {
 
 		if expr.Op == syntax.NullCoalesce {
 			tv := w.p.typeAndValue(expr)
-			w.Code(exprNullCoalesce)
+			if _, ok := types2.AsResult(w.p.typeOf(expr.X)); ok {
+				w.Code(exprResultCoalesce)
+			} else {
+				w.Code(exprNullCoalesce)
+			}
 			w.pos(expr)
 			w.typ(tv.Type)
 			w.expr(expr.X)

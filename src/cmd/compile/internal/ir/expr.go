@@ -835,7 +835,8 @@ func NewNullCondExpr(pos src.XPos, typ *types.Type, x, end Node) *NullCondExpr {
 // A NullCoalesceExpr is lhs ?? rhs.
 type NullCoalesceExpr struct {
 	miniExpr
-	X, Y Node
+	X, Y     Node
+	ForResult bool // lhs is T!; test err != nil instead of nil
 }
 
 func NewNullCoalesceExpr(pos src.XPos, typ *types.Type, x, y Node) *NullCoalesceExpr {
@@ -850,8 +851,9 @@ func NewNullCoalesceExpr(pos src.XPos, typ *types.Type, x, y Node) *NullCoalesce
 // A NullUnwrapExpr unwraps a nullable value to its element type.
 type NullUnwrapExpr struct {
 	miniExpr
-	X        Node
-	CheckNil bool // if true, panic when X is nil (force cast)
+	X         Node
+	CheckNil  bool // if true, panic when X is nil (force cast) or has err != nil (ForResult)
+	ForResult bool // X is T!; unwrap .value and optionally check .err
 }
 
 func NewNullUnwrapExpr(pos src.XPos, typ *types.Type, x Node, checkNil bool) *NullUnwrapExpr {

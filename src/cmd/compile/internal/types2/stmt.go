@@ -599,7 +599,7 @@ func (check *Checker) stmt(ctxt stmtContext, s syntax.Stmt) {
 			check.error(s.Cond, InvalidCond, "non-boolean condition in if statement")
 		}
 		if v, nonNil, ok := check.parseNullableGuard(s.Cond); ok {
-			if elem := nullableElem(v.typ()); elem != nil {
+			if elem := nullableElem(v.typ); elem != nil {
 				narrow := map[*Var]Type{v: elem}
 				if nonNil {
 					check.withNullableNarrow(narrow, func() { check.stmt(inner, s.Then) })

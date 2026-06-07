@@ -1,0 +1,16 @@
+// errorcheck
+
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// T! is not assignable to T without an explicit unwrap.
+
+package main
+
+func myPrint(a int) {}
+
+func main() {
+	var a int!
+	myPrint(a) // ERROR "cannot use"
+}
