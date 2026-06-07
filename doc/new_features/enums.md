@@ -1,0 +1,145 @@
+# Enums
+
+Go supports Rust-style **algebraic enums** (tagged unions): each variant is one of several named forms, with optional payloads and optional explicit discriminants.
+
+### Declaration
+
+```go
+enum SomeEnum {
+	Value1
+	Value2(String)
+	Value3(int)
+	Value4 = 3
+}
+```
+
+- **Unit variant** — `Value1` carries no data.
+- **Tuple variant** — `Value2(String)`, `Value3(int)` attach one or more payload types (tuple variants).
+- **Explicit discriminant** — `Value4 = 3` assigns a fixed numeric tag (for C/interop or stable layout); variants without `=` get auto-incremented tags where applicable.
+
+Struct-style variants (named fields) are also supported:
+
+```go
+enum Message {
+	Quit
+	Write { text string, bytes int }
+	ChangeColor { r, g, b uint8 }
+}
+```
+
+### Construction
+
+When the expected type is known, **omit the enum name** and use the variant alone:
+
+```go
+var a SomeEnum = Value1
+var b SomeEnum = Value2("hello")
+c := Value3(42)              // type inferred from context
+```
+
+The qualified form is always valid:
+
+```go
+a := SomeEnum.Value1
+b := SomeEnum.Value2("hello")
+c := SomeEnum.Value3(42)
+d := SomeEnum.Value4
+
+m := Message.Write{ text: "hi", bytes: 5 }
+```
+
+### Switching on enums
+
+Use a `**switch` statement** or `**switch` expression** to branch on the active variant and bind payloads. There is no `match` keyword.
+
+**Exhaustiveness** — if a switch has no `default` case, the compiler requires every variant to be covered; missing any variant is a **compile-time error**. A `default` case is **allowed** and satisfies exhaustiveness (you may switch on a subset of variants and handle the rest in `default`).
+
+Inside a `switch` on an enum, **case labels omit the enum type name** — write `case Value1:` not `case SomeEnum.Value1:`.
+
+Switch statement:
+
+```go
+switch v {
+case Value1:
+	fmt.Println("value1")
+case Value2(s):
+	fmt.Println(s)
+case Value3(n):
+	fmt.Println(n)
+case Value4:
+	fmt.Println("value4")
+}
+```
+
+Switch expression:
+
+```go
+n := switch v {
+case Value1:
+	0
+case Value2(s):
+	len(s)
+case Value3(n):
+	n
+case Value4:
+	3
+}
+
+desc := switch m {
+case Quit:
+	"quit"
+case Write { text }:
+	text
+case ChangeColor { r, g, b }:
+	int(r) + int(g) + int(b)
+}
+```
+
+Invalid (compile error — missing `Value4` and no `default`):
+
+```go
+// switch v {
+// case Value1:
+// case Value2(s):
+// case Value3(n):
+// } // ERROR: switch on SomeEnum is not exhaustive
+```
+
+Valid ( `default` satisfies exhaustiveness):
+
+```go
+switch v {
+case Value1:
+	fmt.Println("value1")
+default:
+	fmt.Println("other")
+}
+```
+
+### Methods and generics
+
+Enums may have methods and type parameters:
+
+```go
+enum Option[T] {
+	None
+	Some(T)
+}
+
+func (o Option[int]) IsSome() bool {
+	switch o {
+	case Some(_):
+		return true
+	case None:
+		return false
+	}
+}
+```
+
+### Notes
+
+- Enums are distinct from `int?` nullable types and from `iota` constant groups.
+- Variant names live in the enum’s namespace. Use unqualified names when the type is known (`var a SomeEnum = Value1`, `case Value2(s):`) or the qualified form (`SomeEnum.Value2`) anywhere.
+- Memory layout is implementation-defined; explicit discriminants (`Value4 = 3`) document ABI intent.
+- `enum` variants may appear in default arguments when the default is a compile-time constant variant (e.g. `mode Mode = Mode.Read`).
+- When new variants are added to an enum, every non-`default` `switch` on that type must be updated or the build fails (exhaustiveness checking).
