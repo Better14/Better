@@ -5,6 +5,7 @@
 // Package errors implements functions to manipulate errors.
 //
 // The [New] function creates [*Error] values with a message and stack trace.
+// [NewCustom] creates a named type that embeds Error with no extra fields.
 // [Wrap] adds context layers with fresh stack traces. Use [Error.String] for
 // full serialization of the error chain and traces.
 //
@@ -61,10 +62,11 @@
 // because the former will succeed if err wraps an [*io/fs.PathError].
 package errors
 
-// New returns an error that formats as the given text.
+// New returns a structured error that formats as the given text.
 // Each call to New returns a distinct error value even if the text is identical.
-// The returned error is an [*Error] with a stack trace captured at the call site.
-func New(text string) error {
+// The returned *Error includes a stack trace captured at the call site.
+// *Error implements the error interface, so return values assign to error as before.
+func New(text string) *Error {
 	return newError(text)
 }
 

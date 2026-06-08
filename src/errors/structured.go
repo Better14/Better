@@ -138,6 +138,14 @@ func newError(message string) *Error {
 	}
 }
 
+// NewCustom returns a root error of type T with Message, StackTrace, and InnerError set
+// on the embedded Error field. T must be a named type whose underlying type is
+// struct{ Error } — that is, it embeds errors.Error and adds no other fields.
+// For types with extra domain fields, use a constructor that copies *New(message).
+func NewCustom[T ~struct{ Error }](message string) *T {
+	return &T{Error: *newError(message)}
+}
+
 func setLink(e *Error, err error) {
 	if err == nil {
 		return
