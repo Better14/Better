@@ -4,7 +4,7 @@ Go’s standard [`errors`](https://pkg.go.dev/errors) package gains a public **`
 
 ## Overview
 
-Today, `errors.New("…")` returns an opaque value with only a string. Diagnosing failures in production often requires ad hoc logging or third-party packages to attach stack traces and error chains.
+Today, `errors.New("…")` returns a `*Error` with message and stack trace (assignable to `error` as before). Diagnosing failures in production often required ad hoc logging or third-party packages to attach stack traces and error chains.
 
 The extended **`errors.Error`** struct makes that structure first-class:
 
@@ -138,13 +138,78 @@ func New(message string) *Error {
 }
 ```
 
-Each call to `New` captures a **fresh stack trace** at the call site. This replaces the old opaque `errorString` implementation for `errors.New`.
+Each call to `New` captures a **fresh stack trace** at the call site. The return type is **`*Error`** (not the `error` interface). Because `*Error` implements `error`, existing APIs and call sites that use `error` remain valid:
+
+```go
+var err error = errors.New("permission denied") // OK — *Error is an error
+return errors.New("permission denied")          // OK — return error from func
+```
 
 Example:
 
 ```go
 return errors.New("permission denied")
 ```
+
+### Choosing how to create errors
+
+| Situation | API | Returns |
+| --------- | --- | ------- |
+| Generic structured error | **`errors.New(msg)`** | `*Error` |
+| Named type, embeds `errors.Error` only (no extra fields) | **`errors.NewCustom[T](msg)`** | `*T` |
+| Named type with extra fields (e.g. `Code int`) | **`NewMyError(...)`** helper | `*MyError` (or `error`) |
+
+#### `errors.New` — generic structured error
+
+Use for root errors and sentinels when **`errors.Error`** is enough:
+
+```go
+var ErrNotFound = errors.New("not found")
+
+func openFile(path string) error {
+	return errors.New("open file: " + path)
+}
+```
+
+#### `errors.NewCustom` — custom type with **no extra fields**
+
+Preferred when you want a **named type** that embeds `errors.Error` but adds **no domain fields** (only the embedded layer):
+
+```go
+type AppError struct {
+	errors.Error
+}
+
+func validate(id string) error {
+	return errors.NewCustom[AppError]("invalid id: " + id)
+}
+```
+
+```go
+func NewCustom[T any](message string) *T
+```
+
+`NewCustom` sets **`Message`**, **`StackTrace`**, and **`InnerError`** (`nil`) on the embedded `errors.Error`. Use **`errors.Wrap`** to add outer layers.
+
+#### `NewMyError` — custom type **with extra fields**
+
+When the type adds fields beyond the embedded `errors.Error`, use a **constructor** that sets domain fields explicitly:
+
+```go
+type MyError struct {
+	errors.Error
+	Code int
+}
+
+func NewMyError(code int, message string) *MyError {
+	return &MyError{
+		Error: *errors.New(message),
+		Code:  code,
+	}
+}
+```
+
+`*errors.New(message)` copies `Message` and `StackTrace` into the embedded struct. Set **`Code`** (and any other fields) in the constructor.
 
 ### `Wrap` — add context and a new stack frame layer
 
@@ -433,23 +498,17 @@ type MyError struct {
 	Code int
 }
 
-func NewMyError(code int, msg string) *MyError {
+func NewMyError(code int, message string) *MyError {
 	return &MyError{
-		Error: *errors.New(msg),
+		Error: *errors.New(message),
 		Code:  code,
 	}
 }
 ```
 
-`*MyError` still implements `error` via the promoted `Error()` method. Callers that type-assert or use `errors.As` get your fields **and** the embedded trace:
+`*MyError` implements `error` via the promoted `Error()` method.
 
-```go
-var my *MyError
-if errors.As(err, &my) {
-	fmt.Println(my.Code)
-	fmt.Println(my.StackTrace) // promoted from embedded errors.Error
-}
-```
+See [Choosing how to create errors](#choosing-how-to-create-errors) for `errors.New`, `NewCustom`, and `NewMyError`.
 
 Override `Error()` or `Unwrap()` on `*MyError` only when the default embedded behavior is not enough; otherwise rely on promotion.
 
@@ -480,7 +539,7 @@ type error interface {
 Every package uses that identifier today — function results (`func f() error`), parameters, variables, type assertions, and `errors.As` targets. If the standard library (or the language) introduced a concrete **`error` struct** in place of the interface, the name would no longer denote an interface type. Existing code would fail to compile or change meaning in subtle ways:
 
 ```go
-var err error = errors.New("fail")   // today: interface holding *errors.Error
+var err error = errors.New("fail")   // today: interface holding *errors.Error (*Error implements error)
 func work() error { ... }            // today: any error implementation
 errors.As(err, &target)              // today: inspect dynamic type via interface
 ```
@@ -501,6 +560,8 @@ This proposal therefore keeps the interface as **`error`** and adds a separate c
 | API | Purpose |
 | --- | ------- |
 | `errors.New(msg)` | Root `*Error` with stack trace |
+| `errors.NewCustom[T](msg)` | Root custom `*T` embedding `errors.Error` |
+| `NewMyError(...)` | Custom `*MyError` with extra fields |
 | `err.Wrap(msg)` | New outer layer; `InnerError = err` |
 | `err.Error()` | Returns `Message` only |
 | `err.String()` | Full serialization: inner chain + `Message` + `StackTrace` |

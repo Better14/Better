@@ -103,6 +103,39 @@ func TestNewWrappedFromFmt(t *testing.T) {
 	}
 }
 
+func TestNewCustom(t *testing.T) {
+	type AppError struct {
+		errors.Error
+	}
+
+	err := errors.NewCustom[AppError]("invalid id")
+	if err.Error() != "invalid id" {
+		t.Fatalf("Error() = %q, want invalid id", err.Error())
+	}
+	if len(err.StackTrace) == 0 {
+		t.Fatal("StackTrace empty, want frames")
+	}
+	if err.InnerError != nil {
+		t.Fatalf("InnerError = %v, want nil", err.InnerError)
+	}
+
+	var target *AppError
+	if !errors.As(err, &target) {
+		t.Fatal("errors.As failed")
+	}
+	if target != err {
+		t.Fatalf("As target = %p, want %p", target, err)
+	}
+
+	wrapped := errors.Wrap(err, "wrap")
+	if !errors.As(wrapped, &target) {
+		t.Fatal("errors.As through Wrap failed")
+	}
+	if target != err {
+		t.Fatalf("As target after Wrap = %p, want %p", target, err)
+	}
+}
+
 func TestStructuredErrorAs(t *testing.T) {
 	root := errors.New("root")
 	wrapped := errors.Wrap(root, "wrap")
