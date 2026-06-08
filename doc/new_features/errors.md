@@ -156,7 +156,7 @@ return errors.New("permission denied")
 | Situation | API | Returns |
 | --------- | --- | ------- |
 | Generic structured error | **`errors.New(msg)`** | `*Error` |
-| Named type, embeds `errors.Error` only (no extra fields) | **`errors.NewCustom[T](msg)`** | `*T` |
+| Named type, embeds `errors.Error` only (no extra fields) | `errors.NewCustom[T]` `(msg)` | `*T` |
 | Named type with extra fields (e.g. `Code int`) | **`NewCustom(&err.Error, msg)`** or **`NewMyError(...)`** | `*MyError` |
 
 #### `errors.New` — generic structured error
@@ -186,10 +186,10 @@ Both set **`Message`**, **`StackTrace`**, and **`InnerError`** (`nil`) on the em
 
 | Overload | Use when | Example |
 | -------- | -------- | ------- |
-| **`NewCustom[T](msg)`** | Named type embeds **only** `errors.Error` (no extra fields) | `return errors.NewCustom[AppError](msg)` |
+| `NewCustom[T]` `(msg)` | Named type embeds **only** `errors.Error` (no extra fields) | `return errors.NewCustom[AppError]` `("…")` |
 | **`NewCustom(&err.Error, msg)`** | Named type has **extra domain fields**; initialize the embedded layer in place | `errors.NewCustom(&myErr.Error, msg); myErr.Code = 404` |
 
-**`NewCustom[T](msg)` — embed only, no extra fields**
+**`NewCustom[T]` `(msg)`** — embed only, no extra fields
 
 ```go
 type AppError struct {
@@ -560,28 +560,6 @@ If `err` is `*MyError`, `Wrap` adds an outer `*errors.Error` layer whose `InnerE
 
 Mechanical rewrites (e.g. `fmt.Errorf("… %w", err)` → `errors.Wrap(err, "…")`) may be provided as **`go fix`** analyzers in a later release. Manual migration following the patterns above is always sufficient.
 
-## Naming: `Error`, not `error`
-
-The structured type is named **`Error`** (capital E). It **cannot** be named **`error`**, because `error` is already a **predeclared interface** in Go’s universe block:
-
-```go
-type error interface {
-	Error() string
-}
-```
-
-Every package uses that identifier today — function results (`func f() error`), parameters, variables, type assertions, and `errors.As` targets. If the standard library (or the language) introduced a concrete **`error` struct** in place of the interface, the name would no longer denote an interface type. Existing code would fail to compile or change meaning in subtle ways:
-
-```go
-var err error = errors.New("fail")   // today: interface holding *errors.Error (*Error implements error)
-func work() error { ... }            // today: any error implementation
-errors.As(err, &target)              // today: inspect dynamic type via interface
-```
-
-Replacing the predeclared **`error` interface** with a struct (or redefining `error` as a single concrete type) is a **breaking language change**, not a drop-in stdlib swap. The ecosystem would need an **automated migrator** (e.g. `go fix`, a dedicated codemod, or IDE-driven rewrites) to retarget APIs, type annotations, and assertions across modules.
-
-This proposal therefore keeps the interface as **`error`** and adds a separate concrete type **`errors.Error`**. Callers continue to use `error` in signatures; they opt into `*errors.Error` when they need `StackTrace`, `InnerError`, or `Wrap`.
-
 ## Design notes
 
 - **One stack trace per layer** — wrapping adds a new `[]StackFrame` at the wrap site; inner errors retain their original traces.
@@ -594,7 +572,7 @@ This proposal therefore keeps the interface as **`error`** and adds a separate c
 | API | Purpose |
 | --- | ------- |
 | `errors.New(msg)` | Root `*Error` with stack trace |
-| `errors.NewCustom[T](msg)` | Root custom `*T` embedding `errors.Error` |
+| `errors.NewCustom[T]` `(msg)` | Root custom `*T` embedding `errors.Error` |
 | `errors.NewCustom(&e, msg)` | Fill embedded `*errors.Error` in place (extra domain fields) |
 | `NewMyError(...)` | Custom `*MyError` with extra fields |
 | `err.Wrap(msg)` | New outer layer; `InnerError = err` |

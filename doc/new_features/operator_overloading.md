@@ -123,9 +123,9 @@ There is no `==` compound assignment. You may omit **all** comparison overloads 
 
 | Form                              | Method name                                                                                                          |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `a[i]` or `a[i, j]` (multi-index) | `func [](a T, indices ...IndexTypes) U`                                                                              |
-| `a[i] = v`                        | `func []=(a T, indices ..., v V)`                                                                                    |
-| `a[i:j]` / `a[i:j:k]`             | Optional: `func [:](a T, i, j, k ...) U` if slice syntax is overloaded for the type (otherwise use ordinary methods) |
+| `a[i]` or `a[i, j]` (multi-index) | `func []` `(a T, indices ...IndexTypes) U` |
+| `a[i] = v`                        | `func []=` `(a T, indices ..., v V)` |
+| `a[i:j]` / `a[i:j:k]`             | Optional: `func [:]` `(a T, i, j, k ...) U` if slice syntax is overloaded for the type (otherwise use ordinary methods) |
 
 
 Index expressions use the same arity as the `[]` operator method parameters (receiver plus indices).
