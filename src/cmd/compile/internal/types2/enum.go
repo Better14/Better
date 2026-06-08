@@ -53,8 +53,8 @@ func AsEnum(t Type) (*Enum, bool) {
 			return n.enumType, true
 		}
 		if n.check != nil && n.obj != nil {
-			if info := n.check.objMap[n.obj]; info != nil && info.enum != nil {
-				return info.enum, true
+			if info := n.check.objMap[n.obj]; info != nil && info.enumTyp != nil {
+				return info.enumTyp, true
 			}
 		}
 		if e, ok := n.rhs().(*Enum); ok {
@@ -108,7 +108,7 @@ func (check *Checker) enumDecl(obj *TypeName, edecl *syntax.EnumDecl) {
 
 	enumTyp := check.buildEnum(named, obj, edecl)
 	if info := check.objMap[obj]; info != nil {
-		info.enum = enumTyp
+		info.enumTyp = enumTyp
 	}
 	named.enumType = enumTyp
 	named.fromRHS = enumTyp
@@ -362,7 +362,14 @@ func (check *Checker) enumTypeExpr(e syntax.Expr) Type {
 		return nil
 
 	case *syntax.IndexExpr:
-		typ := check.typ(e)
+		// Only treat T[args] as a type when X is a type expression (generic instantiation).
+		// Do not call typ(e) directly: that reports errors for value indexes like h.counts[i].
+		var x operand
+		check.exprOrType(&x, e.X, true)
+		if x.mode() != typexpr {
+			return nil
+		}
+		typ := check.instantiatedType(e.X, syntax.UnpackListExpr(e.Index))
 		if !isValid(typ) {
 			return nil
 		}

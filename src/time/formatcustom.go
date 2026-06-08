@@ -354,7 +354,7 @@ func formatZoneK(t Time) []byte {
 
 func formatZoneOffset(t Time, width int) []byte {
 	_, off := t.Zone()
-	sign := '+'
+	sign := byte('+')
 	if off < 0 {
 		sign = '-'
 		off = -off
@@ -765,7 +765,7 @@ func parseZoneWidth(s string, width int) (*Location, string, error) {
 }
 
 func zoneNameForOffset(off int) string {
-	sign := '+'
+	sign := byte('+')
 	if off < 0 {
 		sign = '-'
 		off = -off
