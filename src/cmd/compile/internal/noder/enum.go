@@ -296,7 +296,10 @@ func enumVariantByObj(enumTyp *types2.Enum, obj types2.Object) *types2.EnumVaria
 }
 
 func (w *writer) tryWriteEnumVariantCall(expr *syntax.CallExpr) bool {
-	tv := w.p.typeAndValue(expr)
+	tv, ok := w.p.maybeTypeAndValue(expr)
+	if !ok {
+		return false
+	}
 	enumTyp, ok := enumTypeOf(tv.Type)
 	if !ok {
 		return false
@@ -348,7 +351,10 @@ func (w *writer) tryWriteEnumCompositeLit(lit *syntax.CompositeLit) bool {
 		return false
 	}
 
-	tv := w.p.typeAndValue(lit)
+	tv, ok := w.p.maybeTypeAndValue(lit)
+	if !ok {
+		return false
+	}
 	enumTyp, ok := enumTypeOf(tv.Type)
 	if !ok {
 		return false
