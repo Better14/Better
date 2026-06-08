@@ -157,7 +157,7 @@ return errors.New("permission denied")
 | --------- | --- | ------- |
 | Generic structured error | **`errors.New(msg)`** | `*Error` |
 | Named type, embeds `errors.Error` only (no extra fields) | **`errors.NewCustom[T](msg)`** | `*T` |
-| Named type with extra fields (e.g. `Code int`) | **`NewMyError(...)`** helper | `*MyError` (or `error`) |
+| Named type with extra fields (e.g. `Code int`) | **`NewCustom(&err.Error, msg)`** or **`NewMyError(...)`** | `*MyError` |
 
 #### `errors.New` — generic structured error
 
@@ -171,29 +171,37 @@ func openFile(path string) error {
 }
 ```
 
-#### `errors.NewCustom` — custom type with **no extra fields**
+#### `errors.NewCustom` — custom errors that embed `errors.Error`
 
-Preferred when you want a **named type** that embeds `errors.Error` but adds **no domain fields** (only the embedded layer):
+Two overloads share the same name; the compiler picks by argument types ([overloading](overloading.md)):
+
+```go
+func NewCustom[T ~struct{ Error }](message string) *T
+func NewCustom(e *Error, message string)
+```
+
+Both set **`Message`**, **`StackTrace`**, and **`InnerError`** (`nil`) on the embedded layer. Use **`errors.Wrap`** to add outer layers.
+
+**When to use which**
+
+| Overload | Use when | Example |
+| -------- | -------- | ------- |
+| **`NewCustom[T](msg)`** | Named type embeds **only** `errors.Error` (no extra fields) | `return errors.NewCustom[AppError](msg)` |
+| **`NewCustom(&err.Error, msg)`** | Named type has **extra domain fields**; initialize the embedded layer in place | `errors.NewCustom(&myErr.Error, msg); myErr.Code = 404` |
+
+**`NewCustom[T](msg)` — embed only, no extra fields**
 
 ```go
 type AppError struct {
 	errors.Error
 }
 
-func validate(id string) error {
+func validate(id string) *AppError {
 	return errors.NewCustom[AppError]("invalid id: " + id)
 }
 ```
 
-```go
-func NewCustom[T any](message string) *T
-```
-
-`NewCustom` sets **`Message`**, **`StackTrace`**, and **`InnerError`** (`nil`) on the embedded `errors.Error`. Use **`errors.Wrap`** to add outer layers.
-
-#### `NewMyError` — custom type **with extra fields**
-
-When the type adds fields beyond the embedded `errors.Error`, use a **constructor** that sets domain fields explicitly:
+**`NewCustom(&err.Error, msg)` — extra fields on the same struct**
 
 ```go
 type MyError struct {
@@ -202,6 +210,32 @@ type MyError struct {
 }
 
 func NewMyError(code int, message string) *MyError {
+	var err MyError
+	errors.NewCustom(&err.Error, message)
+	err.Code = code
+	return &err
+}
+```
+
+Pass **`&err.Error`** (address of the embedded field), not `&err`.
+
+#### `NewMyError` — alternative constructor with extra fields
+
+Equivalent to `NewCustom(&err.Error, msg)` plus assigning domain fields; you can also copy from **`errors.New`**:
+
+```go
+func NewMyError(code int, message string) *MyError {
+	var err MyError
+	errors.NewCustom(&err.Error, message)
+	err.Code = code
+	return &err
+}
+```
+
+Or copy from `*errors.New(message)` in a composite literal:
+
+```go
+func NewMyErrorAlt(code int, message string) *MyError {
 	return &MyError{
 		Error: *errors.New(message),
 		Code:  code,
@@ -209,7 +243,7 @@ func NewMyError(code int, message string) *MyError {
 }
 ```
 
-`*errors.New(message)` copies `Message` and `StackTrace` into the embedded struct. Set **`Code`** (and any other fields) in the constructor.
+Both set **`Message`** and **`StackTrace`** on the embedded struct. Prefer **`NewCustom(&err.Error, msg)`** when building the value field-by-field.
 
 ### `Wrap` — add context and a new stack frame layer
 
@@ -499,10 +533,10 @@ type MyError struct {
 }
 
 func NewMyError(code int, message string) *MyError {
-	return &MyError{
-		Error: *errors.New(message),
-		Code:  code,
-	}
+	var err MyError
+	errors.NewCustom(&err.Error, message)
+	err.Code = code
+	return &err
 }
 ```
 
@@ -561,6 +595,7 @@ This proposal therefore keeps the interface as **`error`** and adds a separate c
 | --- | ------- |
 | `errors.New(msg)` | Root `*Error` with stack trace |
 | `errors.NewCustom[T](msg)` | Root custom `*T` embedding `errors.Error` |
+| `errors.NewCustom(&e, msg)` | Fill embedded `*errors.Error` in place (extra domain fields) |
 | `NewMyError(...)` | Custom `*MyError` with extra fields |
 | `err.Wrap(msg)` | New outer layer; `InnerError = err` |
 | `err.Error()` | Returns `Message` only |
