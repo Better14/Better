@@ -103,6 +103,35 @@ func TestNewWrappedFromFmt(t *testing.T) {
 	}
 }
 
+func TestNewCustomInPlace(t *testing.T) {
+	type MyError struct {
+		errors.Error
+		Code int
+	}
+
+	var err MyError
+	errors.NewCustom(&err.Error, "not found")
+	err.Code = 404
+
+	if err.Error() != "not found" {
+		t.Fatalf("Error() = %q, want not found", err.Error())
+	}
+	if len(err.StackTrace) == 0 {
+		t.Fatal("StackTrace empty, want frames")
+	}
+	if err.InnerError != nil {
+		t.Fatalf("InnerError = %v, want nil", err.InnerError)
+	}
+	if err.Code != 404 {
+		t.Fatalf("Code = %d, want 404", err.Code)
+	}
+
+	var target *MyError
+	if !errors.As(&err, &target) {
+		t.Fatal("errors.As failed")
+	}
+}
+
 func TestNewCustom(t *testing.T) {
 	type AppError struct {
 		errors.Error

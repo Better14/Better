@@ -5,7 +5,7 @@
 // Package errors implements functions to manipulate errors.
 //
 // The [New] function creates [*Error] values with a message and stack trace.
-// [NewCustom] creates a named type that embeds Error with no extra fields.
+// [NewCustom] creates a named type that embeds Error, or fills an embedded *Error in place.
 // [Wrap] adds context layers with fresh stack traces. Use [Error.String] for
 // full serialization of the error chain and traces.
 //
