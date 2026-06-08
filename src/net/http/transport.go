@@ -2442,7 +2442,7 @@ func maybeDrainBody(body io.Reader) bool {
 }
 
 func (pc *persistConn) readLoop() {
-	closeErr := errReadLoopExiting // default value, if not changed below
+	var closeErr error = errReadLoopExiting // default value, if not changed below
 	defer func() {
 		pc.close(closeErr)
 		pc.t.removeIdleConn(pc)
