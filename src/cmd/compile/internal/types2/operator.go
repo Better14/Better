@@ -202,6 +202,9 @@ func (check *Checker) tryBinaryOperatorOverload(x *operand, e syntax.Expr, lhs, 
 		return false
 	}
 	name := op.String()
+	if len(check.operatorFuncs(name)) == 0 {
+		return false
+	}
 	var l operand
 	check.expr(nil, &l, lhs)
 	if !l.isValid() {
@@ -226,6 +229,9 @@ func (check *Checker) tryBinaryOperatorOverload(x *operand, e syntax.Expr, lhs, 
 func (check *Checker) tryUnaryOperatorOverload(x *operand, e *syntax.Operation) bool {
 	op := e.Op
 	if op == syntax.And || op == syntax.Recv || op == syntax.Mul || op == syntax.Tilde {
+		return false
+	}
+	if len(check.operatorFuncs(op.String())) == 0 {
 		return false
 	}
 	fn := check.selectOperatorFunc(op.String(), 1, []*operand{x})

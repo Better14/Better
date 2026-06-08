@@ -273,10 +273,6 @@ func (check *Checker) extensionTypesMatch(recv, param Type) bool {
 }
 
 func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *syntax.SelectorExpr) (exprKind, bool) {
-	if !check.verifyVersionf(call, go1_27, "extension method %s", sel.Sel.Value) {
-		return statement, false
-	}
-
 	// Do not intercept package-qualified calls.
 	if name, ok := sel.X.(*syntax.Name); ok {
 		if _, ok := check.lookup(name.Value).(*PkgName); ok {
@@ -294,11 +290,21 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 	if check.hasInstanceMethod(recv.typ(), recv.mode() == variable, method) {
 		return statement, false
 	}
+	if obj, _, _ := lookupFieldOrMethod(recv.typ(), recv.mode() == variable, check.pkg, method, false); obj != nil {
+		if _, ok := obj.(*Var); ok {
+			return statement, false // field value (including func-typed fields)
+		}
+	}
 
 	matches := check.extensionCandidates(recv.typ(), method)
 	if len(matches) == 0 {
 		return statement, false
 	}
+
+	if !check.verifyVersionf(call, go1_27, "extension method %s", sel.Sel.Value) {
+		return statement, false
+	}
+
 	if len(matches) > 1 {
 		check.errorf(call, AmbiguousSelector, "ambiguous extension call %s.%s", recv.expr, sel.Sel.Value)
 		x.invalidate()

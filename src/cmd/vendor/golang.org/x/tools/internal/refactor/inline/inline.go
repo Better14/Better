@@ -717,8 +717,8 @@ func (st *state) inlineCall() (*inlineCallResult, error) {
 		//
 		// TODO(adonovan): extract this to a function.
 		if sig.Variadic() {
-			lastParam := last(params)
-			if len(args) > 0 && last(args).spread {
+			lastParam := lastParameter(params)
+			if len(args) > 0 && lastArgument(args).spread {
 				// spread call to variadic: tricky
 				lastParam.variadic = true
 			} else {
@@ -846,7 +846,7 @@ func (st *state) inlineCall() (*inlineCallResult, error) {
 
 				// Make correction for spread calls
 				// f(g()) or recv.f(g()) where g() is a tuple.
-				if last := last(args); last != nil && last.spread {
+				if last := lastArgument(args); last != nil && last.spread {
 					nspread := last.typ.(*types.Tuple).Len()
 					if len(args) > 1 { // [recv, g()]
 						// A single AssignStmt cannot discard both, so use a 2-spec var decl.
@@ -2271,7 +2271,7 @@ func createBindingDecl(logf logger, caller *Caller, args []*argument, calleeDecl
 	//   func f(x, y ...any)
 	// TODO(adonovan): support binding decls for spread calls by
 	// splitting parameter groupings as needed.
-	if lastArg := last(args); lastArg != nil && lastArg.spread {
+	if lastArg := lastArgument(args); lastArg != nil && lastArg.spread {
 		logf("binding decls not yet supported for spread calls")
 		return nil
 	}
@@ -3129,6 +3129,20 @@ func last[T any](slice []T) T {
 		return slice[n-1]
 	}
 	return *new(T)
+}
+
+func lastArgument(args []*argument) *argument {
+	if n := len(args); n > 0 {
+		return args[n-1]
+	}
+	return nil
+}
+
+func lastParameter(params []*parameter) *parameter {
+	if n := len(params); n > 0 {
+		return params[n-1]
+	}
+	return nil
 }
 
 // declares returns the set of lexical names declared by a
