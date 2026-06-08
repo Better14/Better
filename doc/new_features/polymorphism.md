@@ -61,7 +61,7 @@ func Map[T, U any](s []T, f func(T) U) []U {
 
 - Same algorithm for many types, no shared method set → generics.
 - Behavior varies by type and callers pass different implementations → interfaces (or function parameters).
-- Both compose: `func Sort[S ~[]E, E cmp.Ordered](s S)` uses constraints instead of `interface{}`.
+- Both compose: `func Sort[S ~[]E, E cmp.Ordered]` `(s S)` uses constraints instead of `interface{}`.
 
 ## Ad-hoc polymorphism — overloading
 
