@@ -11,7 +11,6 @@ This directory documents language and library extensions planned or implemented 
 
 ## Functions and syntax
 
-- [Language features](language_features.md) — per-iteration loop variables, deterministic map iteration
 - [Function and method overloading](overloading.md)
 - [If and switch expressions](expressions.md)
 - [Lambda syntax (`=>`)](lambda_syntax.md)
@@ -38,8 +37,6 @@ This directory documents language and library extensions planned or implemented 
 | `enum E { … }` | [enums.md](enums.md) |
 | `func f(a int, b int = 1)` | [default_arguments.md](default_arguments.md) |
 | `(x, y) => x + y` | [lambda_syntax.md](lambda_syntax.md) |
-| `for i, v := range x` closure capture | [language_features.md](language_features.md) |
-| `for k := range m` (insertion order) | [language_features.md](language_features.md) |
 | `nums.Where(…).Select(…)` | [linq.md](linq.md) |
 | `errors.New`, `err.Wrap`, `*errors.Error` | [errors.md](errors.md) |
 | `t.FormatCustom("yyyy-MM-dd hh:mm:ss tt")`, `time.ParseCustom(…)` | [library_changes.md](library_changes.md) |
