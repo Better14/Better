@@ -1,11 +1,11 @@
 # Built-in LINQ
 
-Go includes built-in LINQ-style query operations that mirror C# naming and semantics. Prefer **[Extension Methods](extension_methods.md)** for new code; `import "linq"` currently enables legacy method desugaring on slices and `linq.Lazy[T]`.
+Go includes built-in LINQ-style query operations that mirror C# naming and semantics. With `import "linq"`, slice and array chains use **extension methods** on `[]T`; `linq.Lazy[T]` uses receiver methods on the lazy sequence type.
 
 - Same method names as C# (`Where`, `Select`, `OrderBy`, `GroupBy`, `First`, `ToList`, etc.)
 - Lazy evaluation where applicable (e.g. deferred iteration until materialization)
 - Minimal allocations; iterators and pipelines should avoid unnecessary intermediate slices
-- Target model: extensions on `iter.Seq[T]` with `[]T` adaptation; see [Extension Methods](extension_methods.md)
+- Future target: extensions on `iter.Seq[T]` with `[]T` adaptation; see [Extension Methods](extension_methods.md)
 
 Step-by-step example:
 
@@ -59,10 +59,9 @@ Predicate and projection arguments are typically single-expression lambdas using
 import "linq"
 
 nums := []int{1, 2, 3, 4, 5}
-evens := nums.Where(n => n%2 == 0)       // desugared to linq.Where
-doubled := evens.Select(n => n * 2)    // linq.LazySelectBy on Lazy[int]
+evens := nums.Where(n => n%2 == 0)       // linq.Where(nums, …)
+doubled := evens.Select(n => n * 2)      // linq.Select on Lazy[int]
 first := doubled.First()                 // terminal: materializes one element
 ```
 
-LINQ extensions are provided as methods on supported sequence types (slices, arrays, `linq.Lazy[T]`, and other iterable types as defined by the standard library). Under the hood, slice/array calls desugar to `linq` functions; named types such as `Lazy[T]` may define real receiver methods where supported.
-
+Slice and array LINQ calls are **extension methods** in `import "linq"` (lowered to `linq.Method(recv, args…)`). Chains on `linq.Lazy[T]` use receiver methods on that type. Arrays are adapted to slices at the call site.

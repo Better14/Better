@@ -440,13 +440,21 @@ func (pr *pkgReader) objIdx(idx pkgbits.Index) (*types2.Package, string) {
 
 		case pkgbits.ObjFunc:
 			pos := r.pos()
-			if r.Version().Has(pkgbits.GenericMethods) {
-				assert(!r.Bool()) // generic methods are read in their defining type
+			var recv *types2.Var
+			var rtparams []*types2.TypeParam
+			if r.Version().Has(pkgbits.GenericMethods) && r.Bool() {
+				_, _ = r.selector()
+				rtparams = r.typeParamNames(false, true)
+				recv = r.param()
 			}
 			tparams := r.typeParamNames(false, false)
-			sig := r.signature(nil, nil, tparams)
+			sig := r.signature(recv, rtparams, tparams)
 			fn := types2.NewFunc(pos, objPkg, objName, sig)
-			if sig.Params() != nil && sig.Params().Len() > 0 && extensionImportShape(objPkg, sig.Params().At(0).Type()) {
+			if recv != nil {
+				if extensionImportShape(objPkg, recv.Type()) {
+					fn.SetExtension(true)
+				}
+			} else if sig.Params() != nil && sig.Params().Len() > 0 && extensionImportShape(objPkg, sig.Params().At(0).Type()) {
 				fn.SetExtension(true)
 			}
 			return fn
