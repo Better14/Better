@@ -102,12 +102,22 @@ func (check *Checker) overloadList(funcs []*Func) string {
 }
 
 func (check *Checker) checkOverloadDuplicates(name string, cands []*Func, kind string) {
-	for i := 0; i < len(cands); i++ {
-		for j := i + 1; j < len(cands); j++ {
-			if sameParamSignature(cands[i], cands[j]) {
-				check.errorf(cands[j].pos, DuplicateDecl, "redeclared %s %s", kind, name)
-			}
+	seen := make(map[string]*Func)
+	for _, fn := range cands {
+		if fn == nil || fn.typ == nil {
+			continue
 		}
+		sig, ok := fn.typ.(*Signature)
+		if !ok {
+			continue
+		}
+		key := overloadSigKey(name, sig)
+		if prev, ok := seen[key]; ok {
+			check.errorf(fn.pos, DuplicateDecl, "redeclared %s %s", kind, name)
+			_ = prev
+			continue
+		}
+		seen[key] = fn
 	}
 }
 
@@ -119,6 +129,8 @@ func (check *Checker) assignOverloadSuffixes() {
 	for key, cands := range check.overloadMeths {
 		check.checkOverloadDuplicates(key.name, cands, "method")
 	}
+
+	check.buildCheckerIndexes()
 
 	for _, cands := range check.overloadFuncs {
 		if len(cands) <= 1 {

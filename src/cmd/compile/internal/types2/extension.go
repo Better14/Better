@@ -140,6 +140,7 @@ func (check *Checker) finishExtensionFunc(obj *Func, sig *Signature) {
 	} else {
 		sig.params = NewTuple(append([]*Var{recv}, sig.params.vars...)...)
 	}
+	check.indexExtensionFunc(obj)
 }
 
 // iterSeqElem returns the element type T if typ is (or is an instance of) iter.Seq[T].
@@ -185,20 +186,8 @@ func (check *Checker) extensionCandidates(recvType Type, method string) []extens
 	seen := make(map[*Func]bool)
 
 	addPkg := func(pkg *Package, pkgName *PkgName) {
-		if pkg == nil || pkg.scope == nil {
-			return
-		}
-		scope := pkg.scope
-		for _, name := range scope.Names() {
-			if name != method {
-				continue
-			}
-			obj := scope.Lookup(name)
-			fn, ok := obj.(*Func)
-			if !ok || seen[fn] {
-				continue
-			}
-			if !fn.IsExtension() && !extensionFuncShape(pkg, fn) {
+		for _, fn := range extensionFuncsInPackage(pkg, method) {
+			if seen[fn] {
 				continue
 			}
 			if m, ok := check.matchExtension(recvType, fn); ok {

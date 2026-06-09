@@ -7,7 +7,6 @@ package types2
 import (
 	"cmd/compile/internal/syntax"
 	. "internal/types/errors"
-	"strings"
 )
 
 var comparisonOpPairs = [][2]string{
@@ -86,27 +85,10 @@ func (check *Checker) operatorFuncsForRecv(name string, recv Type) []*Func {
 	return nil
 }
 
-func operatorFuncsInPackage(pkg *Package, name string) []*Func {
-	if pkg.overloadFuncs != nil {
-		if cands := pkg.overloadFuncs[name]; len(cands) > 0 {
-			return cands
-		}
-	}
-	var cands []*Func
-	for _, n := range pkg.scope.Names() {
-		if n != name && !strings.HasPrefix(n, name+"·") {
-			continue
-		}
-		if obj := pkg.scope.Lookup(n); obj != nil {
-			if fn, ok := obj.(*Func); ok {
-				cands = append(cands, fn)
-			}
-		}
-	}
-	return cands
-}
-
 func (check *Checker) selectOperatorFunc(name string, nargs int, args []*operand) *Func {
+	if fn := check.lookupOverloadByArgTypes(name, args); fn != nil {
+		return fn
+	}
 	cands := check.operatorFuncs(name)
 	if len(cands) == 0 {
 		return nil
@@ -197,7 +179,7 @@ func (check *Checker) callOperator(x *operand, pos syntax.Pos, fn *Func, call *s
 	}
 }
 
-func (check *Checker) tryBinaryOperatorOverload(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op syntax.Operator) bool {
+func (check *Checker) applyBinaryOperatorOverload(x, y *operand, e syntax.Expr, lhs, rhs syntax.Expr, op syntax.Operator) bool {
 	if op == syntax.NullCoalesce || op == syntax.AndAnd || op == syntax.OrOr {
 		return false
 	}
@@ -205,23 +187,25 @@ func (check *Checker) tryBinaryOperatorOverload(x *operand, e syntax.Expr, lhs, 
 	if len(check.operatorFuncs(name)) == 0 {
 		return false
 	}
-	var l operand
-	check.expr(nil, &l, lhs)
-	if !l.isValid() {
+	if !x.isValid() || !y.isValid() {
 		return false
 	}
-	var r operand
-	check.expr(nil, &r, rhs)
-	if !r.isValid() {
-		return false
+	fn := check.lookupBinaryOperatorExact(name, x, y)
+	if fn == nil {
+		fn = check.selectOperatorFunc(name, 2, []*operand{x, y})
 	}
-	fn := check.selectOperatorFunc(name, 2, []*operand{&l, &r})
 	if fn == nil {
 		return false
 	}
-	check.callOperator(x, e.Pos(), fn, nil, []syntax.Expr{lhs, rhs}, []*operand{&l, &r})
+	pos := lhs.Pos()
+	if e != nil {
+		pos = e.Pos()
+	}
+	check.callOperator(x, pos, fn, nil, []syntax.Expr{lhs, rhs}, []*operand{x, y})
 	if x.isValid() {
-		x.expr = e
+		if e != nil {
+			x.expr = e
+		}
 	}
 	return true
 }
@@ -231,10 +215,14 @@ func (check *Checker) tryUnaryOperatorOverload(x *operand, e *syntax.Operation) 
 	if op == syntax.And || op == syntax.Recv || op == syntax.Mul || op == syntax.Tilde {
 		return false
 	}
-	if len(check.operatorFuncs(op.String())) == 0 {
+	name := op.String()
+	if len(check.operatorFuncs(name)) == 0 {
 		return false
 	}
-	fn := check.selectOperatorFunc(op.String(), 1, []*operand{x})
+	fn := check.lookupUnaryOperatorExact(name, x)
+	if fn == nil {
+		fn = check.selectOperatorFunc(name, 1, []*operand{x})
+	}
 	if fn == nil {
 		return false
 	}
@@ -246,9 +234,14 @@ func (check *Checker) tryUnaryOperatorOverload(x *operand, e *syntax.Operation) 
 }
 
 // tryIndexOperatorOverload handles a[i] when the type of a defines func [](a, i...) U.
-func (check *Checker) tryIndexOperatorOverload(x *operand, e *syntax.IndexExpr) bool {
+// base holds the type-checked receiver when indexExpr has already evaluated e.X.
+func (check *Checker) tryIndexOperatorOverload(x *operand, e *syntax.IndexExpr, base *operand) bool {
 	var l operand
-	check.expr(nil, &l, e.X)
+	if base != nil && base.isValid() {
+		l = *base
+	} else {
+		check.expr(nil, &l, e.X)
+	}
 	if !l.isValid() || supportsBuiltinIndex(l.typ()) {
 		return false
 	}

@@ -1,8 +1,26 @@
 # Compiler performance
 
-This document describes **quadratic or otherwise expensive lookup paths** introduced in the fork’s type checker (`cmd/compile/internal/types2`) by new language features. It is aimed at compiler maintainers and anyone debugging slow compiles.
+This document describes **quadratic or otherwise expensive lookup paths** introduced in the fork’s type checker (`cmd/compile/internal/types2`) by new language features, and the **dictionary indexes** added to fix them. It is aimed at compiler maintainers and anyone debugging slow compiles.
 
 Upstream Go already has a few intentionally quadratic algorithms (switch duplicate detection, union term lists, unification stacks, inference). Those are noted at the end for context but are **not** fork additions.
+
+---
+
+## Index overview
+
+Fork feature lookups that previously scanned lists or scopes now use maps built once per package (or once per type-check pass) and reused across files.
+
+| Index | Key | Value | Built |
+| ----- | --- | ----- | ----- |
+| `operatorExact` | operator name → `(leftType, rightType)` | `*Func` | `assignOverloadSuffixes` / lazy for imports |
+| `operatorUnaryExact` | operator name → operand type | `*Func` | same |
+| `overloadBySig` | `name + "·" + paramTypeSuffix` | `*Func` | same |
+| `operatorFuncIndex` | operator / overload base name | `[]*Func` | lazy per imported package |
+| `extensionByName` | method name | `[]*Func` | lazy per import; incremental in `indexExtensionFunc` |
+| `variantByName` / `variantByObj` | variant name / `Object` | `*EnumVariant` | `NewEnum` |
+| `overloadResolveCache` | `(cand, nargs, argTypeSuffix)` | `*Func` | per file check, on first unambiguous resolution |
+
+Implementation lives primarily in `types2/perf_index.go`. Package-level indexes are stored on `Package`; per-checker indexes and the resolve cache are on `Checker`.
 
 ---
 
@@ -20,104 +38,125 @@ On a chain of length **n**, each `+` node re-walked the entire left subtree. Tot
 
 ### Fix
 
-`tryBinaryOperatorOverload` and `tryUnaryOperatorOverload` return immediately when `len(check.operatorFuncs(name)) == 0`, so packages without operator overloads pay no probe cost.
+`applyBinaryOperatorOverload` returns immediately when `len(check.operatorFuncs(name)) == 0`, so packages without operator overloads pay no probe cost.
 
-**Location:** `types2/operator.go`
-
----
-
-## Still present: binary operator overload when overloads exist
-
-If a package defines **any** overload for an operator (e.g. `func +(l, r *Matrix) *Matrix`), the probe still runs on **every** use of that operator in the package.
-
-When resolution **fails** (operands do not match any overload — e.g. built-in `string + string` in a package that also defines `+` on a custom type), the operands are type-checked twice:
-
-1. `tryBinaryOperatorOverload` — `check.expr` on `lhs` and `rhs`
-2. `binary()` — `check.expr` on `lhs` and `rhs` again after the probe returns `false`
-
-On a left-associative chain of length **n**, this is again **O(n²)** in expression size.
-
-**Locations:** `types2/operator.go` (`tryBinaryOperatorOverload`), `types2/expr.go` (`binary`)
-
-**Mitigation ideas (not implemented):** defer operand type-checking in the probe until an overload candidate is known to apply; or pass pre-checked operands from `binary()` into the probe so subtrees are never walked twice.
+**Location:** `types2/operator.go` (`applyBinaryOperatorOverload`)
 
 ---
 
-## O(k²) at package init: overload duplicate detection
+## Fixed: binary operator overload when overloads exist
 
-When overload suffixes are assigned, `checkOverloadDuplicates` compares every pair of candidates with the same name — **O(k²)** where **k** is the number of overloads for that name.
+### Cause
 
-In practice **k** is tiny (handful of overloads per operator or method), so this is not a compile-time concern for normal code.
+When a package defined overloads for an operator, the old probe type-checked operands **before** `binary()` type-checked them again on failure — **O(n²)** on long chains of built-in uses (e.g. `string + string` alongside a custom `+` overload).
 
-**Location:** `types2/overload.go` (`checkOverloadDuplicates`, called from `assignOverloadSuffixes`)
+### Fix
+
+1. **`binary()` evaluates operands once**, then calls `applyBinaryOperatorOverload` with the pre-checked operands (`types2/expr.go`).
+2. **Exact-type index:** at package init, `buildCheckerIndexes` builds `operatorExact` and `operatorUnaryExact` (`map[operator][operandTypes]→*Func`) in `types2/perf_index.go`. Resolution tries the index first, then falls back to assignability scanning only when needed.
+
+**Locations:** `types2/expr.go`, `types2/operator.go`, `types2/perf_index.go`
 
 ---
 
-## O(V²) or O(cases × V): enum variant lookup
+## Fixed: overload duplicate detection at package init
 
-Enum variants are resolved by **linear scan** over `enumTyp.variants`:
+### Cause
 
-- `enumVariantByName` — match by variant name
-- `enumVariantByObj` — match by object identity
+`checkOverloadDuplicates` compared every pair of overload candidates with the same name — **O(k²)** where **k** is the number of overloads for that operator or method.
 
-`enumCasePattern` calls `enumVariantByObj` once per switch case. With **V** variants and **C** case patterns, worst-case cost is **O(C × V)**; if **C ≈ V**, that is **O(V²)**.
+### Fix
 
-Enums are expected to have a modest number of variants, so this is usually negligible. A map from name or object to variant would make lookup **O(1)** per case.
+`checkOverloadDuplicates` uses a map keyed by `name + "·" + overloadParamSuffix(sig)` — **O(k)** per overload name instead of **O(k²)** pairwise comparison.
+
+**Location:** `types2/overload.go`
+
+---
+
+## Fixed: enum variant lookup by linear scan
+
+### Cause
+
+`enumVariantByName` and `enumVariantByObj` scanned the `variants` slice — **O(V)** per lookup, **O(C × V)** per enum switch with **C** cases.
+
+### Fix
+
+`NewEnum` builds `variantByName` and `variantByObj` maps. `enumVariantByName` and `enumVariantByObj` use **O(1)** map lookup.
 
 **Location:** `types2/enum.go`
 
 ---
 
-## Linear scans per use site (not O(n²) in file size)
+## Fixed: extension method candidate lookup
 
-These paths are fork additions but scale with **scope or import count**, not with nested expression depth. They can still matter in large packages with many selector calls.
+### Cause
 
-### Extension method resolution
+`extensionCandidates` scanned every name in the current package scope and in each imported package scope for every extension call — **O(|imports| × |scope|)** per probe.
 
-`extensionCandidates` scans **all names** in the current package scope and in **every imported** package scope for each extension call probe. It does not use a method-name index.
+### Fix
 
-Cost per selector call: **O(|imports| × |scope|)** in the worst case.
+Each `Package` keeps `extensionByName map[string][]*Func`, built once per package (lazily for imports, incrementally via `indexExtensionFunc` when extensions are lowered). `extensionCandidates` looks up by method name instead of scanning entire scopes.
 
-**Location:** `types2/extension.go` (`extensionCandidates`, called from `tryExtensionCall`)
+**Location:** `types2/perf_index.go`, `types2/extension.go`
 
-Early exits in `tryExtensionCall` (skip package-qualified calls, skip when an instance method or func-typed field exists) reduce how often the full scan runs.
+---
 
-### Index operator fallback
+## Fixed: operator func lookup in imported packages
 
-`operatorFuncsForRecv` looks up `[]` and `[]=` overloads on a receiver type. When the per-package map misses, `operatorFuncsInPackage` scans all of `pkg.scope.Names()`.
+### Cause
 
-Cost: **O(|scope|)** per lookup.
+When `pkg.overloadFuncs[name]` missed, `operatorFuncsInPackage` scanned all of `pkg.scope.Names()` on every lookup — **O(|scope|)** per call.
 
-**Location:** `types2/operator.go` (`operatorFuncsInPackage`)
+### Fix
 
-### Function and method overload selection
+`operatorFuncsInPackage` uses `pkg.operatorFuncIndex`, populated once from `overloadFuncs` plus a single scope scan for suffixed decls (`name·suffix`), instead of scanning scope on every lookup.
 
-`selectOverloadEx` and `selectOperatorFunc` try each overload candidate against each argument — **O(k × args)** per call, where **k** is the number of candidates.
+**Location:** `types2/perf_index.go`, `types2/operator.go`
 
-**Location:** `types2/call.go`, `types2/operator.go`
+---
 
-### Index operator probe: duplicate evaluation of base
+## Fixed: overload selection by argument types
 
-`indexExpr` already type-checks `e.X` via `check.exprOrType`. If builtin indexing does not apply, `tryIndexOperatorOverload` type-checks `e.X` again with `check.expr`.
+### Cause
 
-This is **duplicate work per index expression**, not quadratic in chain length unless many nested custom `[]` operators force repeated re-evaluation of the same subtrees.
+`selectOverloadEx` and `selectOperatorFunc` tried each overload candidate against each argument — **O(k × args)** per call with no memoization.
 
-**Location:** `types2/index.go`, `types2/operator.go` (`tryIndexOperatorOverload`)
+### Fix
+
+At package init, `buildCheckerIndexes` builds `overloadBySig map[name+paramTypes]→*Func` for package-level and method overloads. `selectOperatorFunc`, `selectOverloadEx`, and operator overload resolution consult this index before linear assignability scans.
+
+`selectOverloadEx` also memoizes unambiguous results in `overloadResolveCache`.
+
+**Location:** `types2/perf_index.go`, `types2/call.go`, `types2/operator.go`
+
+---
+
+## Fixed: index operator duplicate evaluation of base
+
+### Cause
+
+`indexExpr` already type-checked `e.X`, but `tryIndexOperatorOverload` called `check.expr` on `e.X` again.
+
+### Fix
+
+`indexExpr` passes the already type-checked receiver operand into `tryIndexOperatorOverload`, avoiding a second `check.expr` on `e.X`.
+
+**Location:** `types2/index.go`, `types2/operator.go`
 
 ---
 
 ## Summary table
 
-| Path | Complexity | When it matters | Status |
-| ---- | ---------- | --------------- | ------ |
-| Binary operator probe, no overloads in package | O(n²) on operator chain length **n** | Long `+` chains (e.g. string tables) | **Fixed** |
-| Binary operator probe, overloads declared | O(n²) when probe fails, then builtin path runs | Packages with `+` overloads and many builtin `+` uses | **Open** |
-| Overload duplicate check | O(k²), small **k** | Package init only | Acceptable |
-| Enum variant by name/obj | O(V) per lookup; O(C × V) per switch | Large enums with many cases | Acceptable today |
-| Extension candidates | O(\|imports\| × \|scope\|) per probe | Many extension calls in huge scopes | Linear scan |
-| `operatorFuncsInPackage` fallback | O(\|scope\|) | Custom `[]` on types from other packages | Linear scan |
-| Overload selection | O(k × args) | Many overloads per name | Per call |
-| Index operator re-check of base | 2× work on `e.X` | Custom `[]` on non-builtin types | Per index |
+| Path | Complexity (before) | Status |
+| ---- | ------------------- | ------ |
+| Binary operator probe, no overloads in package | O(n²) on chain length | **Fixed** |
+| Binary operator probe, overloads declared | O(n²) when probe fails | **Fixed** |
+| Overload duplicate check | O(k²) | **Fixed** (O(k)) |
+| Enum variant by name/obj | O(V) per lookup | **Fixed** (O(1)) |
+| Extension candidates | O(\|imports\| × \|scope\|) | **Fixed** (O(\|imports\|)) |
+| `operatorFuncsInPackage` fallback | O(\|scope\|) per lookup | **Fixed** (O(1) after index) |
+| Overload selection | O(k × args) per call | **Indexed** + memoized |
+| Index operator re-check of base | 2× work on `e.X` | **Fixed** |
 
 ---
 
