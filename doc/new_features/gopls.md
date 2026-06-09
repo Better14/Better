@@ -33,7 +33,7 @@ The fork’s **`go`** tool must be built first (`src/make.bash` in GOROOT).
 | **Compiler** | `cmd/compile/internal/syntax` | `cmd/compile/internal/types2` | `compile`, `go build` |
 | **IDE** | `go/parser` → `go/ast` | `go/types` | gopls |
 
-gopls type-checks via `types.NewChecker` and reads overload metadata from `types.Info` (`FuncOverloads`, `MethodOverloads`, `CallOverloads`). It does **not** call `types2` directly.
+gopls type-checks via `types.NewChecker` and reads overload metadata from `types.Info` (`FuncOverloads`, `MethodOverloads`, `CallOverloads`, `IndexOperatorCalls`, `IndexAssignCalls`). It does **not** call `types2` directly.
 
 ---
 
@@ -59,7 +59,9 @@ These are implemented in **`go/parser`**, **`go/ast`**, and **`go/types`**. gopl
 
 **Overload signature help:** when a call has multiple overload candidates, gopls lists all matching signatures (see `gopls/internal/golang/signature_help.go` and marker test `testdata/signature/overload.txt` in `go_tools`).
 
-**Tests in `go_tools`:** `gopls/internal/cache/parsego/parse_test.go` (syntax nodes), `gopls/internal/cache/overload_test.go` (overload typecheck).
+**Tests in `go_tools`:** `gopls/internal/cache/parsego/parse_test.go` (syntax nodes including enums and nullable types), `gopls/internal/cache/overload_test.go` (overload typecheck).
+
+**Semantic tokens:** fork AST nodes (`IfExpr`, `SwitchExpr`, `LambdaExpr`, `EnumDecl`, nullable/result types, enum patterns) are handled in `gopls/internal/golang/semtok.go`.
 
 **Standard library extensions** ([LINQ](linq.md), [structured errors](errors.md), [data structures](data_structures.md), etc.) compile with the fork toolchain; IDE support is the same as for normal Go packages once the **language** syntax type-checks. No separate gopls plugin is required for stdlib APIs.
 
@@ -79,13 +81,7 @@ These are implemented in **`go/parser`**, **`go/ast`**, and **`go/types`**. gopl
 | Extension methods | yes | yes | yes |
 | Operator overloading | yes | yes | yes |
 
-\*Extension and operator resolution now run in `go/types` when gopls is built with this GOROOT.
-
----
-
-## Porting work (future)
-
-Core type-checking for all fork language features is ported to **`go/types`** (and parser/AST where needed). Remaining IDE work may include semantic tokens, enum switch pattern parsing, and analyzer polish in **`go_tools` / gopls**.
+\*Extension and operator resolution run in `go/types` when gopls is built with this GOROOT. Index-operator overload desugaring is recorded in `types.Info` for tooling.
 
 ---
 

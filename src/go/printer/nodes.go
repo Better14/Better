@@ -841,6 +841,31 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.setPos(x.Bang)
 		p.print(token.NOT)
 
+	case *ast.NullableTypeExpr:
+		p.expr1(x.X, token.HighestPrec, depth)
+		p.setPos(x.QPos)
+		p.print(token.QUESTION)
+
+	case *ast.NullCondExpr:
+		p.expr1(x.X, token.HighestPrec, depth)
+		p.setPos(x.QPos)
+		p.print(token.QUESTION, token.PERIOD)
+
+	case *ast.EnumPatternExpr:
+		p.print(x.Variant)
+		p.setPos(x.Variant.End())
+		p.print(token.LBRACE)
+		for i, f := range x.Fields {
+			if i > 0 {
+				p.print(token.COMMA, blank)
+			}
+			if len(f.Names) > 0 {
+				p.print(f.Names[0])
+			}
+		}
+		p.setPos(x.Rbrace)
+		p.print(token.RBRACE)
+
 	case *ast.TryExpr:
 		p.expr1(x.X, token.HighestPrec, depth)
 		p.setPos(x.Bang)
@@ -1227,8 +1252,12 @@ func (p *printer) possibleSelectorExpr(expr ast.Expr, prec1, depth int) bool {
 // selectorExpr handles an *ast.SelectorExpr node and reports whether x spans
 // multiple lines.
 func (p *printer) selectorExpr(x *ast.SelectorExpr, depth int, isMethod bool) bool {
-	p.expr1(x.X, token.HighestPrec, depth)
-	p.print(token.PERIOD)
+	if _, ok := x.X.(*ast.NullCondExpr); ok {
+		p.expr1(x.X, token.HighestPrec, depth)
+	} else {
+		p.expr1(x.X, token.HighestPrec, depth)
+		p.print(token.PERIOD)
+	}
 	if line := p.lineFor(x.Sel.Pos()); p.pos.IsValid() && p.pos.Line < line {
 		p.print(indent, newline)
 		p.setPos(x.Sel.Pos())
@@ -1989,6 +2018,45 @@ func (p *printer) distanceFrom(startPos token.Pos, startOutCol int) int {
 	return infinity
 }
 
+func (p *printer) enumDecl(d *ast.EnumDecl) {
+	if d.Doc != nil {
+		p.setPos(d.Doc.Pos())
+		p.print(d.Doc)
+	}
+	p.setPos(d.Enum)
+	p.print(token.ENUM, blank)
+	p.print(d.Name)
+	if d.TypeParams != nil {
+		p.parameters(d.TypeParams, typeTParam)
+	} else {
+		p.setPos(d.Name.End())
+	}
+	p.print(token.LBRACE, vtab)
+	for i, v := range d.Variants {
+		if i > 0 {
+			p.print(token.SEMICOLON, newline)
+		}
+		p.print(v.Name)
+		if v.Tag != nil {
+			p.print(token.ASSIGN, blank)
+			p.expr(v.Tag)
+		} else if len(v.Types) > 0 {
+			p.print(token.LPAREN)
+			for j, t := range v.Types {
+				if j > 0 {
+					p.print(token.COMMA, blank)
+				}
+				p.expr(t)
+			}
+			p.print(token.RPAREN)
+		} else if v.StructFields != nil {
+			p.fieldList(v.StructFields, true, false)
+		}
+	}
+	p.setPos(d.Rbrace)
+	p.print(token.RBRACE)
+}
+
 func (p *printer) funcDecl(d *ast.FuncDecl) {
 	p.setComment(d.Doc)
 	p.setPos(d.Pos())
@@ -2015,6 +2083,8 @@ func (p *printer) decl(decl ast.Decl) {
 		p.genDecl(d)
 	case *ast.FuncDecl:
 		p.funcDecl(d)
+	case *ast.EnumDecl:
+		p.enumDecl(d)
 	default:
 		panic("unreachable")
 	}
@@ -2030,6 +2100,8 @@ func declToken(decl ast.Decl) (tok token.Token) {
 		tok = d.Tok
 	case *ast.FuncDecl:
 		tok = token.FUNC
+	case *ast.EnumDecl:
+		tok = token.ENUM
 	}
 	return
 }

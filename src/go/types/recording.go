@@ -204,11 +204,13 @@ func (check *Checker) recordOverloadSets() {
 }
 
 func (check *Checker) recordIndexOperatorCall(idx ast.Expr, call *ast.CallExpr) {
-	_ = idx
-	_ = call
+	if m := check.IndexOperatorCalls; m != nil {
+		m[idx] = call
+	}
 }
 
 func (check *Checker) recordIndexAssignCall(idx ast.Expr, call *ast.CallExpr) {
-	_ = idx
-	_ = call
+	if m := check.IndexAssignCalls; m != nil {
+		m[idx] = call
+	}
 }

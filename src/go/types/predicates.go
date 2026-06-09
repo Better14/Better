@@ -173,7 +173,7 @@ func comparableType(T Type, dynamic bool, seen map[Type]bool) *typeError {
 			return typeErrorf("")
 		}
 
-	case *Pointer, *Chan:
+	case *Pointer, *Chan, *Optional:
 		// always comparable
 
 	case *Struct:
@@ -181,6 +181,11 @@ func comparableType(T Type, dynamic bool, seen map[Type]bool) *typeError {
 			if comparableType(f.typ, dynamic, seen) != nil {
 				return typeErrorf("struct containing %s cannot be compared", f.typ)
 			}
+		}
+
+	case *Enum:
+		if comparableType(t.structType, dynamic, seen) != nil {
+			return typeErrorf("enum containing %s cannot be compared", t.structType)
 		}
 
 	case *Array:
@@ -212,7 +217,7 @@ func hasNil(t Type) bool {
 	switch u := t.Underlying().(type) {
 	case *Basic:
 		return u.kind == UnsafePointer
-	case *Slice, *Pointer, *Signature, *Map, *Chan:
+	case *Optional, *Slice, *Pointer, *Signature, *Map, *Chan:
 		return true
 	case *Interface:
 		return !isTypeParam(t) || underIs(t, func(u Type) bool {
@@ -309,6 +314,16 @@ func (c *comparer) identical(x, y Type, p *ifacePair) bool {
 		// Two pointer types are identical if they have identical base types.
 		if y, ok := y.(*Pointer); ok {
 			return c.identical(x.base, y.base, p)
+		}
+
+	case *Optional:
+		if y, ok := y.(*Optional); ok {
+			return c.identical(x.elem, y.elem, p)
+		}
+
+	case *Result:
+		if y, ok := y.(*Result); ok {
+			return c.identical(x.elem, y.elem, p)
 		}
 
 	case *Tuple:

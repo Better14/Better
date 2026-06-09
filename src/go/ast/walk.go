@@ -390,7 +390,9 @@ func Walk(v Visitor, node Node) {
 		for _, spec := range n.Variants {
 			if spec != nil {
 				Walk(v, spec.Name)
-				Walk(v, spec.Tag)
+				if spec.Tag != nil {
+					Walk(v, spec.Tag)
+				}
 				for _, t := range spec.Types {
 					Walk(v, t)
 				}
