@@ -604,17 +604,16 @@ func (check *Checker) genericExprList(elist []syntax.Expr) (resList []*operand, 
 			resList = []*operand{&x}
 		} else {
 			// x is not a function instantiation (it may still be a generic function).
-			check.rawExpr(nil, &x, e, nil, true)
-			check.exclude(&x, 1<<novalue|1<<builtin|1<<typexpr)
-			if t, ok := x.typ().(*Tuple); ok && x.isValid() {
-				// x is a function call returning multiple values; it cannot be generic.
-				resList = make([]*operand, t.Len())
-				for i, v := range t.vars {
-					resList[i] = &operand{mode_: value, expr: e, typ_: v.typ}
+			// Use multiExpr for tuple expansion (e.g. f() passed to g where f returns (T, error)).
+			resList, _ = check.multiExpr(e, false)
+			if len(resList) == 1 && resList[0].isValid() {
+				x := resList[0]
+				if asig, _ := x.typ().(*Signature); asig != nil && asig.TypeParams().Len() > 0 {
+					// Re-evaluate with allowGeneric for uninstantiated generic functions.
+					check.rawExpr(nil, x, e, nil, true)
+					check.exclude(x, 1<<novalue|1<<builtin|1<<typexpr)
+					resList = []*operand{x}
 				}
-			} else {
-				// x is exactly one value (possibly invalid or uninstantiated generic function).
-				resList = []*operand{&x}
 			}
 		}
 	} else if n > 1 {
@@ -679,17 +678,26 @@ func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature,
 	}
 
 	if n == 1 {
-		x, targs := eval(0, elist[0])
-		if t, ok := x.typ().(*Tuple); ok && x.isValid() {
-			resList = make([]*operand, t.Len())
-			for i, v := range t.vars {
-				resList[i] = &operand{mode_: value, expr: elist[0], typ_: v.typ}
+		e := elist[0]
+		var x operand
+		if inst, _ := e.(*syntax.IndexExpr); inst != nil && check.indexExpr(&x, inst) {
+			targs := check.funcInst(nil, x.Pos(), &x, inst, infer)
+			if targs != nil {
+				x.expr = inst
+				return []*operand{&x}, [][]Type{targs}
 			}
-			return resList, nil
+			check.record(&x)
+			return []*operand{&x}, nil
 		}
-		if targs != nil {
-			return []*operand{&x}, [][]Type{targs}
+		// Expand multi-value expressions before singleValue checking (e.g. f() for g(..., ...)).
+		if list, _ := check.multiExpr(e, false); len(list) > 1 {
+			return list, nil
 		}
+		var hint Type
+		if params != nil && params.Len() > 0 {
+			hint = params.At(0).typ
+		}
+		check.genericExpr(&x, e, hint)
 		return []*operand{&x}, nil
 	}
 

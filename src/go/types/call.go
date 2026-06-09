@@ -661,17 +661,16 @@ func (check *Checker) genericExprList(elist []ast.Expr) (resList []*operand, tar
 			resList = []*operand{&x}
 		} else {
 			// x is not a function instantiation (it may still be a generic function).
-			check.rawExpr(nil, &x, e, nil, true)
-			check.exclude(&x, 1<<novalue|1<<builtin|1<<typexpr)
-			if t, ok := x.typ().(*Tuple); ok && x.isValid() {
-				// x is a function call returning multiple values; it cannot be generic.
-				resList = make([]*operand, t.Len())
-				for i, v := range t.vars {
-					resList[i] = &operand{mode_: value, expr: e, typ_: v.typ}
+			// Use multiExpr for tuple expansion (e.g. f() passed to g where f returns (T, error)).
+			resList, _ = check.multiExpr(e, false)
+			if len(resList) == 1 && resList[0].isValid() {
+				x := resList[0]
+				if asig, _ := x.typ().(*Signature); asig != nil && asig.TypeParams().Len() > 0 {
+					// Re-evaluate with allowGeneric for uninstantiated generic functions.
+					check.rawExpr(nil, x, e, nil, true)
+					check.exclude(x, 1<<novalue|1<<builtin|1<<typexpr)
+					resList = []*operand{x}
 				}
-			} else {
-				// x is exactly one value (possibly invalid or uninstantiated generic function).
-				resList = []*operand{&x}
 			}
 		}
 	} else if n > 1 {
