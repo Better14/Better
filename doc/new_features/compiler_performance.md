@@ -162,17 +162,175 @@ At package init, `buildCheckerIndexes` builds `overloadBySig map[name+paramTypes
 
 ## Upstream quadratic algorithms (not fork additions)
 
-The fork inherits several algorithms that are already documented as quadratic in upstream `types2`:
+The fork inherits several algorithms that are already documented as quadratic in upstream `types2`. These are **local** to a single switch, constraint, interface comparison, or generic call — they do not scale with file length or import count the way the fork’s operator-overload bug did. **Type switch duplicate detection was changed to O(1) map lookup; the rest are unchanged.**
 
-| Area | File | Comment in code |
-| ---- | ---- | --------------- |
-| Duplicate case values in expression switch | `stmt.go` | “quadratic algorithm, but these lists tend to be very short” |
-| Duplicate types in type switch | `stmt.go` | “quadratic algorithm, but type switches tend to be reasonably small” |
-| Union term lists | `union.go` | “quadratic termlist operations”; “unions tend to be short” |
-| Unification stacks | `unify.go`, `predicates.go` | “quadratic algorithm, but in practice these stacks …” |
-| Type inference | `infer.go` | “O(n²) algorithm where n is the number of …” |
+| Area | File | What **N** is | Typical **N** | Status |
+| ---- | ---- | ------------- | ------------- | ------ |
+| Duplicate case values in expression switch | `stmt.go` | Cases per underlying value bucket | 1–2 (5–30 cases total) | Upstream (O(k²) per bucket; O(C) when values distinct) |
+| Duplicate types in type switch | `stmt.go` | Type cases in one switch | 3–15 | **Fixed** (O(1) lookup) |
+| Union term overlap | `union.go` | Terms in one `\|` constraint | 2–8 (max 100) | Upstream |
+| Interface unify stack scan | `unify.go`, `predicates.go` | Recursion depth comparing interfaces | 0–3 | Upstream |
+| Generic type inference | `infer.go` | Type parameters on one generic func | 1–4 (< 5) | Upstream |
 
-These are unchanged by the fork features above unless a new code path invokes them more often.
+---
+
+### Duplicate case values in expression switch
+
+**Location:** `caseValues` in `types2/stmt.go`
+
+Duplicate detection runs only for **constant** int, float, and string cases. Non-constant cases skip the inner check entirely.
+
+The checker keeps a map keyed by **underlying Go value**, not by case index:
+
+```go
+seen valueMap  // map[underlying value] → prior cases with that value
+```
+
+For each new constant case, the inner loop scans only `seen[val]` — cases that already used the **same** underlying value (same `1`, same `"foo"`, etc.):
+
+```257:270:src/cmd/compile/internal/types2/stmt.go
+		if val := goVal(v.val); val != nil {
+			// look for duplicate types for a given value
+			// (quadratic algorithm, but these lists tend to be very short)
+			for _, vt := range seen[val] {
+				if Identical(v.typ(), vt.typ) {
+					// ... duplicate case error ...
+				}
+			}
+			seen[val] = append(seen[val], valueType{v.Pos(), v.typ()})
+		}
+```
+
+**Example — distinct constants (linear, not quadratic):**
+
+```go
+switch x {
+case 1:
+case 2:
+case 3:
+// ... through 10
+}
+```
+
+Each value hits an empty `seen[val]` list → **0** inner comparisons per case → **O(10)** total for 10 cases, **not** O(100).
+
+**Example — same underlying value, different types (interface switch):**
+
+```go
+type myByte byte
+
+func f(x any) {
+    switch x {
+    case byte(1):
+    case myByte(1): // same underlying 1 → compare against seen[1]
+    case 2, 3, 4:
+    }
+}
+```
+
+This matters mainly when switching on an **interface** value, where the same numeric constant can appear with different types.
+
+**Complexity:** If **k** cases share the same underlying value, duplicate checking for that value bucket costs 0 + 1 + … + (k−1) = **O(k²)**. Across the whole switch with distinct values 1, 2, …, C, total work is **O(C)**.
+
+The upstream comment calls this “quadratic” because of the **k²** worst case when many typed variants of one constant appear — not because C case clauses implies C² checks.
+
+**Typical N:** 5–30 cases per switch; **k** (cases per value bucket) is usually 1–2.
+
+---
+
+### Duplicate types in type switch (fixed)
+
+**Location:** `caseTypes` in `types2/stmt.go`
+
+For each `case T:` in `switch x.(type)`, the checker detects duplicate types using a **map keyed by a structural type hash** (`typeSwitchCaseKey`), not a linear scan over prior cases.
+
+**Example:**
+
+```go
+func f(x any) {
+    switch x.(type) {
+    case int:
+    case string:
+    case int: // error: duplicate case int
+    case nil, nil:
+    }
+}
+```
+
+**Complexity:** **O(C)** for **C** type expressions in the switch — one map lookup and insert per type.
+
+**Implementation:** `typeSwitchCaseKey` uses `newTypeHasher` with the checker's `Context` when available (so identical anonymous struct types from different case clauses hash the same); falls back to `TypeString` otherwise.
+
+---
+
+### Union term overlap
+
+**Location:** `parseUnion` / `overlappingTerm` in `types2/union.go`
+
+When parsing a constraint union like `int | ~string | MyType`, each new term is checked against **all previous terms** for overlap (`a|a`, `~a|A`, etc.).
+
+**Example:**
+
+```go
+func Sum[T interface {
+    int | int64 | float64 | ~int32 | MyInt
+}](s []T) T { /* ... */ }
+```
+
+Each term in the union is compared to earlier terms via `overlappingTerm(terms[:i], t)`.
+
+**Complexity:** O(T²) where **T** is the number of terms in one constraint expression.
+
+**Typical N:** 2–8 terms (e.g. `int | int64`, `~[]byte | string`).
+
+**Hard cap:** `maxTermCount = 100` — unions with more than 100 terms are rejected before quadratic work becomes extreme. Worst case: ~10,000 term-pair checks per union, and most packages have only a handful of generic constraints.
+
+---
+
+### Interface unify / identity stack scan
+
+**Location:** `identical` in `types2/predicates.go`; unification in `types2/unify.go`
+
+When checking whether two **interface types** are identical (or unify), the checker walks method sets recursively. To stop infinite recursion on self-referential interfaces, it keeps a linked list (`ifacePair` stack) of `(x, y)` pairs already being compared. Before recursing, it scans that stack — **O(depth²)** per comparison path.
+
+**Example (pathological, from comments in code):**
+
+```go
+type T interface {
+    m() interface{ T }
+}
+```
+
+Comparing two different named interfaces that embed this pattern pushes pairs onto the stack.
+
+**Complexity:** **N** = stack depth = number of nested interface pairs currently being compared (not package or file size).
+
+**Typical N:** 0–3 — almost all interfaces are non-recursive (`io.Reader`, `fmt.Stringer`, etc.).
+
+**Rare N:** 5–10 for deeply self-referential generic constraint interfaces. The code notes this is “extremely rare”; a hash map would cost more than the tiny stack scan.
+
+---
+
+### Generic type inference
+
+**Location:** phase 2 of inference in `types2/infer.go`
+
+After a generic call, the checker repeatedly unifies each type parameter with its constraint until no progress. The outer loop runs up to **n** times (at least one type argument inferred per iteration); the inner loop scans all **n** type parameters → **O(n²)**.
+
+**Example:**
+
+```go
+func Map[T, U any](s []T, f func(T) U) []U { /* ... */ }
+
+// inference for T and U from arguments:
+Map([]int{1, 2}, func(x int) string { return strconv.Itoa(x) })
+```
+
+**Complexity:** **N** = number of type parameters on the generic function or method being instantiated.
+
+**Typical N:** 1–4 (`Map[K,V]`, `Reduce[T]`, `New[T any]`). Comment in code: “< 5 or so.”
+
+**Worst realistic N:** 10–20 on heavily generic library code → 100–400 inner-loop iterations per call site, still tiny compared to compiling a whole file.
 
 ---
 
