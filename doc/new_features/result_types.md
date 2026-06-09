@@ -5,9 +5,10 @@
 Go now supports a result shorthand:
 
 - `(T, error)` can be written as `T!`
-- `expr!.value` (or `expr!.field`) propagates an error from `expr` or accesses the success value
+- `expr!` unwraps the success value and early-returns the error if `err != nil`
+- `expr!.field` does the same, then accesses a field on the success value
 
-The goal is to reduce boilerplate for error propagation while preserving the same runtime behavior as explicit `if err != nil { ... }` checks. There is no postfix `expr!` that panics on error.
+The goal is to reduce boilerplate for error propagation while preserving the same runtime behavior as explicit `if err != nil { ... }` checks.
 
 ## Function Result Type Shorthand
 
@@ -29,7 +30,7 @@ After:
 
 ```go
 func myFunc() int! {
-	a := myFunc2()!.value
+	a := myFunc2()!
 	return a
 }
 ```
@@ -38,36 +39,34 @@ A `T!` function may return a single value `v`; the compiler treats it as `return
 
 `int!` is semantically equivalent to `(int, error)`.
 
-## Postfix `!.value` and `!.field`
+## Postfix `!` and `!.field`
 
-Use `!.value` or `!.field` when `expr` has type `(T, error)` or `T!`.
+Use `!` or `!.field` when `expr` has type `(T, error)` or `T!`.
 
-Behavior for `expr!.value`:
+Behavior for `expr!`:
 
 1. Evaluate `expr`
 2. If `err != nil`, return early from the current function with:
   - zero value of the function's value result
   - the error
-3. Otherwise, use the `.value` field (the unwrapped `T`)
+3. Otherwise, use the unwrapped `T`
 
-Behavior for `expr!.someField` is the same early-return on error, then access `someField` on the success value.
+Behavior for `expr!.field` is the same early-return on error, then access `.field` on the success value.
 
 ```go
-func someFunc() int! {
-	return other()!.value
-}
-
-func readUser() User! {
-	u := fetch()!.value
-	return u
-}
-
 func readName() string! {
 	return fetch()!.name   // propagate error, else return User.name
 }
-```
 
-Standalone `someFunc()!` (panic on error) is **not** supported.
+func readUser() User! {
+	u := fetch()!        // unwrap type, or early return on error
+	return u
+}
+
+func someFunc() int! {
+	return other()!     // redundant case. return value or error
+}
+```
 
 ## Conceptual Representation
 
@@ -102,7 +101,7 @@ if a.err == nil { doSomething(a.value) } else { handleError(a.err) }
 val, err := a                              // destructure into value and error
 ```
 
-Inside a function with result type `T!`, use `!.value` / `!.field` for propagation:
+Inside a function with result type `T!`, use `!` / `!.field` for propagation:
 
 ```go
 func example() int! {
@@ -168,5 +167,6 @@ See [Null-coalescing operator (`??`)](nullable_types.md#null-coalescing-operator
 ## Notes
 
 - `T!` is the canonical shorthand for `(T, error)` in function signatures and a value type elsewhere.
-- Use `expr!.value` or `expr!.field` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
+- Use `expr!` or `expr!.field` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
 - You can still do `if err != nil { panic(err) }` or `log.Fatal` as today.
+
