@@ -32,6 +32,10 @@ This directory documents language and library extensions planned or implemented 
 
 - [Compiler performance](compiler_performance.md) — Changes to prevent O(n^2) lookups and expensive type-checker paths in fork features
 
+## Tooling
+
+- [gopls (IDE support)](gopls.md) — what the language server supports vs the compiler-only path
+
 ## Quick reference
 
 | Syntax | Document |
