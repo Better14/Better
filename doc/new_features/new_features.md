@@ -18,7 +18,6 @@ This directory documents language and library extensions planned or implemented 
 
 ## Generics and methods
 
-- [Polymorphism](polymorphism.md) — overview of interface, generic, ad-hoc, extension, and enum polymorphism
 - [Generic methods (Go 1.27)](generic_methods.md)
 - [Extension methods](extension_methods.md)
 
