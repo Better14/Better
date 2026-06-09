@@ -29,6 +29,10 @@ This directory documents language and library extensions planned or implemented 
 - [Built-in LINQ](linq.md)
 - [Data structures](data_structures.md) — `list`, `set`, `queue`, `stack`, heaps, trees
 
+## Issues
+
+- [Outstanding compiler performance issues](compiler_performance.md) — quadratic lookups and expensive type-checker paths in fork features
+
 ## Quick reference
 
 | Syntax | Document |
