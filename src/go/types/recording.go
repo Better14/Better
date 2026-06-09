@@ -219,3 +219,13 @@ func (check *Checker) recordOverloadSets() {
 		}
 	}
 }
+
+func (check *Checker) recordIndexOperatorCall(idx ast.Expr, call *ast.CallExpr) {
+	_ = idx
+	_ = call
+}
+
+func (check *Checker) recordIndexAssignCall(idx ast.Expr, call *ast.CallExpr) {
+	_ = idx
+	_ = call
+}

@@ -473,6 +473,14 @@ func (check *Checker) stmt(ctxt stmtContext, s ast.Stmt) {
 		}
 
 	case *ast.IncDecStmt:
+		incDecOp := token.ADD
+		if s.Tok == token.DEC {
+			incDecOp = token.SUB
+		}
+		if check.tryIncDecOperatorOverload(&ast.AssignStmt{Lhs: []ast.Expr{s.X}}, incDecOp) {
+			return
+		}
+
 		var op token.Token
 		switch s.Tok {
 		case token.INC:
@@ -647,6 +655,11 @@ func (check *Checker) stmt(ctxt stmtContext, s ast.Stmt) {
 			x.typ_ = Typ[Bool]
 			x.val = constant.MakeBool(true)
 			x.expr = &ast.Ident{NamePos: s.Body.Lbrace, Name: "true"}
+		}
+
+		if enumTyp, ok := AsEnum(x.typ()); ok && x.isValid() {
+			check.enumSwitchStmt(inner, s, x.typ(), enumTyp)
+			break
 		}
 
 		check.multipleDefaults(s.Body.List)

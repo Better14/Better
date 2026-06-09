@@ -170,6 +170,16 @@ func (check *Checker) instantiateSignature(pos token.Pos, expr ast.Expr, typ *Si
 }
 
 func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
+	if check.tryEnumVariantCall(x, call, nil) {
+		return expression
+	}
+
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		if kind, handled := check.tryExtensionCall(x, call, sel); handled {
+			return kind
+		}
+	}
+
 	ix := unpackIndexedExpr(call.Fun)
 	if ix != nil {
 		if check.indexExpr(x, ix) {
@@ -390,6 +400,104 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
 	}
 
 	return statement
+}
+
+func (check *Checker) selectOverloadSilent(call *ast.CallExpr, cands []*Func, args []*operand) *Func {
+	if len(cands) > 0 && cands[0] != nil {
+		if fn := check.lookupOverloadByArgTypes(cands[0].name, args); fn != nil && containsFunc(cands, fn) {
+			return fn
+		}
+	}
+
+	var matches []*Func
+	var scores []int
+	for _, fn := range cands {
+		if fn == nil || fn.typ == nil {
+			continue
+		}
+		sig := fn.typ.(*Signature)
+		nargs := len(args)
+		npars := sig.params.Len()
+		if sig.variadic {
+			if hasDots(call) {
+				if nargs != npars {
+					continue
+				}
+			} else if nargs < npars-1 {
+				continue
+			}
+		} else {
+			min := sigMinParams(sig)
+			if nargs < min || nargs > npars {
+				continue
+			}
+		}
+
+		ok := true
+		score := 0
+		fixed := npars
+		if sig.variadic && !hasDots(call) {
+			fixed = npars - 1
+		}
+		for i := 0; i < fixed; i++ {
+			arg, okArg := overloadArgOperand(args, nargs, i, sig.params.vars[i])
+			if !okArg {
+				ok = false
+				break
+			}
+			if okAssign, _ := arg.assignableTo(check, sig.params.vars[i].typ, nil); !okAssign {
+				ok = false
+				break
+			}
+			if Identical(arg.typ(), sig.params.vars[i].typ) {
+				score += 2
+			} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), sig.params.vars[i].typ) {
+				score++
+			}
+		}
+		if ok && sig.variadic && !hasDots(call) {
+			elem := sig.params.vars[npars-1].typ.(*Slice).elem
+			for i := npars - 1; i < nargs; i++ {
+				arg := *args[i]
+				if okAssign, _ := arg.assignableTo(check, elem, nil); !okAssign {
+					ok = false
+					break
+				}
+				if Identical(arg.typ(), elem) {
+					score += 2
+				} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), elem) {
+					score++
+				}
+			}
+		}
+		if ok {
+			matches = append(matches, fn)
+			scores = append(scores, score)
+		}
+	}
+
+	if len(matches) == 1 {
+		return matches[0]
+	}
+	if len(matches) == 0 {
+		return nil
+	}
+	best := -1
+	bestI := -1
+	tie := false
+	for i, sc := range scores {
+		if sc > best {
+			best = sc
+			bestI = i
+			tie = false
+		} else if sc == best {
+			tie = true
+		}
+	}
+	if bestI >= 0 && !tie {
+		return matches[bestI]
+	}
+	return nil
 }
 
 func (check *Checker) selectOverload(call *ast.CallExpr, cands []*Func, args []*operand) *Func {
@@ -964,6 +1072,14 @@ func (check *Checker) selector(x *operand, e *ast.SelectorExpr, wantType bool) {
 	// its base type must also be complete.
 	if p, ok := x.typ().Underlying().(*Pointer); ok && !check.isComplete(p.base) {
 		goto Error
+	}
+
+	if check.resultSelector(x, e) {
+		return
+	}
+
+	if check.enumSelector(x, e, x.typ(), false) {
+		return
 	}
 
 	obj, index, indirect = lookupFieldOrMethod(x.typ(), x.mode() == variable, check.pkg, sel, false)

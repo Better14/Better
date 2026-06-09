@@ -443,6 +443,26 @@ type (
 		Bang token.Pos // position of '!'
 	}
 
+	// A NullableTypeExpr node represents a nullable type T?.
+	NullableTypeExpr struct {
+		X    Expr
+		QPos token.Pos // position of '?'
+	}
+
+	// A NullCondExpr node represents null-conditional access (?.field / ?.[index]).
+	NullCondExpr struct {
+		X    Expr
+		QPos token.Pos // position of '?'
+	}
+
+	// An EnumPatternExpr node represents an enum case pattern Variant { fields... }.
+	EnumPatternExpr struct {
+		Variant *Ident
+		Args    []*Ident  // tuple bindings
+		Fields  []*Field  // struct bindings
+		Rbrace  token.Pos // position of "}"
+	}
+
 	// A ForceExpr node is no longer produced by the parser; it remains
 	// for backward compatibility in existing tools.
 	ForceExpr struct {
@@ -620,6 +640,12 @@ func (x *BinaryExpr) End() token.Pos     { return x.Y.End() }
 func (x *KeyValueExpr) End() token.Pos   { return x.Value.End() }
 func (x *ResultTypeExpr) End() token.Pos { return x.Bang + 1 }
 func (x *TryExpr) End() token.Pos        { return x.Bang + 1 }
+func (x *NullableTypeExpr) Pos() token.Pos { return x.X.Pos() }
+func (x *NullableTypeExpr) End() token.Pos { return x.QPos + 1 }
+func (x *NullCondExpr) Pos() token.Pos     { return x.X.Pos() }
+func (x *NullCondExpr) End() token.Pos     { return x.QPos + 1 }
+func (x *EnumPatternExpr) Pos() token.Pos  { return x.Variant.Pos() }
+func (x *EnumPatternExpr) End() token.Pos  { return x.Rbrace + 1 }
 func (x *ForceExpr) End() token.Pos      { return x.Bang + 1 }
 func (x *IfExpr) Pos() token.Pos         { return x.If }
 func (x *IfExpr) End() token.Pos         { return x.Rbrace2 + 1 }
@@ -667,6 +693,9 @@ func (*BinaryExpr) exprNode()     {}
 func (*KeyValueExpr) exprNode()   {}
 func (*ResultTypeExpr) exprNode() {}
 func (*TryExpr) exprNode()        {}
+func (*NullableTypeExpr) exprNode() {}
+func (*NullCondExpr) exprNode()    {}
+func (*EnumPatternExpr) exprNode() {}
 func (*ForceExpr) exprNode()      {}
 func (*IfExpr) exprNode()         {}
 func (*LambdaExpr) exprNode()     {}
@@ -1093,6 +1122,24 @@ type (
 		Type *FuncType     // function signature: type and value parameters, results, and position of "func" keyword
 		Body *BlockStmt    // function body; or nil for external (non-Go) function
 	}
+
+	// An EnumDecl node represents an enum declaration.
+	EnumDecl struct {
+		Doc        *CommentGroup // associated documentation; or nil
+		Enum       token.Pos     // position of "enum"
+		Name       *Ident
+		TypeParams *FieldList          // type parameters; or nil
+		Variants   []*EnumVariantSpec
+		Rbrace     token.Pos // position of "}"
+	}
+
+	// An EnumVariantSpec describes one variant in an enum declaration.
+	EnumVariantSpec struct {
+		Name         *Ident
+		Tag          Expr      // nil means auto-incremented tag
+		Types        []Expr    // tuple variant payload types
+		StructFields *FieldList // struct variant fields
+	}
 )
 
 // Pos and End implementations for declaration nodes.
@@ -1100,6 +1147,12 @@ type (
 func (d *BadDecl) Pos() token.Pos  { return d.From }
 func (d *GenDecl) Pos() token.Pos  { return d.TokPos }
 func (d *FuncDecl) Pos() token.Pos { return d.Type.Pos() }
+func (d *EnumDecl) Pos() token.Pos {
+	if d.Enum.IsValid() {
+		return d.Enum
+	}
+	return d.Name.Pos()
+}
 
 func (d *BadDecl) End() token.Pos { return d.To }
 func (d *GenDecl) End() token.Pos {
@@ -1114,12 +1167,14 @@ func (d *FuncDecl) End() token.Pos {
 	}
 	return d.Type.End()
 }
+func (d *EnumDecl) End() token.Pos { return d.Rbrace + 1 }
 
 // declNode() ensures that only declaration nodes can be
 // assigned to a Decl.
 func (*BadDecl) declNode()  {}
 func (*GenDecl) declNode()  {}
 func (*FuncDecl) declNode() {}
+func (*EnumDecl) declNode() {}
 
 // ----------------------------------------------------------------------------
 // Files and packages

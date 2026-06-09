@@ -977,7 +977,12 @@ scanAgain:
 			}
 		case '?':
 			insertSemi = true
-			tok = token.QUESTION
+			if s.ch == '?' {
+				s.next()
+				tok = token.NULLCOALESCE
+			} else {
+				tok = token.QUESTION
+			}
 		case '&':
 			if s.ch == '^' {
 				s.next()
