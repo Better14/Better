@@ -841,10 +841,6 @@ func (check *Checker) binary(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op
 		return
 	}
 
-	if e != nil && check.tryBinaryOperatorOverload(x, e, lhs, rhs, op) {
-		return
-	}
-
 	var y operand
 
 	check.expr(nil, x, lhs)
@@ -856,6 +852,10 @@ func (check *Checker) binary(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op
 	if !y.isValid() {
 		x.invalidate()
 		x.expr = y.expr
+		return
+	}
+
+	if check.applyBinaryOperatorOverload(x, &y, e, lhs, rhs, op) {
 		return
 	}
 

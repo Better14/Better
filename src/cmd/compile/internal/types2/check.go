@@ -150,6 +150,11 @@ type Checker struct {
 	overloadFuncs map[string][]*Func         // package-level function overloads in current package
 	overloadMeths map[methodKey][]*Func      // method overloads keyed by receiver base name and method name
 
+	operatorExact        map[string]map[operatorTypeKey]*Func // binary operator overload by operand types
+	operatorUnaryExact   map[string]map[string]*Func          // unary operator overload by operand type
+	overloadBySig        map[string]*Func                     // overload func by name + parameter-type suffix
+	overloadResolveCache map[overloadResolveKey]*Func         // memoized overload resolution by arg types
+
 	firstErr   error                    // first error encountered
 	methods    map[*TypeName][]*Func    // maps package scope type names to associated non-blank (non-interface) methods
 	untyped    map[syntax.Expr]exprInfo // map of expressions without final type
@@ -285,6 +290,7 @@ func (check *Checker) initFiles(files []*syntax.File) {
 	check.usedPkgNames = make(map[*PkgName]bool)
 	check.overloadFuncs = make(map[string][]*Func)
 	check.overloadMeths = make(map[methodKey][]*Func)
+	check.overloadResolveCache = nil
 
 	// determine package name and collect valid files
 	pkg := check.pkg

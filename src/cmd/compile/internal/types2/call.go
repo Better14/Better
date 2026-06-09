@@ -410,6 +410,18 @@ func (check *Checker) selectOverloadSilent(call *syntax.CallExpr, cands []*Func,
 }
 
 func (check *Checker) selectOverloadEx(call *syntax.CallExpr, cands []*Func, args []*operand, reportErrors bool) *Func {
+	if len(cands) > 0 && cands[0] != nil {
+		if fn := check.lookupOverloadByArgTypes(cands[0].name, args); fn != nil && containsFunc(cands, fn) {
+			return fn
+		}
+		cacheKey := overloadResolveKey{cand: cands[0], ncand: len(cands), args: operandTypesSuffix(args)}
+		if check.overloadResolveCache != nil {
+			if fn, ok := check.overloadResolveCache[cacheKey]; ok {
+				return fn
+			}
+		}
+	}
+
 	var matches []*Func
 	var scores []int
 	for _, fn := range cands {
@@ -478,7 +490,14 @@ func (check *Checker) selectOverloadEx(call *syntax.CallExpr, cands []*Func, arg
 	}
 
 	if len(matches) == 1 {
-		return matches[0]
+		fn := matches[0]
+		if len(cands) > 0 && cands[0] != nil {
+			if check.overloadResolveCache == nil {
+				check.overloadResolveCache = make(map[overloadResolveKey]*Func)
+			}
+			check.overloadResolveCache[overloadResolveKey{cand: cands[0], ncand: len(cands), args: operandTypesSuffix(args)}] = fn
+		}
+		return fn
 	}
 	if len(matches) == 0 {
 		if reportErrors {
@@ -499,7 +518,14 @@ func (check *Checker) selectOverloadEx(call *syntax.CallExpr, cands []*Func, arg
 		}
 	}
 	if bestI >= 0 && !tie {
-		return matches[bestI]
+		fn := matches[bestI]
+		if len(cands) > 0 && cands[0] != nil {
+			if check.overloadResolveCache == nil {
+				check.overloadResolveCache = make(map[overloadResolveKey]*Func)
+			}
+			check.overloadResolveCache[overloadResolveKey{cand: cands[0], ncand: len(cands), args: operandTypesSuffix(args)}] = fn
+		}
+		return fn
 	}
 	if reportErrors {
 		check.errorf(call, InvalidCall, "ambiguous overloaded call to %s (%s)", call.Fun, check.overloadList(matches))

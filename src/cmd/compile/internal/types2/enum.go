@@ -20,6 +20,9 @@ type Enum struct {
 	variants   []*EnumVariant
 	structType *Struct
 	scope      *Scope
+
+	variantByName map[string]*EnumVariant
+	variantByObj  map[Object]*EnumVariant
 }
 
 // An EnumVariant describes one variant of an enum.
@@ -33,7 +36,23 @@ type EnumVariant struct {
 
 // NewEnum returns a new enum type. Called only from buildEnum.
 func NewEnum(obj *TypeName, tparams *TypeParamList, variants []*EnumVariant, structType *Struct, scope *Scope) *Enum {
-	return &Enum{obj: obj, tparams: tparams, variants: variants, structType: structType, scope: scope}
+	byName := make(map[string]*EnumVariant, len(variants))
+	byObj := make(map[Object]*EnumVariant, len(variants))
+	for _, v := range variants {
+		byName[v.name] = v
+		if v.obj != nil {
+			byObj[v.obj] = v
+		}
+	}
+	return &Enum{
+		obj:           obj,
+		tparams:       tparams,
+		variants:      variants,
+		structType:    structType,
+		scope:         scope,
+		variantByName: byName,
+		variantByObj:  byObj,
+	}
 }
 
 func (e *Enum) Obj() *TypeName              { return e.obj }
@@ -478,6 +497,9 @@ func enumVariantByName(enumTyp *Enum, name string) *EnumVariant {
 	if enumTyp == nil {
 		return nil
 	}
+	if enumTyp.variantByName != nil {
+		return enumTyp.variantByName[name]
+	}
 	for _, v := range enumTyp.variants {
 		if v.name == name {
 			return v
@@ -489,6 +511,9 @@ func enumVariantByName(enumTyp *Enum, name string) *EnumVariant {
 func enumVariantByObj(enumTyp *Enum, obj Object) *EnumVariant {
 	if enumTyp == nil || obj == nil {
 		return nil
+	}
+	if enumTyp.variantByObj != nil {
+		return enumTyp.variantByObj[obj]
 	}
 	for _, v := range enumTyp.variants {
 		if v.obj == obj {

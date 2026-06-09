@@ -21,6 +21,11 @@ type Package struct {
 
 	overloadFuncs map[string][]*Func // package-level operator/overload functions
 	overloadMeths map[methodKey][]*Func
+
+	operatorFuncIndex  map[string][]*Func                 // operator/overload funcs by base name (incl. suffixed decls)
+	operatorExact      map[string]map[operatorTypeKey]*Func // binary operator overload by operand types
+	operatorUnaryExact map[string]map[string]*Func        // unary operator overload by operand type
+	extensionByName    map[string][]*Func                 // extension funcs indexed by method name
 }
 
 // NewPackage returns a new Package for the given package path and name.

@@ -62,7 +62,7 @@ func (check *Checker) indexExpr(x *operand, e *syntax.IndexExpr) (isFuncInst boo
 		return false
 	}
 
-	if (x.mode() == value || x.mode() == variable) && !supportsBuiltinIndex(x.typ()) && check.tryIndexOperatorOverload(x, e) {
+	if (x.mode() == value || x.mode() == variable) && !supportsBuiltinIndex(x.typ()) && check.tryIndexOperatorOverload(x, e, x) {
 		return false
 	}
 
