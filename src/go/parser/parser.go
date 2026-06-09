@@ -1860,9 +1860,8 @@ func (p *parser) parsePrimaryExpr(x ast.Expr) ast.Expr {
 			b := p.pos
 			p.next()
 			if p.tok != token.PERIOD {
-				p.errorExpected(p.pos, "'.' after !'")
-				x = &ast.BadExpr{From: b, To: p.pos}
-				return x
+				x = &ast.ForceExpr{X: x, Bang: b}
+				break
 			}
 			p.next() // '.'
 			if p.tok != token.IDENT {

@@ -386,14 +386,14 @@ type (
 		expr
 	}
 
-	// X! error propagation (.value or prefix of .field selector)
+	// X!.field error propagation (prefix of .field selector; .value is optional sugar)
 	TryExpr struct {
 		X    Expr
 		Bang Pos // position of '!'
 		expr
 	}
 
-	// ForceExpr is no longer produced by the parser.
+	// X! unwraps a (T, error) or T! value with early return on error.
 	ForceExpr struct {
 		X    Expr
 		Bang Pos // position of '!'
