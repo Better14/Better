@@ -145,6 +145,9 @@ func (w *typeWriter) typ(typ Type) {
 		w.string("[]")
 		w.typ(t.elem)
 
+	case *Enum:
+		w.typ(t.structType)
+
 	case *Struct:
 		w.string("struct{")
 		for i, f := range t.fields {
@@ -187,6 +190,14 @@ func (w *typeWriter) typ(typ Type) {
 	case *Pointer:
 		w.byte('*')
 		w.typ(t.base)
+
+	case *Optional:
+		w.typ(t.elem)
+		w.byte('?')
+
+	case *Result:
+		w.typ(t.elem)
+		w.byte('!')
 
 	case *Tuple:
 		w.tuple(t, false)

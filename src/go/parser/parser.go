@@ -2016,7 +2016,7 @@ func (p *parser) parseSwitchExprClause() *ast.SwitchExprClause {
 	switch p.tok {
 	case token.CASE:
 		p.next()
-		cases = p.parseList(true)
+		cases = p.parseEnumCaseList()
 	case token.DEFAULT:
 		p.next()
 	default:
@@ -2394,7 +2394,7 @@ func (p *parser) parseCaseClause() *ast.CaseClause {
 	var list []ast.Expr
 	if p.tok == token.CASE {
 		p.next()
-		list = p.parseList(true)
+		list = p.parseEnumCaseList()
 	} else {
 		p.expect(token.DEFAULT)
 	}
@@ -2403,6 +2403,51 @@ func (p *parser) parseCaseClause() *ast.CaseClause {
 	body := p.parseStmtList()
 
 	return &ast.CaseClause{Case: pos, List: list, Colon: colon, Body: body}
+}
+
+// parseEnumCaseList parses switch case expressions, including enum struct patterns.
+func (p *parser) parseEnumCaseList() []ast.Expr {
+	x := p.parseEnumCasePattern()
+	if p.tok != token.COMMA {
+		return []ast.Expr{x}
+	}
+	list := []ast.Expr{x}
+	for p.tok == token.COMMA {
+		p.next()
+		list = append(list, p.parseEnumCasePattern())
+	}
+	return list
+}
+
+// parseEnumCasePattern parses a case expression or enum struct pattern Variant { fields }.
+func (p *parser) parseEnumCasePattern() ast.Expr {
+	if p.tok != token.IDENT {
+		return p.parseExpr()
+	}
+	name := &ast.Ident{NamePos: p.pos, Name: p.lit}
+	p.next()
+	if p.tok != token.LBRACE {
+		return p.parseBinaryExpr(p.parsePrimaryExpr(name), token.LowestPrec+1)
+	}
+	pat := &ast.EnumPatternExpr{Variant: name}
+	p.next() // '{'
+	for p.tok != token.RBRACE && p.tok != token.EOF {
+		if p.tok != token.IDENT {
+			p.errorExpected(p.pos, "identifier")
+			p.advance(map[token.Token]bool{token.COMMA: true, token.RBRACE: true})
+			continue
+		}
+		field := &ast.Ident{NamePos: p.pos, Name: p.lit}
+		p.next()
+		pat.Fields = append(pat.Fields, &ast.Field{Names: []*ast.Ident{field}})
+		if p.tok == token.COMMA {
+			p.next()
+		} else {
+			break
+		}
+	}
+	pat.Rbrace = p.expect(token.RBRACE)
+	return pat
 }
 
 func isTypeSwitchAssert(x ast.Expr) bool {

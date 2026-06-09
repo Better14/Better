@@ -124,6 +124,57 @@ func WriteExpr(buf *bytes.Buffer, x ast.Expr) {
 		buf.WriteByte(' ')
 		WriteExpr(buf, x.Y)
 
+	case *ast.ResultTypeExpr:
+		WriteExpr(buf, x.X)
+		buf.WriteByte('!')
+
+	case *ast.NullableTypeExpr:
+		WriteExpr(buf, x.X)
+		buf.WriteByte('?')
+
+	case *ast.NullCondExpr:
+		WriteExpr(buf, x.X)
+		buf.WriteString("?.")
+
+	case *ast.TryExpr:
+		WriteExpr(buf, x.X)
+		buf.WriteString("!.")
+
+	case *ast.IfExpr:
+		buf.WriteString("if ")
+		WriteExpr(buf, x.Cond)
+		buf.WriteString(" { ")
+		WriteExpr(buf, x.Then)
+		buf.WriteString(" } else { ")
+		WriteExpr(buf, x.ElseBody)
+		buf.WriteString(" }")
+
+	case *ast.SwitchExpr:
+		buf.WriteString("switch ")
+		if x.Tag != nil {
+			WriteExpr(buf, x.Tag)
+		}
+		buf.WriteString(" { … }")
+
+	case *ast.LambdaExpr:
+		buf.WriteByte('(')
+		writeIdentList(buf, x.Params)
+		buf.WriteString(") => ")
+		WriteExpr(buf, x.Body)
+
+	case *ast.EnumPatternExpr:
+		buf.WriteString(x.Variant.Name)
+		buf.WriteByte('{')
+		for i, f := range x.Fields {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			if id := fieldNameIdent(f); id != nil {
+				buf.WriteString(id.Name)
+			}
+		}
+		buf.WriteByte('}')
+
 	case *ast.ArrayType:
 		buf.WriteByte('[')
 		if x.Len != nil {
