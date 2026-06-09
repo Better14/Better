@@ -4,23 +4,23 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// LINQ chains with => lambda syntax and a custom generic helper.
+// LINQ chains with => lambda syntax and custom extension helpers.
 
 package main
 
 import "linq"
 
-// ScaleBy multiplies each element by k (custom generic LINQ helper).
-func ScaleBy[T ~int | ~float64](l linq.Lazy[T], k T) linq.Lazy[T] {
+// ScaleBy multiplies each element by k (extension on linq.Lazy[T]).
+func (l linq.Lazy[T]) ScaleBy[T ~int | ~float64](k T) linq.Lazy[T] {
 	return linq.LazySelectBy(l, x => x*k)
 }
 
-// FirstMatch returns the first element satisfying pred (custom generic helper).
-func FirstMatch[T any](s []T, pred func(T) bool) T {
+// FirstMatch returns the first element satisfying pred (extension on []T).
+func (s []T) FirstMatch[T any](pred func(T) bool) T {
 	return linq.FromSlice(s).Where(pred).First()
 }
 
-// EvensDouble filters evens and doubles (custom slice extension).
+// EvensDouble filters evens and doubles (extension on []int).
 func (s []int) EvensDouble() linq.Lazy[int] {
 	return s.Where(n => n%2 == 0).Select(n => n * 2)
 }
@@ -45,8 +45,8 @@ func main() {
 		panic("EvensDouble")
 	}
 
-	// custom generic ScaleBy mid-chain
-	got := ScaleBy(nums.Where(n => n%2 == 1), 10).Select(n => n + 1).First()
+	// custom ScaleBy extension mid-chain
+	got := nums.Where(n => n%2 == 1).ScaleBy(10).Select(n => n + 1).First()
 	if got != 11 {
 		panic(got)
 	}
@@ -64,7 +64,7 @@ func main() {
 		panic(sum)
 	}
 
-	if FirstMatch(nums, n => n > 5) != 6 {
+	if nums.FirstMatch(n => n > 5) != 6 {
 		panic("FirstMatch")
 	}
 
