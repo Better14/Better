@@ -12,7 +12,7 @@ import "linq"
 
 // ScaleBy multiplies each element by k (custom generic LINQ helper).
 func ScaleBy[T ~int | ~float64](l linq.Lazy[T], k T) linq.Lazy[T] {
-	return linq.LazySelectBy(l, func(x T) T { return x * k })
+	return linq.LazySelectBy(l, x => x*k)
 }
 
 // FirstMatch returns the first element satisfying pred (custom generic helper).
@@ -20,21 +20,21 @@ func FirstMatch[T any](s []T, pred func(T) bool) T {
 	return linq.FromSlice(s).Where(pred).First()
 }
 
-// EvensDouble filters evens and doubles (custom slice extension using => in Where).
+// EvensDouble filters evens and doubles (custom slice extension).
 func (s []int) EvensDouble() linq.Lazy[int] {
-	return s.Where(n => n%2 == 0).Select(func(n int) int { return n * 2 })
+	return s.Where(n => n%2 == 0).Select(n => n * 2)
 }
 
 func main() {
 	nums := []int{1, 2, 3, 4, 5, 6, 7, 8}
 
-	// filter → map → first (=> in Where; Select uses func until method-type inference lands)
-	first := nums.Where(n => n%2 == 0).Select(func(n int) int { return n * 2 }).First()
+	// filter → map → first
+	first := nums.Where(n => n%2 == 0).Select(n => n * 2).First()
 	if first != 4 {
 		panic(first)
 	}
 
-	// filter → filter → take → list (=> throughout predicates)
+	// filter → filter → take → list
 	out := nums.Where(n => n > 1).Where(n => n%2 == 0).Take(3).ToList()
 	if len(out) != 3 || out[0] != 2 || out[2] != 6 {
 		panic(out)
@@ -45,13 +45,13 @@ func main() {
 		panic("EvensDouble")
 	}
 
-	// custom generic ScaleBy mid-chain with => predicates
-	got := ScaleBy(nums.Where(n => n%2 == 1), 10).Select(func(n int) int { return n + 1 }).First()
+	// custom generic ScaleBy mid-chain
+	got := ScaleBy(nums.Where(n => n%2 == 1), 10).Select(n => n + 1).First()
 	if got != 11 {
 		panic(got)
 	}
 
-	// any / all with =>
+	// any / all
 	if !nums.Any(n => n > 7) {
 		panic("Any")
 	}
@@ -59,7 +59,7 @@ func main() {
 		panic("All")
 	}
 
-	sum := linq.SumLazy(nums.Where(n => n%2 == 0).Select(func(n int) int { return n * n }))
+	sum := linq.SumLazy(nums.Where(n => n%2 == 0).Select(n => n * n))
 	if sum != 4+16+36+64 {
 		panic(sum)
 	}
@@ -69,11 +69,11 @@ func main() {
 	}
 
 	// distinct on lazy chain, group by on slice
-	dist := linq.DistinctLazy(nums.Select(func(n int) int { return n / 2 })).ToList()
+	dist := linq.DistinctLazy(nums.Select(n => n / 2)).ToList()
 	if len(dist) != 5 {
 		panic(dist)
 	}
-	groups := linq.LazyGroupBy(linq.FromSlice(nums), func(n int) int { return n % 2 }).ToList()
+	groups := linq.LazyGroupBy(linq.FromSlice(nums), n => n%2).ToList()
 	if len(groups) != 2 {
 		panic(groups)
 	}

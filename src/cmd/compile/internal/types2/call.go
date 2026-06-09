@@ -356,7 +356,15 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 	args, atargs := preloadArgs, preloadAtargs
 	if args == nil && len(call.ArgList) != 0 {
 		if sig.params != nil {
-			args, atargs = check.genericExprListHinted(call.ArgList, sig, sig.params)
+			var methodRecv *operand
+			if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
+				var recv operand
+				check.expr(nil, &recv, sel.X)
+				if recv.isValid() {
+					methodRecv = &recv
+				}
+			}
+			args, atargs = check.genericExprListHinted(call.ArgList, sig, sig.params, methodRecv)
 		} else {
 			args, atargs = check.genericExprList(call.ArgList)
 		}
@@ -648,19 +656,29 @@ func (check *Checker) genericExprList(elist []syntax.Expr) (resList []*operand, 
 
 // genericExprListHinted is like genericExprList but passes parameter types as
 // expression hints so => lambdas in LINQ-style calls can infer parameter types.
-func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature, params *Tuple) (resList []*operand, targsList [][]Type) {
+func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature, params *Tuple, methodRecv *operand) (resList []*operand, targsList [][]Type) {
 	infer := true
 	n := len(elist)
 	if n > 0 && check.allowVersion(go1_21) {
 		infer = false
 	}
 
+	hintRecv := func(i int) *operand {
+		if i > 0 && len(resList) > 0 && resList[0] != nil && resList[0].isValid() {
+			return resList[0]
+		}
+		if methodRecv != nil && methodRecv.isValid() {
+			return methodRecv
+		}
+		return nil
+	}
+
 	eval := func(i int, e syntax.Expr) (operand, []Type) {
 		var hint Type
 		if params != nil && i < params.Len() {
 			hint = params.At(i).typ
-			if sig != nil && i > 0 && len(resList) > 0 && resList[0] != nil {
-				hint = check.substHintFromRecv(hint, sig, resList[0])
+			if r := hintRecv(i); r != nil {
+				hint = check.substHintFromRecv(hint, sig, r)
 			}
 		}
 		var x operand
@@ -696,6 +714,9 @@ func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature,
 		var hint Type
 		if params != nil && params.Len() > 0 {
 			hint = params.At(0).typ
+			if r := hintRecv(0); r != nil {
+				hint = check.substHintFromRecv(hint, sig, r)
+			}
 		}
 		check.genericExpr(&x, e, hint)
 		return []*operand{&x}, nil
