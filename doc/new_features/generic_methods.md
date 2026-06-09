@@ -1,6 +1,6 @@
 # Generic Methods (Go 1.27)
 
-Go 1.27 extends generic types with **methods whose receivers are generic**. This is the mechanism behind C#-style “attach query methods to any enumerable” — but Go expresses it through **named generic types** and (for built-in slices) **compiler desugaring**, not C# `static` extension methods.
+Go 1.27 extends generic types with **methods whose receivers are generic**. This is the mechanism behind C#-style “attach query methods to any enumerable” — but Go expresses it through **named generic types** and **extension methods** on slices, not C# `static` extension methods.
 
 ### Methods on generic types
 
@@ -57,12 +57,12 @@ Such a declaration is a **generic method**. It must be **instantiated** (explici
 
 In C#, `Where`, `Select`, etc. are **extension methods** on `IEnumerable<T>` — any type implementing that interface picks them up.
 
-Go does not have `IEnumerable<T>`, but this fork adds **[Extension Methods](extension_methods.md)** — the general mechanism C# uses, adapted for Go generics and `iter.Seq[T]`. Until extensions are implemented, enumerables also use the legacy paths below:
+Go does not have `IEnumerable<T>`, but this fork adds **[Extension Methods](extension_methods.md)** — the general mechanism C# uses, adapted for Go generics and `iter.Seq[T]`.
 
 
 | Enumerable shape | How methods attach | Example |
 | ---------------- | ------------------ | ------- |
-| Slice / array `[]T` | **Extension methods** (planned) or legacy compiler **desugar** to `linq` when `import "linq"` | `a.Where(s => s == "a")` |
+| Slice / array `[]T` | **Extension methods** in `import "linq"` | `a.Where(s => s == "a")` |
 | `iter.Seq[T]` | **Extension methods** on `iter.Seq[T]` | `seq.Where(pred)` |
 | Named generic sequence type | Real **receiver methods** on the type | `func (l Lazy[T]) Where(…)`, `func (l list[T]) Where(…)` |
 | Other iterables | Extension methods after adaptation, or convert then chain | `set.Values().Where(…)` |
@@ -72,18 +72,18 @@ Go still does **not** allow methods on `[]T` itself (slice types are not defined
 
 ### Limitations (Go 1.27 and this fork)
 
-- **No methods on slice types.** Use a type alias/definition (`type List[E any] []E`), a wrapper (`Lazy[T]`), or slice LINQ desugaring (below).
+- **No methods on slice types.** Use a type alias/definition (`type List[E any] []E`), a wrapper (`Lazy[T]`), or `import "linq"` extension methods on `[]T`.
 - **Receiver base type** must be a defined type in the same package; it cannot be a pointer or interface type, and generic aliases have restrictions (see the language spec).
-- **Generic methods with method-local type parameters** (e.g. `Select[F any]` on `Lazy[T]`) are part of the Go 1.27 language, but the compiler in this fork may **ICE** when exporting some generic methods from generic types (`internal compiler error` in `noder/writer.go`). Until that is fixed, operations that need an extra type parameter (`Select`, `OrderBy` with key type `K`, `GroupBy` with key type `K`) may remain **package functions** (`linq.Select`, `linq.LazySelectBy`, …) even when simpler methods (`Where`, `Take`, `Skip`) work as receivers.
+- **Generic methods with method-local type parameters** (e.g. `Select[U]` on `Lazy[T]`) are supported; type inference for `=>` lambdas uses receiver and parameter types as hints.
 - **Instantiation:** generic methods must be instantiated; type inference at the call site applies when the compiler can infer method type arguments from arguments (same rules as generic functions).
 - **Not in upstream Go** before 1.27.
 
 ### Relation to LINQ
 
-Built-in LINQ syntax (`nums.Where(…).Select(…).ToList()`) is intended to be implemented with **[Extension Methods](#extension-methods)** on `iter.Seq[T]` (with automatic `slices.Values` for `[]T`). Until that lands, the compiler also uses:
+Built-in LINQ syntax (`nums.Where(…).Select(…).ToList()`) is implemented with:
 
-1. **Legacy desugaring** for slices/arrays (and continued chains on `linq.Lazy[T]`) via a fixed `linqMethods` table.
-2. **Receiver methods** on `linq.Lazy[T]` and container types where supported.
-3. **Package functions** in `import "linq"` as the lowering target.
+1. **Extension methods** on `[]T` and arrays in `import "linq"` (`slice_ext.go`).
+2. **Receiver methods** on `linq.Lazy[T]` and other named sequence types.
+3. **Package functions** (`linq.LazyWhere`, `linq.LazySelectBy`, …) as the implementation layer.
 
-See [Built-in LINQ](linq.md) for usage examples.
+Future work: extensions on `iter.Seq[T]` with automatic `slices.Values` for `[]T`. See [Built-in LINQ](linq.md) for usage examples.

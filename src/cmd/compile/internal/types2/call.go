@@ -355,7 +355,11 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 	// evaluate arguments
 	args, atargs := preloadArgs, preloadAtargs
 	if args == nil && len(call.ArgList) != 0 {
-		args, atargs = check.genericExprList(call.ArgList)
+		if sig.params != nil {
+			args, atargs = check.genericExprListHinted(call.ArgList, sig, sig.params)
+		} else {
+			args, atargs = check.genericExprList(call.ArgList)
+		}
 	}
 	sig = check.arguments(call, sig, targs, xlist, args, atargs)
 
@@ -641,6 +645,100 @@ func (check *Checker) genericExprList(elist []syntax.Expr) (resList []*operand, 
 	}
 
 	return
+}
+
+// genericExprListHinted is like genericExprList but passes parameter types as
+// expression hints so => lambdas in LINQ-style calls can infer parameter types.
+func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature, params *Tuple) (resList []*operand, targsList [][]Type) {
+	infer := true
+	n := len(elist)
+	if n > 0 && check.allowVersion(go1_21) {
+		infer = false
+	}
+
+	eval := func(i int, e syntax.Expr) (operand, []Type) {
+		var hint Type
+		if params != nil && i < params.Len() {
+			hint = params.At(i).typ
+			if sig != nil && i > 0 && len(resList) > 0 && resList[0] != nil {
+				hint = check.substHintFromRecv(hint, sig, resList[0])
+			}
+		}
+		var x operand
+		if inst, _ := e.(*syntax.IndexExpr); inst != nil && check.indexExpr(&x, inst) {
+			targs := check.funcInst(nil, x.Pos(), &x, inst, infer)
+			if targs != nil {
+				x.expr = inst
+				return x, targs
+			}
+			check.record(&x)
+			return x, nil
+		}
+		check.genericExpr(&x, e, hint)
+		return x, nil
+	}
+
+	if n == 1 {
+		x, targs := eval(0, elist[0])
+		if t, ok := x.typ().(*Tuple); ok && x.isValid() {
+			resList = make([]*operand, t.Len())
+			for i, v := range t.vars {
+				resList[i] = &operand{mode_: value, expr: elist[0], typ_: v.typ}
+			}
+			return resList, nil
+		}
+		if targs != nil {
+			return []*operand{&x}, [][]Type{targs}
+		}
+		return []*operand{&x}, nil
+	}
+
+	resList = make([]*operand, n)
+	targsList = make([][]Type, n)
+	for i, e := range elist {
+		x, targs := eval(i, e)
+		resList[i] = &x
+		targsList[i] = targs
+	}
+	return resList, targsList
+}
+
+func (check *Checker) recvElemType(recv *operand) Type {
+	if recv == nil || !recv.isValid() {
+		return nil
+	}
+	typ := recv.typ()
+	for typ != nil {
+		typ = Unalias(typ)
+		switch u := typ.Underlying().(type) {
+		case *Slice:
+			return u.elem
+		case *Array:
+			return u.elem
+		}
+		if n, ok := typ.(*Named); ok {
+			if targs := n.TypeArgs(); targs != nil && targs.Len() > 0 {
+				return targs.At(0)
+			}
+			typ = n.Underlying()
+			continue
+		}
+		break
+	}
+	return nil
+}
+
+func (check *Checker) substHintFromRecv(hint Type, sig *Signature, recv *operand) Type {
+	if hint == nil || sig == nil || recv == nil || !recv.isValid() || sig.TypeParams().Len() == 0 {
+		return hint
+	}
+	elem := check.recvElemType(recv)
+	if elem == nil {
+		return hint
+	}
+	pos := recv.Pos()
+	m := makeSubstMap([]*TypeParam{sig.TypeParams().At(0)}, []Type{elem})
+	return check.subst(pos, hint, m, nil, check.context())
 }
 
 // arguments type-checks arguments passed to a function call with the given signature.

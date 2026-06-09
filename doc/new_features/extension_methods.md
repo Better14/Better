@@ -295,7 +295,7 @@ func main() {
 
 - **Ordinary method:** `func (p Person) Greet()` in `package person`.
 - **Extension:** `func (p person.Person) Hello()` in `package personext`.
-- **LINQ:** implement as extensions on `iter.Seq[T]` / `[]T`; remove legacy `linqMethods` desugar. See [Built-in LINQ](linq.md).
+- **LINQ:** implemented as extensions on `[]T` in `import "linq"` and receiver methods on `linq.Lazy[T]`. See [Built-in LINQ](linq.md).
 
 ### Limitations
 

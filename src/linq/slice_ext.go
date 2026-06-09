@@ -68,3 +68,15 @@ func (s []T) All[T any](pred func(T) bool) bool {
 func (s []T) Aggregate[T any](fn func(T, T) T) T {
 	return LazyAggregate(FromSlice(s), fn)
 }
+
+func (s []T) Distinct[T comparable]() Lazy[T] {
+	return LazyDistinct(FromSlice(s))
+}
+
+func (s []T) GroupBy[T, K comparable](keyFn func(T) K) Lazy[Group[K, T]] {
+	return LazyGroupBy(FromSlice(s), keyFn)
+}
+
+func (s []T) Sum[T Number]() T {
+	return LazySum(FromSlice(s))
+}
