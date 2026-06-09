@@ -1243,8 +1243,10 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		}
 
 	case *syntax.ForceExpr:
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone !; use !.value or !.field")
-		goto Error
+		check.forceExpr(x, e)
+		if !x.isValid() {
+			goto Error
+		}
 
 	case *syntax.CallExpr:
 		return check.callExpr(x, e, hint)

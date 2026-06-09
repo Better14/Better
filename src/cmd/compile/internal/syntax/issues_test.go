@@ -49,3 +49,22 @@ func TestIssue67866(t *testing.T) {
 		})
 	}
 }
+
+func TestPostfixForce(t *testing.T) {
+	const src = "package p; func f() int! { a := g()!; _ = a; return a }"
+	f, err := Parse(nil, strings.NewReader(src), nil, nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var force *ForceExpr
+	Inspect(f, func(n Node) bool {
+		if fe, ok := n.(*ForceExpr); ok {
+			force = fe
+		}
+		return true
+	})
+	if force == nil {
+		t.Fatal("expected ForceExpr for g()!")
+	}
+}

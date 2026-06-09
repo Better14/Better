@@ -1466,9 +1466,12 @@ loop:
 			bang := p.pos()
 			p.next()
 			if p.tok != _Dot {
-				p.syntaxError("expected '.' after !'")
-				x = p.badExpr()
-				return x
+				f := new(ForceExpr)
+				f.pos = x.Pos()
+				f.Bang = bang
+				f.X = x
+				x = f
+				break
 			}
 			p.next() // '.'
 			if p.tok != _Name {

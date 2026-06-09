@@ -138,7 +138,11 @@ func WriteExpr(buf *bytes.Buffer, x ast.Expr) {
 
 	case *ast.TryExpr:
 		WriteExpr(buf, x.X)
-		buf.WriteString("!.")
+		buf.WriteByte('!')
+
+	case *ast.ForceExpr:
+		WriteExpr(buf, x.X)
+		buf.WriteByte('!')
 
 	case *ast.IfExpr:
 		buf.WriteString("if ")

@@ -436,8 +436,8 @@ type (
 		Bang token.Pos // position of '!'
 	}
 
-	// A TryExpr node represents error propagation: x!.value or the
-	// prefix of x!.field (parsed as SelectorExpr{TryExpr{X}, Sel}).
+	// A TryExpr node represents error propagation: x!.field (parsed as
+	// SelectorExpr{TryExpr{X}, Sel}). x!.value is optional sugar for x!.
 	TryExpr struct {
 		X    Expr
 		Bang token.Pos // position of '!'
@@ -463,8 +463,7 @@ type (
 		Rbrace  token.Pos // position of "}"
 	}
 
-	// A ForceExpr node is no longer produced by the parser; it remains
-	// for backward compatibility in existing tools.
+	// A ForceExpr node represents error propagation: x! unwraps the success value.
 	ForceExpr struct {
 		X    Expr
 		Bang token.Pos // position of '!'
