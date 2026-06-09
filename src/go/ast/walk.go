@@ -143,6 +143,21 @@ func Walk(v Visitor, node Node) {
 	case *TryExpr:
 		Walk(v, n.X)
 
+	case *NullableTypeExpr:
+		Walk(v, n.X)
+
+	case *NullCondExpr:
+		Walk(v, n.X)
+
+	case *EnumPatternExpr:
+		Walk(v, n.Variant)
+		for _, id := range n.Args {
+			Walk(v, id)
+		}
+		for _, f := range n.Fields {
+			Walk(v, f)
+		}
+
 	case *ForceExpr:
 		Walk(v, n.X)
 
@@ -362,6 +377,27 @@ func Walk(v Visitor, node Node) {
 		Walk(v, n.Type)
 		if n.Body != nil {
 			Walk(v, n.Body)
+		}
+
+	case *EnumDecl:
+		if n.Doc != nil {
+			Walk(v, n.Doc)
+		}
+		Walk(v, n.Name)
+		if n.TypeParams != nil {
+			Walk(v, n.TypeParams)
+		}
+		for _, spec := range n.Variants {
+			if spec != nil {
+				Walk(v, spec.Name)
+				Walk(v, spec.Tag)
+				for _, t := range spec.Types {
+					Walk(v, t)
+				}
+				if spec.StructFields != nil {
+					Walk(v, spec.StructFields)
+				}
+			}
 		}
 
 	// Files and packages

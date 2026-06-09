@@ -168,6 +168,10 @@ func (check *Checker) unary(x *operand, e *ast.UnaryExpr) {
 		op = token.XOR
 	}
 
+	if check.tryUnaryOperatorOverload(x, e) {
+		return
+	}
+
 	if !check.op(unaryOpPredicates, x, op) {
 		x.invalidate()
 		return
@@ -796,6 +800,11 @@ func init() {
 // If e != nil, it must be the binary expression; it may be nil for non-constant expressions
 // (when invoked for an assignment operation where the binary expression is implicit).
 func (check *Checker) binary(x *operand, e ast.Expr, lhs, rhs ast.Expr, op token.Token, opPos token.Pos) {
+	if op == token.NULLCOALESCE {
+		check.nullCoalesce(x, e, lhs, rhs)
+		return
+	}
+
 	var y operand
 
 	check.expr(nil, x, lhs)
@@ -807,6 +816,10 @@ func (check *Checker) binary(x *operand, e ast.Expr, lhs, rhs ast.Expr, op token
 	if !y.isValid() {
 		x.invalidate()
 		x.expr = y.expr
+		return
+	}
+
+	if check.applyBinaryOperatorOverload(x, &y, e, lhs, rhs, op) {
 		return
 	}
 
@@ -1096,9 +1109,29 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 		return kind
 
 	case *ast.SelectorExpr:
-		check.selector(x, e, false)
+		if nc, ok := e.X.(*ast.NullCondExpr); ok {
+			check.nullCondSelector(x, e, nc)
+		} else {
+			check.selector(x, e, false)
+		}
 
-	case *ast.IndexExpr, *ast.IndexListExpr:
+	case *ast.IndexExpr:
+		if nc, ok := e.X.(*ast.NullCondExpr); ok {
+			check.nullCondIndex(x, e, nc)
+		} else {
+			ix := unpackIndexedExpr(e)
+			if check.indexExpr(x, ix) {
+				if !enableReverseTypeInference {
+					T = nil
+				}
+				check.funcInst(T, e.Pos(), x, ix, true)
+			}
+		}
+		if !x.isValid() {
+			goto Error
+		}
+
+	case *ast.IndexListExpr:
 		ix := unpackIndexedExpr(e)
 		if check.indexExpr(x, ix) {
 			if !enableReverseTypeInference {
@@ -1171,6 +1204,14 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 
 	case *ast.ForceExpr:
 		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone !; use !.value or !.field")
+		goto Error
+
+	case *ast.NullCondExpr:
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone ?.; use ?.field or ?.[index]")
+		goto Error
+
+	case *ast.EnumPatternExpr:
+		check.error(e, InvalidSyntaxTree, "enum pattern not allowed outside enum switch")
 		goto Error
 
 	case *ast.StarExpr:

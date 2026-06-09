@@ -156,7 +156,11 @@ func (check *Checker) objDecl(obj Object) {
 		check.varDecl(obj, d.lhs, d.vtyp, d.init)
 	case *TypeName:
 		// invalid recursive types are detected via path
-		check.typeDecl(obj, d.tdecl)
+		if d.edecl != nil {
+			check.enumDecl(obj, d.edecl)
+		} else {
+			check.typeDecl(obj, d.tdecl)
+		}
 		check.collectMethods(obj) // methods can only be added to top-level types
 	case *Func:
 		// functions may be recursive - no need to track dependencies
@@ -325,6 +329,7 @@ type (
 	}
 	varDecl  struct{ spec *ast.ValueSpec }
 	typeDecl struct{ spec *ast.TypeSpec }
+	enumDecl struct{ decl *ast.EnumDecl }
 	funcDecl struct{ decl *ast.FuncDecl }
 )
 
@@ -332,6 +337,7 @@ func (d importDecl) node() ast.Node { return d.spec }
 func (d constDecl) node() ast.Node  { return d.spec }
 func (d varDecl) node() ast.Node    { return d.spec }
 func (d typeDecl) node() ast.Node   { return d.spec }
+func (d enumDecl) node() ast.Node   { return d.decl }
 func (d funcDecl) node() ast.Node   { return d.decl }
 
 func (check *Checker) walkDecls(decls []ast.Decl, f func(decl)) {
@@ -379,6 +385,8 @@ func (check *Checker) walkDecl(d ast.Decl, f func(decl)) {
 		}
 	case *ast.FuncDecl:
 		f(funcDecl{d})
+	case *ast.EnumDecl:
+		f(enumDecl{d})
 	default:
 		check.errorf(d, InvalidSyntaxTree, "unknown ast.Decl node %T", d)
 	}
@@ -774,6 +782,15 @@ func (check *Checker) funcDecl(obj *Func, decl *declInfo) {
 	fdecl := decl.fdecl
 	check.funcType(sig, fdecl.Recv, fdecl.Type)
 
+	if sig.recv != nil && check.isExtensionRecv(sig.recv.typ) {
+		check.finishExtensionFunc(obj, sig)
+		if alt := check.pkg.scope.Lookup(obj.name); alt == nil {
+			check.declare(check.pkg.scope, fdecl.Name, obj, nopos)
+		} else if f, ok := alt.(*Func); !ok || !f.IsExtension() {
+			check.errorf(fdecl.Name, DuplicateDecl, "%s already declared in this package", obj.name)
+		}
+	}
+
 	// Set the scope's extent to the complete "func (...) { ... }"
 	// so that Scope.Innermost works correctly.
 	sig.scope.pos = fdecl.Pos()
@@ -888,6 +905,15 @@ func (check *Checker) declStmt(d ast.Decl) {
 			check.push(obj) // mark as grey
 			check.typeDecl(obj, d.spec)
 			check.pop()
+
+		case enumDecl:
+			obj := NewTypeName(d.decl.Name.Pos(), pkg, d.decl.Name.Name, nil)
+			scopePos := d.decl.Name.Pos()
+			check.declare(check.scope, d.decl.Name, obj, scopePos)
+			check.push(obj)
+			check.enumDecl(obj, d.decl)
+			check.pop()
+
 		default:
 			check.errorf(d.node(), InvalidSyntaxTree, "unknown ast.Decl node %T", d.node())
 		}

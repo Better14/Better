@@ -34,6 +34,11 @@ func (check *Checker) switchExpr(x *operand, e *ast.SwitchExpr) {
 		return
 	}
 
+	if enumTyp, ok := AsEnum(tag.typ()); ok {
+		check.enumSwitchExpr(x, e, tag.typ(), enumTyp)
+		return
+	}
+
 	check.multipleSwitchExprDefaults(e.Body)
 
 	seen := make(valueMap)

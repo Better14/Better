@@ -116,6 +116,7 @@ type Named struct {
 	mu         sync.Mutex     // guards all fields below
 	state_     uint32         // the current state of this type; must only be accessed atomically or when mu is held
 	fromRHS    Type           // the declaration RHS this type is derived from
+	enumType   *Enum          // non-nil for enum types; survives SetUnderlying
 	tparams    *TypeParamList // type parameters, or nil
 	underlying Type           // underlying type, or nil
 	varSize    bool           // whether the type has variable size

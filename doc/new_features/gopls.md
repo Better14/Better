@@ -2,7 +2,7 @@
 
 [gopls](https://pkg.go.dev/golang.org/x/tools/gopls) is the Go language server used by VS Code, Cursor, and other editors. In this fork it lives in a separate repository (`go_tools`) and must be built against this fork’s **GOROOT** so it uses the extended **`go/parser`**, **`go/ast`**, and **`go/types`** packages.
 
-The **compiler** (`cmd/compile`) uses a different stack: **`cmd/compile/internal/syntax`** → **`types2`**. Features that exist only there compile fine but may not appear correctly in the IDE until they are ported to `go/types` (and to `go/parser` / `go/ast` where new syntax is needed).
+The **compiler** (`cmd/compile`) uses a different stack: **`cmd/compile/internal/syntax`** → **`types2`**. Both stacks now implement the same fork language features; **`types2`** may receive compiler-specific optimizations first.
 
 ---
 
@@ -52,21 +52,14 @@ These are implemented in **`go/parser`**, **`go/ast`**, and **`go/types`**. gopl
 | Lambda `=>` | `ast.LambdaExpr` | [lambda_syntax.md](lambda_syntax.md) |
 | Default function arguments | `ast.Field.Default` | [default_arguments.md](default_arguments.md) |
 | Function and method overloading | `types.Info.FuncOverloads`, `MethodOverloads`, `CallOverloads` | [overloading.md](overloading.md) |
+| Enums `enum E { … }` | `ast.EnumDecl`, `types.Enum` | [enums.md](enums.md) |
+| Nullable types `T?`, `?.`, `??` | `ast.NullableTypeExpr`, `ast.NullCondExpr`, `token.NULLCOALESCE` | [nullable_types.md](nullable_types.md) |
+| Extension methods | `types.Func.IsExtension`, extension call lowering | [extension_methods.md](extension_methods.md) |
+| Operator overloading | indexed overload resolution in `go/types` | [operator_overloading.md](operator_overloading.md) |
 
 **Overload signature help:** when a call has multiple overload candidates, gopls lists all matching signatures (see `gopls/internal/golang/signature_help.go` and marker test `testdata/signature/overload.txt` in `go_tools`).
 
 **Tests in `go_tools`:** `gopls/internal/cache/parsego/parse_test.go` (syntax nodes), `gopls/internal/cache/overload_test.go` (overload typecheck).
-
-### Not supported in gopls (compiler-only today)
-
-These are implemented in **`cmd/compile/internal/syntax`** and **`types2`** but are **not** in `go/parser` / `go/types`. gopls will report **parse or type errors** even when `go build` succeeds.
-
-| Feature | Typical gopls behavior | Document |
-| ------- | ---------------------- | -------- |
-| Enums `enum E { … }` | `expected declaration, found enum` | [enums.md](enums.md) |
-| Nullable types `T?`, `?.`, `??` | not parsed | [nullable_types.md](nullable_types.md) |
-| Extension methods | ordinary method lookup only | [extension_methods.md](extension_methods.md) |
-| Operator overloading | built-in operators only | [operator_overloading.md](operator_overloading.md) |
 
 **Standard library extensions** ([LINQ](linq.md), [structured errors](errors.md), [data structures](data_structures.md), etc.) compile with the fork toolchain; IDE support is the same as for normal Go packages once the **language** syntax type-checks. No separate gopls plugin is required for stdlib APIs.
 
@@ -81,24 +74,18 @@ These are implemented in **`cmd/compile/internal/syntax`** and **`types2`** but 
 | `(a, b) => expr` | yes | yes | yes |
 | Default args | yes | yes | yes |
 | Overloading | yes | yes | yes (+ signature help) |
-| `enum E { … }` | yes | no | no |
-| `T?`, `?.`, `??` | yes | no | no |
-| Extension methods | yes | yes* | no |
-| Operator overloading | yes | yes* | no |
+| `enum E { … }` | yes | yes | yes |
+| `T?`, `?.`, `??` | yes | yes | yes |
+| Extension methods | yes | yes | yes |
+| Operator overloading | yes | yes | yes |
 
-\*Source that uses only standard Go syntax may parse; fork-specific resolution does not run in gopls.
+\*Extension and operator resolution now run in `go/types` when gopls is built with this GOROOT.
 
 ---
 
 ## Porting work (future)
 
-To get full IDE support for compiler-only features:
-
-1. **`go/ast` + `go/parser`** — new nodes and parsing for enum, nullable types, etc.
-2. **`go/types`** — port checking logic from `types2` (extensions, operators, enums, optionals).
-3. **`go_tools` / gopls** — semantic tokens, completion, and analyzers as needed.
-
-Until then, use **`go build`** / **`go test`** as the source of truth for compiler-only syntax.
+Core type-checking for all fork language features is ported to **`go/types`** (and parser/AST where needed). Remaining IDE work may include semantic tokens, enum switch pattern parsing, and analyzer polish in **`go_tools` / gopls**.
 
 ---
 

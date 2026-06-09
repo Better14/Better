@@ -26,6 +26,8 @@ type declInfo struct {
 	init      ast.Expr      // init/orig expression, or nil (for const and var declarations only)
 	inherited bool          // if set, the init expression is inherited from a previous constant declaration
 	tdecl     *ast.TypeSpec // type declaration, or nil
+	edecl     *ast.EnumDecl // enum declaration, or nil
+	enumTyp   *Enum         // enum type info, or nil
 	fdecl     *ast.FuncDecl // func declaration, or nil
 
 	// The deps field tracks initialization expression dependencies.
@@ -397,6 +399,9 @@ func (check *Checker) collectObjects() {
 			case typeDecl:
 				obj := NewTypeName(d.spec.Name.Pos(), pkg, d.spec.Name.Name, nil)
 				check.declarePkgObj(d.spec.Name, obj, &declInfo{file: fileScope, version: check.version, tdecl: d.spec})
+			case enumDecl:
+				obj := NewTypeName(d.decl.Name.Pos(), pkg, d.decl.Name.Name, nil)
+				check.declarePkgObj(d.decl.Name, obj, &declInfo{file: fileScope, version: check.version, edecl: d.decl})
 			case funcDecl:
 				name := d.decl.Name.Name
 				obj := NewFunc(d.decl.Name.Pos(), pkg, name, nil) // signature set later
@@ -709,6 +714,12 @@ func (check *Checker) packageObjects() {
 	check.methods = nil
 
 	check.assignOverloadSuffixes()
+	if len(check.overloadFuncs) > 0 {
+		check.pkg.overloadFuncs = check.overloadFuncs
+	}
+	if len(check.overloadMeths) > 0 {
+		check.pkg.overloadMeths = check.overloadMeths
+	}
 	check.recordOverloadSets()
 }
 

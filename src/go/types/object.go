@@ -402,10 +402,17 @@ func (*Var) isDependency() {} // a variable may be a dependency of an initializa
 // An abstract method may belong to many interfaces due to embedding.
 type Func struct {
 	object
-	hasPtrRecv_ bool  // only valid for methods that don't have a type yet; use hasPtrRecv() to read
-	origin      *Func // if non-nil, the Func from which this one was instantiated
-	linkSuffix  string // non-empty for overloaded symbols; used by the compiler backend
+	hasPtrRecv_  bool  // only valid for methods that don't have a type yet; use hasPtrRecv() to read
+	isExtension_ bool  // extension method: receiver type is external, predeclared, or composite
+	origin       *Func // if non-nil, the Func from which this one was instantiated
+	linkSuffix   string // non-empty for overloaded symbols; used by the compiler backend
 }
+
+// IsExtension reports whether obj is an extension method (compiled as a package function).
+func (obj *Func) IsExtension() bool { return obj.isExtension_ }
+
+// SetExtension marks obj as an extension method (used when loading export data).
+func (obj *Func) SetExtension(v bool) { obj.isExtension_ = v }
 
 // LinkName returns the linker symbol name for obj.
 // Overloaded functions and methods use a parameter-type suffix after '·'.
@@ -430,7 +437,7 @@ func NewFunc(pos token.Pos, pkg *Package, name string, sig *Signature) *Func {
 		// as this would violate object.{Type,color} invariants.
 		// TODO(adonovan): propose to disallow NewFunc with nil *Signature.
 	}
-	return &Func{object{nil, pos, pkg, name, typ, 0, nopos}, false, nil, ""}
+	return &Func{object{nil, pos, pkg, name, typ, 0, nopos}, false, false, nil, ""}
 }
 
 // Signature returns the signature (type) of the function or method.

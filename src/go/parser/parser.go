@@ -536,6 +536,11 @@ func (p *parser) parseType() ast.Expr {
 		p.next()
 		typ = &ast.ResultTypeExpr{X: typ, Bang: b}
 	}
+	for typ != nil && p.tok == token.QUESTION {
+		q := p.pos
+		p.next()
+		typ = &ast.NullableTypeExpr{X: typ, QPos: q}
+	}
 	return typ
 }
 
@@ -1118,6 +1123,11 @@ func (p *parser) parseParameters(result bool) *ast.FieldList {
 			b := p.pos
 			p.next()
 			typ = &ast.ResultTypeExpr{X: typ, Bang: b}
+		}
+		for p.tok == token.QUESTION {
+			q := p.pos
+			p.next()
+			typ = &ast.NullableTypeExpr{X: typ, QPos: q}
 		}
 		list := make([]*ast.Field, 1)
 		list[0] = &ast.Field{Type: typ}
@@ -1865,6 +1875,31 @@ func (p *parser) parsePrimaryExpr(x ast.Expr) ast.Expr {
 			x = &ast.TryExpr{X: x, Bang: b}
 			if sel.Name != "value" {
 				x = &ast.SelectorExpr{X: x, Sel: sel}
+			}
+		case token.QUESTION:
+			qpos := p.pos
+			p.next()
+			if p.tok != token.PERIOD {
+				p.errorExpected(p.pos, "'.' after ?'")
+				x = &ast.BadExpr{From: qpos, To: p.pos}
+				return x
+			}
+			p.next() // '.'
+			nc := &ast.NullCondExpr{X: x, QPos: qpos}
+			x = nc
+			if p.tok == token.IDENT {
+				sel := &ast.Ident{NamePos: p.pos, Name: p.lit}
+				p.next()
+				x = &ast.SelectorExpr{X: nc, Sel: sel}
+			} else if p.tok == token.LBRACK {
+				p.next()
+				idx := p.parseExpr()
+				p.expect(token.RBRACK)
+				x = &ast.IndexExpr{X: nc, Lbrack: qpos, Index: idx, Rbrack: p.pos}
+			} else {
+				p.errorExpected(p.pos, "name or [ after ?.'")
+				x = &ast.BadExpr{From: qpos, To: p.pos}
+				return x
 			}
 		default:
 			return x
@@ -2943,6 +2978,88 @@ func (p *parser) parseGenDecl(keyword token.Token, f parseSpecFunction) *ast.Gen
 	}
 }
 
+func (p *parser) parseEnumDecl() *ast.EnumDecl {
+	if p.trace {
+		defer un(trace(p, "EnumDecl"))
+	}
+
+	doc := p.leadComment
+	enumPos := p.expect(token.ENUM)
+	name := p.parseIdent()
+
+	var tparams *ast.FieldList
+	if p.tok == token.LBRACK {
+		tparams = p.parseTypeParameters()
+	}
+
+	_ = p.expect(token.LBRACE)
+	var variants []*ast.EnumVariantSpec
+	for p.tok != token.RBRACE && p.tok != token.EOF {
+		if p.tok == token.SEMICOLON {
+			p.next()
+			continue
+		}
+		v := p.parseEnumVariant()
+		if v != nil {
+			variants = append(variants, v)
+		}
+		if p.tok == token.SEMICOLON {
+			p.next()
+		} else if p.tok != token.RBRACE {
+			p.errorExpected(p.pos, "';' or '}'")
+			p.advance(declStart)
+		}
+	}
+	rbrace := p.expect(token.RBRACE)
+	p.expectSemi()
+
+	return &ast.EnumDecl{
+		Doc:        doc,
+		Enum:       enumPos,
+		Name:       name,
+		TypeParams: tparams,
+		Variants:   variants,
+		Rbrace:     rbrace,
+	}
+}
+
+func (p *parser) parseEnumVariant() *ast.EnumVariantSpec {
+	if p.trace {
+		defer un(trace(p, "EnumVariant"))
+	}
+
+	name := p.parseIdent()
+	spec := &ast.EnumVariantSpec{Name: name}
+
+	switch p.tok {
+	case token.ASSIGN:
+		p.next()
+		spec.Tag = p.parseExpr()
+	case token.LPAREN:
+		p.next()
+		for p.tok != token.RPAREN && p.tok != token.EOF {
+			spec.Types = append(spec.Types, p.parseType())
+			if p.tok == token.COMMA {
+				p.next()
+			} else {
+				break
+			}
+		}
+		p.expect(token.RPAREN)
+	case token.LBRACE:
+		p.next()
+		lbrace := p.pos
+		var list []*ast.Field
+		for p.tok == token.IDENT || p.tok == token.MUL || p.tok == token.LPAREN {
+			list = append(list, p.parseFieldDecl())
+		}
+		rbrace := p.expect(token.RBRACE)
+		spec.StructFields = &ast.FieldList{Opening: lbrace, List: list, Closing: rbrace}
+	}
+
+	return spec
+}
+
 func (p *parser) parseFuncDecl() *ast.FuncDecl {
 	if p.trace {
 		defer un(trace(p, "FunctionDecl"))
@@ -3006,6 +3123,9 @@ func (p *parser) parseDecl(sync map[token.Token]bool) ast.Decl {
 	switch p.tok {
 	case token.IMPORT:
 		f = p.parseImportSpec
+
+	case token.ENUM:
+		return p.parseEnumDecl()
 
 	case token.CONST, token.VAR:
 		f = p.parseValueSpec

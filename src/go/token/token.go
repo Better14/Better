@@ -80,6 +80,7 @@ const (
 	DEFINE   // :=
 	ELLIPSIS // ...
 	QUESTION // ?
+	NULLCOALESCE // ??
 
 	LPAREN // (
 	LBRACK // [
@@ -105,6 +106,7 @@ const (
 	DEFAULT
 	DEFER
 	ELSE
+	ENUM
 	FALLTHROUGH
 	FOR
 
@@ -191,6 +193,7 @@ var tokens = [...]string{
 	DEFINE:   ":=",
 	ELLIPSIS: "...",
 	QUESTION: "?",
+	NULLCOALESCE: "??",
 
 	LPAREN: "(",
 	LBRACK: "[",
@@ -213,6 +216,7 @@ var tokens = [...]string{
 	DEFAULT:     "default",
 	DEFER:       "defer",
 	ELSE:        "else",
+	ENUM:        "enum",
 	FALLTHROUGH: "fallthrough",
 	FOR:         "for",
 
@@ -269,16 +273,18 @@ const (
 // is LowestPrecedence.
 func (op Token) Precedence() int {
 	switch op {
-	case LOR:
+	case NULLCOALESCE:
 		return 1
-	case LAND:
+	case LOR:
 		return 2
-	case EQL, NEQ, LSS, LEQ, GTR, GEQ:
+	case LAND:
 		return 3
-	case ADD, SUB, OR, XOR:
+	case EQL, NEQ, LSS, LEQ, GTR, GEQ:
 		return 4
-	case MUL, QUO, REM, SHL, SHR, AND, AND_NOT:
+	case ADD, SUB, OR, XOR:
 		return 5
+	case MUL, QUO, REM, SHL, SHR, AND, AND_NOT:
+		return 6
 	}
 	return LowestPrec
 }

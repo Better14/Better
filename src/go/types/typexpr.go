@@ -380,8 +380,22 @@ func (check *Checker) typInternal(e0 ast.Expr, def *TypeName) (T Type) {
 		return typ
 
 	case *ast.ResultTypeExpr:
-		check.error(e, InvalidSyntaxTree, "invalid use of result type (T!); allowed only in function result list")
-		check.use(e.X)
+		elem := check.varType(e.X)
+		if !isValid(elem) {
+			return Typ[Invalid]
+		}
+		return NewResult(elem)
+
+	case *ast.NullableTypeExpr:
+		elem := check.varType(e.X)
+		if !isValid(elem) {
+			return Typ[Invalid]
+		}
+		if isNullish(elem) {
+			check.errorf(e, InvalidSyntaxTree, "invalid nullable type %s?; type is already nil-able", elem)
+			return Typ[Invalid]
+		}
+		return NewOptional(elem)
 
 	default:
 		check.errorf(e0, NotAType, "%s is not a type", e0)
