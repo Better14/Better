@@ -16,7 +16,7 @@ func main() {
 	if len(out) != 4 || out[0] != 2 || out[3] != 5 {
 		panic(out)
 	}
-	lazy := linq.FromSlice(nums).Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 })
+	lazy := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 })
 	if lazy.First() != 4 {
 		panic("lazy chain failed")
 	}

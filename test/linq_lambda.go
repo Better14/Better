@@ -12,12 +12,12 @@ import "linq"
 
 // ScaleBy multiplies each element by k (extension on linq.Lazy[T]).
 func (l linq.Lazy[T]) ScaleBy[T ~int | ~float64](k T) linq.Lazy[T] {
-	return linq.LazySelectBy(l, x => x*k)
+	return l.Select(x => x * k)
 }
 
 // FirstMatch returns the first element satisfying pred (extension on []T).
 func (s []T) FirstMatch[T any](pred func(T) bool) T {
-	return linq.FromSlice(s).Where(pred).First()
+	return linq.From(s).Where(pred).First()
 }
 
 // EvensDouble filters evens and doubles (extension on []int).
@@ -59,7 +59,7 @@ func main() {
 		panic("All")
 	}
 
-	sum := linq.SumLazy(nums.Where(n => n%2 == 0).Select(n => n * n))
+	sum := nums.Where(n => n%2 == 0).Select(n => n * n).Sum()
 	if sum != 4+16+36+64 {
 		panic(sum)
 	}
@@ -69,11 +69,11 @@ func main() {
 	}
 
 	// distinct on lazy chain, group by on slice
-	dist := linq.DistinctLazy(nums.Select(n => n / 2)).ToList()
+	dist := nums.Select(n => n / 2).Distinct().ToList()
 	if len(dist) != 5 {
 		panic(dist)
 	}
-	groups := linq.LazyGroupBy(linq.FromSlice(nums), n => n%2).ToList()
+	groups := nums.GroupBy(n => n%2).ToList()
 	if len(groups) != 2 {
 		panic(groups)
 	}

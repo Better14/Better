@@ -9,32 +9,10 @@ import (
 	"slices"
 )
 
-// Slice LINQ syntax (nums.Where(...)) uses extension methods in slice_ext.go
-// when import "linq" is present. Lazy[T] uses receiver methods in linq.go.
+// --- lazy chain implementations ---
 
-// FirstValue returns the first element of s and whether it exists.
-func FirstValue[T any](s []T) (T, bool) {
-	if len(s) == 0 {
-		var z T
-		return z, false
-	}
-	return s[0], true
-}
-
-// --- lazy chain continuations (package functions for direct use) ---
-
-// LazyOrderBy sorts by key when enumerated.
-func LazyOrderBy[T any, K cmp.Ordered](l Lazy[T], key func(T) K) Lazy[T] {
-	return FromSlice(sortOrderBy(LazyToSlice(l), key))
-}
-
-// LazyOrderByDescending sorts descending by key when enumerated.
-func LazyOrderByDescending[T any, K cmp.Ordered](l Lazy[T], key func(T) K) Lazy[T] {
-	return FromSlice(sortOrderByDescending(LazyToSlice(l), key))
-}
-
-// LazyDistinct returns distinct elements (comparable T).
-func LazyDistinct[T comparable](l Lazy[T]) Lazy[T] {
+// lazyDistinct returns distinct elements (comparable T).
+func lazyDistinct[T comparable](l Lazy[T]) Lazy[T] {
 	seen := make(map[T]struct{})
 	src := l.next
 	return Lazy[T]{next: func() (T, bool) {
@@ -53,8 +31,8 @@ func LazyDistinct[T comparable](l Lazy[T]) Lazy[T] {
 	}}
 }
 
-// LazyGroupBy groups by key.
-func LazyGroupBy[T any, K comparable](l Lazy[T], keyFn func(T) K) Lazy[Group[K, T]] {
+// lazyGroupBy groups by key.
+func lazyGroupBy[T any, K comparable](l Lazy[T], keyFn func(T) K) Lazy[Group[K, T]] {
 	groups := map[K][]T{}
 	var keys []K
 	for v, ok := l.next(); ok; v, ok = l.next() {
@@ -78,8 +56,8 @@ func LazyGroupBy[T any, K comparable](l Lazy[T], keyFn func(T) K) Lazy[Group[K, 
 	}}
 }
 
-// LazyAggregate applies fn pairwise (first element is the seed).
-func LazyAggregate[T any](l Lazy[T], fn func(T, T) T) T {
+// lazyAggregate applies fn pairwise (first element is the seed).
+func lazyAggregate[T any](l Lazy[T], fn func(T, T) T) T {
 	v, ok := l.next()
 	if !ok {
 		panic("linq: sequence contains no elements")
@@ -94,8 +72,8 @@ func LazyAggregate[T any](l Lazy[T], fn func(T, T) T) T {
 	}
 }
 
-// LazySum returns the sum of a lazy numeric sequence.
-func LazySum[U Number](l Lazy[U]) U {
+// lazySum returns the sum of a lazy numeric sequence.
+func lazySum[U Number](l Lazy[U]) U {
 	var acc U
 	for {
 		v, ok := l.next()
@@ -107,22 +85,22 @@ func LazySum[U Number](l Lazy[U]) U {
 }
 
 // ToList materializes a lazy sequence.
-func ToListLazy[T any](l Lazy[T]) []T {
-	return LazyToSlice(l)
+func toListLazy[T any](l Lazy[T]) []T {
+	return lazyToSlice(l)
 }
 
 // First returns the first element of a lazy sequence, or panics if empty.
-func FirstLazy[T any](l Lazy[T]) T {
-	v, ok := LazyFirst(l)
+func firstLazy[T any](l Lazy[T]) T {
+	v, ok := lazyFirst(l)
 	if !ok {
 		panic("linq: sequence contains no elements")
 	}
 	return v
 }
 
-// FirstOrDefaultLazy returns the first element or the zero value.
-func FirstOrDefaultLazy[T any](l Lazy[T]) T {
-	v, ok := LazyFirst(l)
+// firstOrDefaultLazy returns the first element or the zero value.
+func firstOrDefaultLazy[T any](l Lazy[T]) T {
+	v, ok := lazyFirst(l)
 	if ok {
 		return v
 	}
@@ -130,9 +108,39 @@ func FirstOrDefaultLazy[T any](l Lazy[T]) T {
 	return z
 }
 
+// FirstValue returns the first element of s and whether it exists.
+func FirstValue[T any](s []T) (T, bool) {
+	if len(s) == 0 {
+		var z T
+		return z, false
+	}
+	return s[0], true
+}
+
+// sortOrderBy sorts s by key (eager materialization helper).
+func sortOrderBy[T any, K cmp.Ordered](s []T, key func(T) K) []T {
+	out := slices.Clone(s)
+	slices.SortFunc(out, func(a, b T) int { return cmp.Compare(key(a), key(b)) })
+	return out
+}
+
 // sortOrderByDescending sorts a slice descending by key (eager helper).
 func sortOrderByDescending[T any, K cmp.Ordered](s []T, key func(T) K) []T {
 	out := slices.Clone(s)
 	slices.SortFunc(out, func(a, b T) int { return cmp.Compare(key(b), key(a)) })
+	return out
+}
+
+// DistinctComparable returns distinct elements of s (eager).
+func DistinctComparable[T comparable](s []T) []T {
+	seen := make(map[T]struct{})
+	var out []T
+	for _, v := range s {
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
 	return out
 }
