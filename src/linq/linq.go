@@ -469,7 +469,7 @@ func TryGetSeqLen[T any](seq iter.Seq[T]) (int, bool) {
 
 // TryGetSeqLen reports the length of a slice without wrapping.
 func TryGetSeqLen[T any](s []T) (int, bool) {
-	return len(s), true
+	return TryGetSeqLenSlice(s)
 }
 
 // Cast casts each element to U (for iter.Seq[any]).

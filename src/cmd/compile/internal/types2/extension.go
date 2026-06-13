@@ -47,6 +47,21 @@ func extensionSliceElemTypeParam(rtyp syntax.Expr) (*syntax.Name, bool) {
 	return name, true
 }
 
+// extensionMapTypeParams reports whether rtyp is map[K]V with identifier
+// key K and value V that are not yet defined in scope.
+func extensionMapTypeParams(rtyp syntax.Expr) (key, val *syntax.Name, ok bool) {
+	mt, ok := syntax.Unparen(rtyp).(*syntax.MapType)
+	if !ok {
+		return nil, nil, false
+	}
+	key, ok1 := syntax.Unparen(mt.Key).(*syntax.Name)
+	val, ok2 := syntax.Unparen(mt.Value).(*syntax.Name)
+	if !ok1 || !ok2 || key.Value == "" || key.Value == "_" || val.Value == "" || val.Value == "_" {
+		return nil, nil, false
+	}
+	return key, val, true
+}
+
 // isExtensionRecv reports whether typ is a valid extension receiver base type
 // for a method declared in defPkg.
 func (check *Checker) isExtensionRecv(typ Type) bool {
@@ -76,6 +91,10 @@ func extensionSliceRecvTypeParam(recv *Var, rparams *TypeParamList) (*TypeParam,
 	if recv == nil || rparams == nil || rparams.Len() != 1 {
 		return nil, false
 	}
+	// Named types such as FlatArray[T] with underlying []T are ordinary methods, not extensions.
+	if _, ok := Unalias(recv.typ).(*Named); ok {
+		return nil, false
+	}
 	sl, ok := Unalias(recv.typ).Underlying().(*Slice)
 	if !ok {
 		return nil, false
@@ -85,6 +104,27 @@ func extensionSliceRecvTypeParam(recv *Var, rparams *TypeParamList) (*TypeParam,
 		return tp, true
 	}
 	return nil, false
+}
+
+// extensionMapRecvTypeParams reports whether recv/rparams describe an extension
+// on map[K]V with K and V declared by the receiver map type.
+func extensionMapRecvTypeParams(recv *Var, rparams *TypeParamList) (*TypeParam, *TypeParam, bool) {
+	if recv == nil || rparams == nil || rparams.Len() != 2 {
+		return nil, nil, false
+	}
+	if _, ok := Unalias(recv.typ).(*Named); ok {
+		return nil, nil, false
+	}
+	m, ok := Unalias(recv.typ).Underlying().(*Map)
+	if !ok {
+		return nil, nil, false
+	}
+	k := rparams.At(0)
+	v := rparams.At(1)
+	if Identical(m.key, k) && Identical(m.elem, v) {
+		return k, v, true
+	}
+	return nil, nil, false
 }
 
 // prepareReceiverMethodTypeParams handles a method type parameter list whose first
@@ -110,6 +150,38 @@ func (check *Checker) prepareReceiverMethodTypeParams(recvTPar *TypeParam, list 
 		recvTPar.SetConstraint(bound)
 	}
 	return list[1:]
+}
+
+// prepareReceiverMapMethodTypeParams handles method type parameters for extensions
+// on map[K]V; the first two entries must restate K and V from the receiver.
+func (check *Checker) prepareReceiverMapMethodTypeParams(keyPar, valPar *TypeParam, list []*syntax.Field, at poser, required bool) []*syntax.Field {
+	keyName := keyPar.obj.name
+	valName := valPar.obj.name
+	if len(list) < 2 {
+		if required {
+			check.errorf(at, BadDecl, "extension method on map[%s]%s must declare type parameters %s and %s (e.g. …[%s comparable, %s any](…))", keyName, valName, keyName, valName, keyName, valName)
+		}
+		return nil
+	}
+	if list[0].Name == nil || list[0].Name.Value != keyName {
+		if required {
+			check.errorf(list[0].Pos(), BadDecl, "first type parameter must be %s", keyName)
+		}
+		return list
+	}
+	if list[1].Name == nil || list[1].Name.Value != valName {
+		if required {
+			check.errorf(list[1].Pos(), BadDecl, "second type parameter must be %s", valName)
+		}
+		return list
+	}
+	if bound := check.bound(list[0].Type); isValid(bound) {
+		keyPar.SetConstraint(bound)
+	}
+	if bound := check.bound(list[1].Type); isValid(bound) {
+		valPar.SetConstraint(bound)
+	}
+	return list[2:]
 }
 
 // finishExtensionFunc lowers an extension method to a package-level function by
@@ -258,6 +330,15 @@ func (check *Checker) extensionTypesMatch(recv, param Type) bool {
 			}
 		}
 	}
+	// Match concrete maps against extension signatures on map[K]V.
+	if recvMap, ok := Unalias(recv).Underlying().(*Map); ok {
+		if paramMap, ok := Unalias(param).Underlying().(*Map); ok {
+			if extensionSeqElemMatch(check, recvMap.key, paramMap.key) &&
+				extensionSeqElemMatch(check, recvMap.elem, paramMap.elem) {
+				return true
+			}
+		}
+	}
 	// Match concrete iter.Seq[E] against extension signatures on iter.Seq[T].
 	if recvElem := iterSeqElem(recv); recvElem != nil {
 		if paramElem := iterSeqElem(param); paramElem != nil {
@@ -384,8 +465,7 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 		recvExpr = &syntax.SliceExpr{X: sel.X}
 	}
 	funcName := m.fn.LinkName()
-	if m.linqFast != "" && m.pkgName == nil {
-		// Unexported slice fast paths are only visible within package linq.
+	if m.linqFast != "" && (m.pkgName == nil || m.adapt) {
 		funcName = m.linqFast
 	} else if m.adapt {
 		if !check.verifyVersionf(call, go1_27, "slices.Values") {

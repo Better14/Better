@@ -92,9 +92,17 @@ These extension families from the Microsoft docs are **not** in the Go `linq` pa
 
 Most common .NET overload variants are implemented (predicate terminals, indexed operators, selector `Sum`/`Average`, `SelectMany` result-selector shapes, `DefaultIfEmpty()`, and three-argument `Aggregate`).
 
-**Custom equality** — Go uses `comparable` / `==` only; no `IEqualityComparer` overloads for:
+**Custom equality (`IEqualityComparer`)** — intentionally omitted. Go LINQ uses `comparable` and `==` only; there are no `IEqualityComparer` overloads for `Contains`, `Distinct`, `DistinctBy`, `Except`, `ExceptBy`, `Intersect`, `IntersectBy`, `Union`, `UnionBy`, `SequenceEqual`, `CountBy`, `AggregateBy`, or join key comparison.
 
-`Contains`, `Distinct`, `DistinctBy`, `Except`, `ExceptBy`, `Intersect`, `IntersectBy`, `Union`, `UnionBy`, `SequenceEqual`, `CountBy`, `AggregateBy`, join key comparison.
+| C# approach | Go LINQ equivalent |
+|-------------|-------------------|
+| `Distinct(seq, comparer)` | `Distinct(seq)` when `T comparable`, or `DistinctBy(seq, keyFn)` |
+| `GroupBy` with custom key equality | `GroupBy(seq, keyFn)` with `K comparable` |
+| Case-insensitive string distinct | `DistinctBy(s => strings.ToLower(s))` |
+
+**Why `==` is enough:** In Go, `comparable` includes structs whose fields are all comparable, and `==` compares them field-wise — the common LINQ case. C# often needs `IEqualityComparer` because reference types default to identity equality and custom rules (compare by ID, case-insensitive strings) are expressed via `Equals`/`GetHashCode` overrides or explicit comparers. Go expresses those rules with `*By` key projections: compare `keyFn(x) == keyFn(y)` on a `comparable` key instead of plugging in a comparer object.
+
+**When `==` is not enough:** If `T` is not `comparable` (e.g. a struct containing a slice), use `DistinctBy` / `ExceptBy` / `UnionBy` / `GroupBy` with a `comparable` key. If equality should ignore some fields, project to the fields that matter (`DistinctBy(u => u.ID)`). Float `NaN` behaves like ordinary Go `==` (and cannot be a map key).
 
 **Indexing:**
 

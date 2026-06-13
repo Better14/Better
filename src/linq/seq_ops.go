@@ -111,6 +111,9 @@ func allSeq[T any](seq iter.Seq[T], pred func(T) bool) bool {
 }
 
 func countSeq[T any](seq iter.Seq[T]) int {
+	if n, ok := tryGetSeqLenSeq(seq); ok {
+		return n
+	}
 	n := 0
 	for range seq {
 		n++

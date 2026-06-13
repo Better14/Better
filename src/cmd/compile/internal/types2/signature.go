@@ -160,6 +160,8 @@ func (check *Checker) funcType(sig *Signature, recvPar *syntax.Field, tparams []
 	methodTParams := tparams
 	if recvTPar, ok := extensionSliceRecvTypeParam(recv, rparams); ok {
 		methodTParams = check.prepareReceiverMethodTypeParams(recvTPar, methodTParams, ftyp, true)
+	} else if keyPar, valPar, ok := extensionMapRecvTypeParams(recv, rparams); ok {
+		methodTParams = check.prepareReceiverMapMethodTypeParams(keyPar, valPar, methodTParams, ftyp, true)
 	} else if rparams != nil && rparams.Len() == 1 && len(methodTParams) > 0 {
 		if methodTParams[0].Name != nil && methodTParams[0].Name.Value == rparams.At(0).obj.name {
 			methodTParams = check.prepareReceiverMethodTypeParams(rparams.At(0), methodTParams, ftyp, false)
@@ -237,6 +239,22 @@ func (check *Checker) collectRecv(rparam *syntax.Field, scopePos syntax.Pos) (*V
 			}
 			check.recordUse(name, tpar.obj)
 			check.recordTypeAndValue(name, typexpr, tpar, nil)
+			check.recordParenthesizedRecvTypes(rparam.Type, recvType)
+		} else if keyName, valName, ok := extensionMapTypeParams(rparam.Type); ok && check.lookup(keyName.Value) == nil && check.lookup(valName.Value) == nil {
+			// Extension: func (m map[K]V) declares K and V via map key/value types.
+			keyPar := check.declareTypeParam(keyName, scopePos)
+			keyPar.SetConstraint(universeComparable.Type())
+			valPar := check.declareTypeParam(valName, scopePos)
+			valPar.SetConstraint(universeAny.Type())
+			recvTParamsList = bindTParams([]*TypeParam{keyPar, valPar})
+			recvType = NewMap(keyPar, valPar)
+			if rptr {
+				recvType = NewPointer(recvType)
+			}
+			check.recordUse(keyName, keyPar.obj)
+			check.recordTypeAndValue(keyName, typexpr, keyPar, nil)
+			check.recordUse(valName, valPar.obj)
+			check.recordTypeAndValue(valName, typexpr, valPar, nil)
 			check.recordParenthesizedRecvTypes(rparam.Type, recvType)
 		} else {
 		// If there are no type parameters, we can simply typecheck rparam.Type.

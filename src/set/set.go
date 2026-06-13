@@ -5,6 +5,8 @@
 // Package set provides an unordered collection of unique comparable elements.
 package set
 
+import "iter"
+
 // Set is a hash set.
 type Set[T comparable] map[T]struct{}
 
@@ -25,6 +27,17 @@ func (s Set[T]) Delete(v T) { delete(s, v) }
 func (s Set[T]) Contains(v T) bool { _, ok := s[v]; return ok }
 
 func (s Set[T]) Len() int { return len(s) }
+
+// All returns an iterator over set elements in unspecified order.
+func (s Set[T]) All() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for v := range s {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
 
 func (s Set[T]) Values() []T {
 	out := make([]T, 0, len(s))

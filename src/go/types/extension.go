@@ -47,6 +47,21 @@ func extensionSliceElemTypeParam(rtyp ast.Expr) (*ast.Ident, bool) {
 	return name, true
 }
 
+// extensionMapTypeParams reports whether rtyp is map[K]V with identifier
+// key K and value V that are not yet defined in scope.
+func extensionMapTypeParams(rtyp ast.Expr) (key, val *ast.Ident, ok bool) {
+	mt, ok := ast.Unparen(rtyp).(*ast.MapType)
+	if !ok {
+		return nil, nil, false
+	}
+	key, ok1 := ast.Unparen(mt.Key).(*ast.Ident)
+	val, ok2 := ast.Unparen(mt.Value).(*ast.Ident)
+	if !ok1 || !ok2 || key.Name == "" || key.Name == "_" || val.Name == "" || val.Name == "_" {
+		return nil, nil, false
+	}
+	return key, val, true
+}
+
 // isExtensionRecv reports whether typ is a valid extension receiver base type
 // for a method declared in defPkg.
 func (check *Checker) isExtensionRecv(typ Type) bool {
@@ -74,6 +89,10 @@ func (check *Checker) isExtensionRecv(typ Type) bool {
 // on []T with T declared by the receiver element type.
 func extensionSliceRecvTypeParam(recv *Var, rparams *TypeParamList) (*TypeParam, bool) {
 	if recv == nil || rparams == nil || rparams.Len() != 1 {
+		return nil, false
+	}
+	// Named types such as FlatArray[T] with underlying []T are ordinary methods, not extensions.
+	if _, ok := Unalias(recv.typ).(*Named); ok {
 		return nil, false
 	}
 	sl, ok := Unalias(recv.typ).Underlying().(*Slice)
@@ -258,6 +277,15 @@ func (check *Checker) extensionTypesMatch(recv, param Type) bool {
 			}
 		}
 	}
+	// Match concrete maps against extension signatures on map[K]V.
+	if recvMap, ok := Unalias(recv).Underlying().(*Map); ok {
+		if paramMap, ok := Unalias(param).Underlying().(*Map); ok {
+			if extensionSeqElemMatch(check, recvMap.key, paramMap.key) &&
+				extensionSeqElemMatch(check, recvMap.elem, paramMap.elem) {
+				return true
+			}
+		}
+	}
 	// Match concrete iter.Seq[E] against extension signatures on iter.Seq[T].
 	if recvElem := iterSeqElem(recv); recvElem != nil {
 		if paramElem := iterSeqElem(param); paramElem != nil {
@@ -384,8 +412,7 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 		recvExpr = &ast.SliceExpr{X: sel.X}
 	}
 	funcName := m.fn.LinkName()
-	if m.linqFast != "" && m.pkgName == nil {
-		// Unexported slice fast paths are only visible within package linq.
+	if m.linqFast != "" && (m.pkgName == nil || m.adapt) {
 		funcName = m.linqFast
 	} else if m.adapt {
 		if !check.verifyVersionf(call, go1_27, "slices.Values") {

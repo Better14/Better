@@ -210,3 +210,4 @@ if count == nil {
 - Do not confuse `?.` (null-conditional) or `??` (null-coalescing) with `!.` (error propagation on `T!`).
 - `T?` does not support `!.value` error propagation; that syntax applies only to `T!` / `(T, error)`.
 - Nullable defaults in function parameters (e.g. `x int? = nil`) follow the same compile-time constant rules as other [default arguments](default_arguments.md) when/if defaults are added for nullable parameters.
+- For pointer nullability (`*T` vs `*T?`), see [Nullable pointer types](nullable_pointer_types.md) (proposed; separate from value-type `T?`).

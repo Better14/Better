@@ -777,7 +777,9 @@ func (p *parser) parsePointerType() *ast.StarExpr {
 	}
 
 	star := p.expect(token.MUL)
-	base := p.parseType()
+	// Parse the pointed-to type without ? / ! suffixes so *T? means (*T)?,
+	// not *(T?). Suffixes are applied by parseType after the full base type.
+	base := p.tryIdentOrType()
 
 	return &ast.StarExpr{Star: star, X: base}
 }
