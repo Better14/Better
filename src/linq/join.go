@@ -82,3 +82,43 @@ func rightJoinSeq[T, U, K comparable, R any](
 		return slices.Values(out)
 	})
 }
+
+func fullJoinSeq[T, U, K comparable, R any](
+	outer iter.Seq[T],
+	inner iter.Seq[U],
+	outerKey func(T) K,
+	innerKey func(U) K,
+	resultFn func(T, U) R,
+	defaultOuter T,
+	defaultInner U,
+) iter.Seq[R] {
+	innerLookup := toLookupSeq(inner, innerKey, func(u U) U { return u })
+	matchedKeys := make(map[K]struct{})
+	return func(yield func(R) bool) {
+		for o := range outer {
+			k := outerKey(o)
+			matchedKeys[k] = struct{}{}
+			inners := innerLookup.Get(k)
+			if len(inners) == 0 {
+				if !yield(resultFn(o, defaultInner)) {
+					return
+				}
+				continue
+			}
+			for _, i := range inners {
+				if !yield(resultFn(o, i)) {
+					return
+				}
+			}
+		}
+		for i := range inner {
+			k := innerKey(i)
+			if _, ok := matchedKeys[k]; ok {
+				continue
+			}
+			if !yield(resultFn(defaultOuter, i)) {
+				return
+			}
+		}
+	}
+}

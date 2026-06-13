@@ -345,6 +345,13 @@ func RightJoin[T, U, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], 
 	return rightJoinSeq(outer, inner, outerKey, innerKey, resultFn, defaultOuter)
 }
 
+// FullJoin full-outer-joins with inner.
+// Matched keys emit all pairings; unmatched outer rows use defaultInner;
+// unmatched inner rows use defaultOuter.
+func FullJoin[T, U, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T, defaultInner U) iter.Seq[R] {
+	return fullJoinSeq(outer, inner, outerKey, innerKey, resultFn, defaultOuter, defaultInner)
+}
+
 // TryGetNonEnumeratedCount reports a known length without enumerating.
 func TryGetNonEnumeratedCount[T any](seq iter.Seq[T]) (int, bool) {
 	return tryGetNonEnumeratedCountSeq(seq)

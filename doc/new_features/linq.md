@@ -1,11 +1,11 @@
 # Built-in LINQ
 
-Go includes built-in LINQ-style query operations that mirror C# naming and semantics. With `import "linq"`, slice and array chains use **extension methods** on `[]T`; `linq.Lazy[T]` uses receiver methods on the lazy sequence type.
+Go includes built-in LINQ-style query operations that mirror C# naming and semantics. With `import "linq"`, chains run on `iter.Seq[T]` via **extension methods**. When the first receiver in a chain is `[]T`, the compiler calls optimized private slice implementations inside the `linq` package.
 
 - Same method names as C# (`Where`, `Select`, `OrderBy`, `GroupBy`, `First`, `ToList`, etc.)
-- Lazy evaluation where applicable (e.g. deferred iteration until materialization)
-- Minimal allocations; iterators and pipelines should avoid unnecessary intermediate slices
-- Future target: extensions on `iter.Seq[T]` with `[]T` adaptation; see [Extension Methods](extension_methods.md)
+- Lazy evaluation where applicable (deferred iteration until materialization)
+- Minimal allocations; iterators and pipelines avoid unnecessary intermediate slices
+- Public API is unified on `iter.Seq[T]`; use `linq.From(slice)` or slice extension syntax to start a chain
 
 Step-by-step example:
 
@@ -59,9 +59,85 @@ Predicate and projection arguments are typically single-expression lambdas using
 import "linq"
 
 nums := []int{1, 2, 3, 4, 5}
-evens := nums.Where(n => n%2 == 0)       // linq.Where(nums, …)
-doubled := evens.Select(n => n * 2)      // linq.Select on Lazy[int]
-first := doubled.First()                 // terminal: materializes one element
+out := nums.Where(n => n < 5).Select(n => n + 1).ToList()
 ```
 
-Slice and array LINQ calls are **extension methods** in `import "linq"` (lowered to `linq.Method(recv, args…)`). Chains on `linq.Lazy[T]` use receiver methods on that type. Arrays are adapted to slices at the call site.
+Slice receivers on the first call in a chain use compiler specialization to call unexported `*Slice` fast paths (for example `whereSlice`) instead of wrapping with `slices.Values`.
+
+## Coverage vs .NET `System.Linq.Enumerable`
+
+All **68** core `System.Linq.Enumerable` methods are implemented, including `FullJoin`.
+
+Go also provides generators not in `Enumerable`: `From`, `Empty`, `Range`, `Repeat`, `InfiniteSequence`, `Sequence`, and `SelectBy` (alias for `Select`). `ThenBy` / `ThenByDescending` live on `Ordered[T]` (the `IOrderedEnumerable` role).
+
+## Not implemented
+
+### Other namespaces on the .NET `IEnumerable<T>` page
+
+These extension families from the Microsoft docs are **not** in the Go `linq` package:
+
+| Namespace | Examples |
+|-----------|----------|
+| `System.Linq.ParallelEnumerable` | `AsParallel` |
+| `System.Linq.Queryable` | `AsQueryable` |
+| `System.Linq.AsyncEnumerable` | `ToAsyncEnumerable` |
+| `System.Collections.Immutable` | `ToImmutableArray`, `ToImmutableList`, `ToImmutableDictionary`, … |
+| `System.Collections.Frozen` | `ToFrozenDictionary`, `ToFrozenSet` |
+| `System.Data` | `CopyToDataTable` |
+| `System.Xml.Linq` | `Ancestors`, `Descendants`, `Elements`, … |
+
+### Missing overloads and variants
+
+These methods exist but **not all** .NET overloads are covered:
+
+**Predicate / filtering terminals** — use `Where(pred).First()` etc. as a workaround:
+
+| Method | Missing overload |
+|--------|------------------|
+| `Any` | `Any()` without predicate |
+| `Count`, `LongCount` | `Count(pred)`, `LongCount(pred)` |
+| `First`, `Last`, `Single` | `*(pred)` |
+| `FirstOrDefault`, `LastOrDefault`, `SingleOrDefault` | `*(pred)`, `*(pred, default)` |
+
+**Defaults and aggregates:**
+
+| Method | Missing overload |
+|--------|------------------|
+| `DefaultIfEmpty` | No-arg version (zero value when empty) |
+| `Aggregate` | `Aggregate(seed, accFn, resultSelector)` |
+| `AggregateBy` | Factory-seed overload without explicit seed |
+
+**Index-aware operators:**
+
+| Method | Missing overload |
+|--------|------------------|
+| `Where` | `Where(fn(T, index) bool)` |
+| `Select` | `Select(fn(T, index) U)` |
+| `SelectMany` | Indexed collection selector; result-selector variants |
+
+**Numeric selectors:**
+
+| Method | Missing overload |
+|--------|------------------|
+| `Sum`, `Average` | `Sum(selector)`, `Average(selector)` — use `Select(selector).Sum()` |
+
+**Custom equality** — Go uses `comparable` / `==` only; no `IEqualityComparer` overloads for:
+
+`Contains`, `Distinct`, `DistinctBy`, `Except`, `ExceptBy`, `Intersect`, `IntersectBy`, `Union`, `UnionBy`, `SequenceEqual`, `CountBy`, `AggregateBy`, join key comparison.
+
+**Indexing:**
+
+| Method | Missing overload |
+|--------|------------------|
+| `ElementAt`, `ElementAtOrDefault` | `Index`-typed arguments (from-end / `^n` indexing) |
+
+**SelectMany shapes:**
+
+| Shape | Status |
+|-------|--------|
+| `fn func(T) iter.Seq[U]` | Implemented |
+| `fn func(T) []U` | Internal only; not public |
+| Collection + result selector | Not implemented |
+| Indexed selectors | Not implemented |
+
+**FullJoin** — the tuple-returning overload (`(TOuter?, TInner?)` pairs without a result selector) is not implemented; use `FullJoin` with `resultFn` and explicit `defaultOuter` / `defaultInner` zero values.
