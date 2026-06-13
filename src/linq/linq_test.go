@@ -10,9 +10,13 @@ import (
 	"testing"
 )
 
+func sliceCount[T any](s []T) (int, bool) {
+	return s.TryGetNonEnumeratedCount()
+}
+
 func TestChainWhereSelectToList(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	out := nums.Where(func(n int) bool { return n < 5 }).Select(func(n int) int { return n + 1 }).ToList()
+	out := linq.From(nums).Where(func(n int) bool { return n < 5 }).Select(func(n int) int { return n + 1 }).ToList()
 	want := []int{2, 3, 4, 5}
 	if !slices.Equal(out, want) {
 		t.Fatalf("got %v, want %v", out, want)
@@ -21,7 +25,7 @@ func TestChainWhereSelectToList(t *testing.T) {
 
 func TestChainFirst(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	first := nums.Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 }).First()
+	first := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 }).First()
 	if first != 4 {
 		t.Fatalf("got %v, want 4", first)
 	}
@@ -45,7 +49,7 @@ func TestLazyReceiverSelect(t *testing.T) {
 
 func TestSumChain(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	sum := nums.Where(func(n int) bool { return n%2 == 0 }).Sum()
+	sum := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Sum()
 	if sum != 6 {
 		t.Fatalf("sum: %v", sum)
 	}
@@ -68,15 +72,15 @@ func TestRangeRepeatEmpty(t *testing.T) {
 func TestSetOperations(t *testing.T) {
 	a := []int{1, 2, 3, 4}
 	b := []int{3, 4, 5, 6}
-	union := a.Union(linq.From(b)).ToList()
+	union := linq.Union(linq.From(a), linq.From(b)).ToList()
 	if len(union) != 6 {
 		t.Fatalf("Union: %v", union)
 	}
-	except := a.Except(linq.From(b)).ToList()
+	except := linq.Except(linq.From(a), linq.From(b)).ToList()
 	if !slices.Equal(except, []int{1, 2}) {
 		t.Fatalf("Except: %v", except)
 	}
-	inter := a.Intersect(linq.From(b)).ToList()
+	inter := linq.Intersect(linq.From(a), linq.From(b)).ToList()
 	if !slices.Equal(inter, []int{3, 4}) {
 		t.Fatalf("Intersect: %v", inter)
 	}
@@ -88,7 +92,7 @@ func TestOrderThenBy(t *testing.T) {
 		age  int
 	}
 	people := []person{{"bob", 30}, {"alice", 25}, {"alice", 20}}
-	out := people.OrderBy(func(p person) string { return p.name }).ThenBy(func(p person) int { return p.age }).ToList()
+	out := linq.From(people).OrderBy(func(p person) string { return p.name }).ThenBy(func(p person) int { return p.age }).ToList()
 	if out[0].age != 20 || out[2].name != "bob" {
 		t.Fatalf("Order/ThenBy: %v", out)
 	}
@@ -112,32 +116,34 @@ func TestJoin(t *testing.T) {
 
 func TestMaterializers(t *testing.T) {
 	nums := []int{1, 2, 2, 3}
-	dict := nums.ToDictionary(
+	seq := linq.From(nums)
+	dict := linq.ToDictionary(seq,
 		func(n int) int { return n },
 		func(n int) string { return "v" },
 	)
 	if len(dict) != 3 {
 		t.Fatalf("ToDictionary: %v", dict)
 	}
-	lookup := nums.ToLookup(
+	lookup := linq.ToLookup(seq,
 		func(n int) int { return n % 2 },
 		func(n int) int { return n },
 	)
 	if lookup.Count() != 2 || len(lookup.Get(0)) != 1 {
 		t.Fatalf("ToLookup: %v", lookup.Get(0))
 	}
-	set := nums.ToHashSet()
+	set := linq.ToHashSet(seq)
 	if len(set) != 3 {
 		t.Fatalf("ToHashSet: %v", set)
 	}
 }
 
 func TestTryGetNonEnumeratedCount(t *testing.T) {
-	n, ok := linq.From([]int{1, 2, 3}).TryGetNonEnumeratedCount()
+	nums := []int{1, 2, 3}
+	n, ok := sliceCount(nums)
 	if !ok || n != 3 {
 		t.Fatalf("got (%d, %v)", n, ok)
 	}
-	_, ok = linq.Range(1, 5).Where(func(int) bool { return true }).TryGetNonEnumeratedCount()
+	_, ok = linq.From([]int{1, 2, 3}).Where(func(int) bool { return true }).TryGetNonEnumeratedCount()
 	if ok {
 		t.Fatal("expected unknown count after Where")
 	}
@@ -145,16 +151,17 @@ func TestTryGetNonEnumeratedCount(t *testing.T) {
 
 func TestTerminalOps(t *testing.T) {
 	nums := []int{3, 1, 4, 1, 5}
-	if nums.Max() != 5 || nums.Min() != 1 {
+	seq := linq.From(nums)
+	if seq.Max() != 5 || seq.Min() != 1 {
 		t.Fatal("Min/Max")
 	}
-	if nums.Average() != 2.8 {
-		t.Fatalf("Average: %v", nums.Average())
+	if seq.Average() != 2.8 {
+		t.Fatalf("Average: %v", seq.Average())
 	}
-	if nums.Last() != 5 || nums.ElementAt(2) != 4 {
+	if seq.Last() != 5 || seq.ElementAt(2) != 4 {
 		t.Fatal("Last/ElementAt")
 	}
-	if nums.Single(func(n int) bool { return n == 3 }) != 3 {
+	if linq.From(nums).Where(func(n int) bool { return n == 3 }).Single() != 3 {
 		t.Fatal("Single")
 	}
 }
@@ -162,19 +169,19 @@ func TestTerminalOps(t *testing.T) {
 func TestZipChunkAppendPrepend(t *testing.T) {
 	a := []int{1, 2, 3}
 	b := []int{10, 20, 30}
-	zipped := a.Zip(linq.From(b), func(x, y int) int { return x + y }).ToList()
+	zipped := linq.From(a).Zip(linq.From(b), func(x, y int) int { return x + y }).ToList()
 	if !slices.Equal(zipped, []int{11, 22, 33}) {
 		t.Fatalf("Zip: %v", zipped)
 	}
-	chunks := a.Chunk(2).ToList()
+	chunks := linq.From(a).Chunk(2).ToList()
 	if len(chunks) != 2 || len(chunks[1]) != 1 {
 		t.Fatalf("Chunk: %v", chunks)
 	}
-	appended := a.Append(4).ToList()
+	appended := linq.From(a).Append(4).ToList()
 	if !slices.Equal(appended, []int{1, 2, 3, 4}) {
 		t.Fatalf("Append: %v", appended)
 	}
-	prepended := a.Prepend(0).ToList()
+	prepended := linq.From(a).Prepend(0).ToList()
 	if !slices.Equal(prepended, []int{0, 1, 2, 3}) {
 		t.Fatalf("Prepend: %v", prepended)
 	}

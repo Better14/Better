@@ -168,10 +168,11 @@ func sliceOrArrayElem(typ Type) Type {
 }
 
 type extensionMatch struct {
-	fn      *Func
-	pkgName *PkgName
-	adapt   bool // wrap receiver with slices.Names
-	slice   bool // convert array receiver to slice for []T extensions
+	fn       *Func
+	pkgName  *PkgName
+	adapt    bool   // wrap receiver with slices.Values
+	slice    bool   // convert array receiver to slice for []T extensions
+	linqFast string // unexported linq []T fast path (compiler-only)
 }
 
 // hasInstanceMethod reports whether typ has a concrete or interface method name.
@@ -227,7 +228,13 @@ func (check *Checker) matchExtension(recvType Type, fn *Func) (extensionMatch, b
 
 	if seqElem := iterSeqElem(param0); seqElem != nil {
 		if elem := sliceOrArrayElem(recvType); elem != nil && Identical(elem, seqElem) {
-			return extensionMatch{fn: fn, adapt: true}, true
+			m := extensionMatch{fn: fn, adapt: true}
+			if fn.pkg != nil && fn.pkg.path == linqPkgPath {
+				if fast, ok := linqSliceFastPath(fn.name); ok {
+					m.linqFast = fast
+				}
+			}
+			return m, true
 		}
 	}
 	return extensionMatch{}, false
@@ -306,8 +313,11 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 	if m.slice {
 		recvExpr = &ast.SliceExpr{X: sel.X}
 	}
-	if m.adapt {
-		if !check.verifyVersionf(call, go1_27, "slices.Names") {
+	funcName := sel.Sel.Name
+	if m.linqFast != "" {
+		funcName = m.linqFast
+	} else if m.adapt {
+		if !check.verifyVersionf(call, go1_27, "slices.Values") {
 			x.invalidate()
 			x.expr = call
 			return statement, true
@@ -340,11 +350,11 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 	pkgIdent := m.pkgName
 	if pkgIdent == nil {
 		// same package: use an unqualified function name
-		call.Fun = astNewIdent(call.Pos(), sel.Sel.Name)
+		call.Fun = astNewIdent(call.Pos(), funcName)
 	} else {
 		call.Fun = &ast.SelectorExpr{
 			X:   astNewIdent(call.Pos(), pkgIdent.name),
-			Sel: astNewIdent(call.Pos(), sel.Sel.Name),
+			Sel: astNewIdent(call.Pos(), funcName),
 		}
 		check.recordUse(call.Fun.(*ast.SelectorExpr).X.(*ast.Ident), pkgIdent)
 	}
