@@ -7,6 +7,7 @@ Go now supports a result shorthand:
 - `(T, error)` can be written as `T!`
 - `expr!` unwraps the success value and early-returns the error if `err != nil`
 - `expr!.field` does the same, then accesses a field on the success value
+- `err!` on a plain `error` early-returns if `err != nil` (no value to unwrap)
 
 The goal is to reduce boilerplate for error propagation while preserving the same runtime behavior as explicit `if err != nil { ... }` checks.
 
@@ -41,6 +42,8 @@ A `T!` function may return a single value `v`; the compiler treats it as `return
 
 ## Postfix `!` and `!.field`
 
+### `(T, error)` and `T!`
+
 Use `!` or `!.field` when `expr` has type `(T, error)` or `T!`.
 
 Behavior for `expr!`:
@@ -67,6 +70,47 @@ func someFunc() int! {
 	return other()!     // redundant case. return value or error
 }
 ```
+
+### Plain `error`
+
+When you already have an `error` value (not a `(T, error)` pair), use `err!` as a statement to early-return on failure.
+
+```go
+err := possibleError()  // error or nil
+err!
+```
+
+Behavior for `err!`:
+
+1. Evaluate `err`
+2. If `err != nil`, return early from the current function with:
+  - zero value of the function's value result
+  - `err`
+3. Otherwise, continue
+
+Before:
+
+```go
+func doThing() int! {
+	err := possibleError()
+	if err != nil {
+		return 0, err
+	}
+	return run()
+}
+```
+
+After:
+
+```go
+func doThing() int! {
+	err := possibleError()
+	err!
+	return run()
+}
+```
+
+`err!` is only valid in a function that can return an error (typically a `T!` result). It does not produce a value; it is a control-flow statement like `return`.
 
 ## Conceptual Representation
 
@@ -167,6 +211,6 @@ See [Null-coalescing operator (`??`)](nullable_types.md#null-coalescing-operator
 ## Notes
 
 - `T!` is the canonical shorthand for `(T, error)` in function signatures and a value type elsewhere.
-- Use `expr!` or `expr!.field` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
+- Use `expr!`, `expr!.field`, or `err!` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
 - You can still do `if err != nil { panic(err) }` or `log.Fatal` as today.
 

@@ -830,6 +830,11 @@ func (o *orderState) stmt(n ir.Node) {
 			}
 		}
 
+	case ir.OFORCE:
+		t := o.markTemp()
+		o.expr(n, nil)
+		o.popTemp(t)
+
 	case ir.OCHECKNIL, ir.OCLEAR, ir.OCLOSE, ir.OPANIC, ir.ORECV:
 		n := n.(*ir.UnaryExpr)
 		t := o.markTemp()
@@ -1183,6 +1188,30 @@ func (o *orderState) expr(n, lhs ir.Node) ir.Node {
 	return n
 }
 
+// forceReturnOnErr emits "if err != nil { return zero, err }" for ! propagation.
+func (o *orderState) forceReturnOnErr(pos src.XPos, err ir.Node) {
+	t1typ := types.ErrorType
+	nilErr := ir.NewNilExpr(pos, t1typ)
+	nilErr.SetTypecheck(1)
+	cmp := ir.NewBinaryExpr(pos, ir.ONE, err, nilErr)
+	cmp.SetType(types.Types[types.TBOOL])
+	cmp.SetTypecheck(1)
+	fn := ir.CurFunc
+	r := fn.Type().Results()
+	if len(r) != 2 {
+		base.FatalfAt(pos, "invalid use of ! — enclosing function must have results (T, error)")
+	}
+	retvals := []ir.Node{ir.NewZero(pos, r[0].Type), err}
+	for i := range retvals {
+		retvals[i].SetTypecheck(1)
+	}
+	rs := ir.NewReturnStmt(pos, retvals)
+	rs.SetTypecheck(1)
+	ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{rs}, nil)
+	ifStmt.SetTypecheck(1)
+	o.out = append(o.out, ifStmt)
+}
+
 func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 	o.init(n)
 
@@ -1239,9 +1268,18 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 
 	case ir.OFORCE:
 		n := n.(*ir.ForceExpr)
-		// n.X must be a multi-valued call producing (T, error).
 		o.init(n.X)
 		xt := n.X.Type()
+		pos := n.Pos()
+
+		// Plain error: err!
+		if xt != nil && xt == types.ErrorType {
+			err := o.expr(n.X, nil)
+			o.forceReturnOnErr(pos, err)
+			return nil
+		}
+
+		// n.X must be a multi-valued call producing (T, error).
 		if xt == nil || xt.NumFields() != 2 {
 			base.FatalfAt(n.Pos(), "OFORCE operand is not a 2-tuple: %L", n.X)
 		}
@@ -1249,7 +1287,6 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		t1typ := xt.Field(1).Type
 		t0 := o.newTemp(t0typ, t0typ.HasPointers())
 		t1 := o.newTemp(t1typ, t1typ.HasPointers())
-		pos := n.Pos()
 		if ic, ok := n.X.(*ir.InlinedCallExpr); ok {
 			o.stmtList(ic.Body)
 			as := ir.NewAssignListStmt(pos, ir.OAS2, []ir.Node{t0, t1}, ic.ReturnVars)
@@ -1262,25 +1299,7 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 			as.SetTypecheck(1)
 			o.out = append(o.out, as)
 		}
-		nilErr := ir.NewNilExpr(pos, t1typ)
-		nilErr.SetTypecheck(1)
-		cmp := ir.NewBinaryExpr(pos, ir.ONE, t1, nilErr)
-		cmp.SetType(types.Types[types.TBOOL])
-		cmp.SetTypecheck(1)
-		fn := ir.CurFunc
-		r := fn.Type().Results()
-		if len(r) != 2 {
-			base.FatalfAt(n.Pos(), "invalid use of ! — enclosing function must have results (T, error)")
-		}
-		retvals := []ir.Node{ir.NewZero(pos, r[0].Type), t1}
-		for i := range retvals {
-			retvals[i].SetTypecheck(1)
-		}
-		rs := ir.NewReturnStmt(pos, retvals)
-		rs.SetTypecheck(1)
-		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{rs}, nil)
-		ifStmt.SetTypecheck(1)
-		o.out = append(o.out, ifStmt)
+		o.forceReturnOnErr(pos, t1)
 		return t0
 
 	case ir.ONULLCOND:

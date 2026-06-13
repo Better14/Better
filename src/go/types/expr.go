@@ -1207,6 +1207,10 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 		if !x.isValid() {
 			goto Error
 		}
+		if x.mode() == novalue {
+			x.expr = e
+			return statement
+		}
 
 	case *ast.NullCondExpr:
 		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone ?.; use ?.field or ?.[index]")
@@ -1321,8 +1325,14 @@ func (check *Checker) tryExpr(x *operand, e *ast.TryExpr) {
 	check.hasCallOrRecv = true
 }
 
-// forceExpr type-checks e.X! where e.X must be a (value, error) pair.
+// forceExpr type-checks e.X! where e.X is a (value, error) pair or a plain error.
 func (check *Checker) forceExpr(x *operand, e *ast.ForceExpr) {
+	if !check.canForceReturn() {
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: ! requires enclosing function with (T, error) or T! result")
+		x.invalidate()
+		return
+	}
+
 	var inner operand
 	check.rawExpr(nil, &inner, e.X, nil, false)
 	check.exclude(&inner, 1<<novalue|1<<builtin|1<<typexpr)
@@ -1330,9 +1340,18 @@ func (check *Checker) forceExpr(x *operand, e *ast.ForceExpr) {
 		x.invalidate()
 		return
 	}
+
+	if Identical(inner.typ(), universeError) {
+		x.mode_ = novalue
+		x.typ_ = universeError
+		x.expr = e
+		check.record(x)
+		return
+	}
+
 	tup, ok := inner.typ().(*Tuple)
 	if !ok || tup.Len() != 2 {
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: ! requires expression of type (T, error), got %s", inner.typ())
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: ! requires expression of type (T, error) or error, got %s", inner.typ())
 		x.invalidate()
 		return
 	}

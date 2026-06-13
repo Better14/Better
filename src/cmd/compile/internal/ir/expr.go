@@ -800,7 +800,7 @@ func NewTryExpr(pos src.XPos, typ *types.Type, x Node) *TryExpr {
 	return n
 }
 
-// A ForceExpr is X! with type T; X has type (T, error).
+// A ForceExpr is X! with type T or no value; X has type (T, error) or error.
 type ForceExpr struct {
 	miniExpr
 	X Node

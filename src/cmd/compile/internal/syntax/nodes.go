@@ -393,7 +393,7 @@ type (
 		expr
 	}
 
-	// X! unwraps a (T, error) or T! value with early return on error.
+	// X! unwraps a (T, error) or T! value, or early-returns on a plain error.
 	ForceExpr struct {
 		X    Expr
 		Bang Pos // position of '!'
