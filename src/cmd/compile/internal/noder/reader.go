@@ -2475,6 +2475,12 @@ func (r *reader) expr() (res ir.Node) {
 		n.ForResult = true
 		return n
 
+	case exprResultErr:
+		pos := r.pos()
+		_ = r.typ()
+		x := r.expr()
+		return typecheck.XDotField(pos, x, x.Type().Field(1).Sym)
+
 	case exprResultWrap:
 		fromErr := r.Bool()
 		pos := r.pos()

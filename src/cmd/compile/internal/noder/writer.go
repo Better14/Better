@@ -1478,10 +1478,16 @@ func (w *writer) stmt1(stmt syntax.Stmt) {
 		w.pos(stmt)
 
 		resultTypes := w.sig.Results()
+		results := syntax.UnpackListExpr(stmt.Results)
 		dstType := func(i int) types2.Type {
 			return resultTypes.At(i).Type()
 		}
-		w.multiExpr(stmt, dstType, syntax.UnpackListExpr(stmt.Results))
+		if w.sig.ResultQuery() && len(results) == 1 {
+			if w.resultReturnMultiExpr(stmt, results[0], dstType) {
+				break
+			}
+		}
+		w.multiExpr(stmt, dstType, results)
 
 	case *syntax.SelectStmt:
 		w.Code(stmtSelect)
@@ -2583,6 +2589,62 @@ func (w *writer) methodExpr(expr *syntax.SelectorExpr, recv types2.Type, sel *ty
 // implicitly converted to dstType(i). It also handles when exprs is a
 // single, multi-valued expression (e.g., the multi-valued argument in
 // an f(g()) call, or the RHS operand in a comma-ok assignment).
+func (w *writer) zeroExpr(pos poser, typ types2.Type) {
+	w.Code(exprZero)
+	w.pos(pos)
+	w.typ(typ)
+}
+
+// resultReturnMultiExpr handles "return v" and "return err" sugar in a T!
+// function, expanding a single expression into (value, error). It reports
+// whether the return was handled.
+func (w *writer) resultReturnMultiExpr(pos poser, expr syntax.Expr, dstType func(int) types2.Type) bool {
+	valTyp := dstType(0)
+	errTyp := dstType(1)
+	src := w.p.typeOf(expr)
+
+	writePair := func(writeVal, writeErr func()) {
+		w.Sync(pkgbits.SyncMultiExpr)
+		w.Bool(false) // N:N assignment
+		w.Len(2)
+		writeVal()
+		writeErr()
+	}
+
+	if _, ok := types2.AsResult(src); ok {
+		writePair(func() {
+			w.Code(exprResultUnwrap)
+			w.Bool(false) // return value without panic
+			w.pos(pos)
+			w.typ(valTyp)
+			w.expr(expr)
+		}, func() {
+			w.Code(exprResultErr)
+			w.pos(pos)
+			w.typ(errTyp)
+			w.expr(expr)
+		})
+		return true
+	}
+	if types2.AssignableTo(src, valTyp) && !types2.Identical(src, errTyp) {
+		writePair(func() {
+			w.implicitConvExpr(valTyp, expr)
+		}, func() {
+			w.zeroExpr(pos, errTyp)
+		})
+		return true
+	}
+	if types2.AssignableTo(src, errTyp) {
+		writePair(func() {
+			w.zeroExpr(pos, valTyp)
+		}, func() {
+			w.implicitConvExpr(errTyp, expr)
+		})
+		return true
+	}
+	return false
+}
+
 func (w *writer) multiExpr(pos poser, dstType func(int) types2.Type, exprs []syntax.Expr) {
 	w.Sync(pkgbits.SyncMultiExpr)
 

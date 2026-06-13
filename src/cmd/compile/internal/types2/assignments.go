@@ -427,6 +427,20 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []syntax.Expr, returnStmt sy
 		}
 	}
 
+	// return err for func () T! means return zero, err
+	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
+		var x operand
+		check.expr(nil, &x, orig_rhs[0])
+		if x.isValid() && !AssignableTo(x.typ(), lhs[0].typ) && AssignableTo(x.typ(), lhs[1].typ) {
+			var zero operand
+			zero.mode_ = value
+			zero.typ_ = lhs[0].typ
+			check.initVar(lhs[0], &zero, context)
+			check.initVar(lhs[1], &x, context)
+			return
+		}
+	}
+
 	// If l == 1 and the rhs is a single call, for a better
 	// error message don't handle it as n:n mapping below.
 	isCall := false
