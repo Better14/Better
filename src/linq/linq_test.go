@@ -10,8 +10,8 @@ import (
 	"testing"
 )
 
-func sliceCount[T any](s []T) (int, bool) {
-	return s.TryGetNonEnumeratedCount()
+func sliceLen[T any](s []T) (int, bool) {
+	return s.TryGetSeqLen()
 }
 
 func TestChainWhereSelectToList(t *testing.T) {
@@ -172,13 +172,13 @@ func TestMaterializers(t *testing.T) {
 	}
 }
 
-func TestTryGetNonEnumeratedCount(t *testing.T) {
+func TestTryGetSeqLen(t *testing.T) {
 	nums := []int{1, 2, 3}
-	n, ok := sliceCount(nums)
+	n, ok := sliceLen(nums)
 	if !ok || n != 3 {
 		t.Fatalf("got (%d, %v)", n, ok)
 	}
-	_, ok = linq.From([]int{1, 2, 3}).Where(func(int) bool { return true }).TryGetNonEnumeratedCount()
+	_, ok = linq.From([]int{1, 2, 3}).Where(func(int) bool { return true }).TryGetSeqLen()
 	if ok {
 		t.Fatal("expected unknown count after Where")
 	}

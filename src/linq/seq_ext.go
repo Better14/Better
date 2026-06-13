@@ -12,8 +12,8 @@ import (
 // Extension methods on iter.Seq[T] provide LINQ syntax when import "linq" is present.
 // Methods delegate to package-level overloaded functions.
 
-func (seq iter.Seq[T]) AsEnumerable[T any]() iter.Seq[T] {
-	return AsEnumerable(seq)
+func (seq iter.Seq[T]) AsSeq[T any]() iter.Seq[T] {
+	return AsSeq(seq)
 }
 
 func (seq iter.Seq[T]) Where[T any](pred func(T) bool) iter.Seq[T] {
@@ -204,12 +204,12 @@ func (seq iter.Seq[T]) All[T any](pred func(T) bool) bool {
 	return All(seq, pred)
 }
 
-func (seq iter.Seq[T]) Count[T any]() int {
-	return Count(seq)
+func (seq iter.Seq[T]) Len[T any]() int {
+	return Len(seq)
 }
 
-func (seq iter.Seq[T]) LongCount[T any]() int64 {
-	return LongCount(seq)
+func (seq iter.Seq[T]) LongLen[T any]() int64 {
+	return LongLen(seq)
 }
 
 func (seq iter.Seq[T]) CountBy[T, K comparable](keyFn func(T) K) iter.Seq[KeyValue[K, int]] {
@@ -276,8 +276,8 @@ func (seq iter.Seq[T]) FullJoin[T, U, K comparable, R any](inner iter.Seq[U], ou
 	return FullJoin(seq, inner, outerKey, innerKey, resultFn, defaultOuter, defaultInner)
 }
 
-func (seq iter.Seq[T]) TryGetNonEnumeratedCount[T any]() (int, bool) {
-	return TryGetNonEnumeratedCount(seq)
+func (seq iter.Seq[T]) TryGetSeqLen[T any]() (int, bool) {
+	return TryGetSeqLen(seq)
 }
 
 func (seq iter.Seq[any]) Cast[U any]() iter.Seq[U] {
