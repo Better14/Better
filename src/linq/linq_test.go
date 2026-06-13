@@ -11,7 +11,7 @@ import (
 )
 
 func sliceLen[T any](s []T) (int, bool) {
-	return s.TryGetSeqLen()
+	return len(s), true
 }
 
 func TestChainWhereSelectToList(t *testing.T) {
@@ -151,19 +151,20 @@ func TestFullJoin(t *testing.T) {
 
 func TestMaterializers(t *testing.T) {
 	nums := []int{1, 2, 2, 3}
+	distinct := []int{1, 2, 3, 4}
 	seq := linq.From(nums)
-	dict := linq.ToDictionary(seq,
+	dict := linq.ToDictionary(linq.From(distinct),
 		func(n int) int { return n },
 		func(n int) string { return "v" },
 	)
-	if len(dict) != 3 {
+	if len(dict) != 4 {
 		t.Fatalf("ToDictionary: %v", dict)
 	}
 	lookup := linq.ToLookup(seq,
 		func(n int) int { return n % 2 },
 		func(n int) int { return n },
 	)
-	if lookup.Count() != 2 || len(lookup.Get(0)) != 1 {
+	if lookup.Count() != 2 || len(lookup.Get(0)) != 2 {
 		t.Fatalf("ToLookup: %v", lookup.Get(0))
 	}
 	set := linq.ToHashSet(seq)
