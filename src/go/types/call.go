@@ -175,13 +175,18 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
 	}
 
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-		if kind, handled := check.tryExtensionCall(x, call, sel); handled {
+		if kind, handled := check.tryExtensionCall(x, call, sel, nil); handled {
 			return kind
 		}
 	}
 
 	ix := unpackIndexedExpr(call.Fun)
 	if ix != nil {
+		if sel, ok := ix.x.(*ast.SelectorExpr); ok {
+			if kind, handled := check.tryExtensionCall(x, call, sel, ix); handled {
+				return kind
+			}
+		}
 		if check.indexExpr(x, ix) {
 			// Delay function instantiation to argument checking,
 			// where we combine type and value arguments for type
