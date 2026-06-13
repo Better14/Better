@@ -114,6 +114,41 @@ func TestJoin(t *testing.T) {
 	}
 }
 
+func TestFullJoin(t *testing.T) {
+	type dept struct {
+		id   int
+		name string
+	}
+	type emp struct {
+		id     int
+		deptID int
+		name   string
+	}
+	depts := []dept{{1, "sales"}, {2, "eng"}, {3, "hr"}}
+	emps := []emp{{10, 1, "alice"}, {20, 2, "bob"}, {30, 99, "carol"}}
+
+	joined := linq.From(depts).FullJoin(
+		linq.From(emps),
+		func(d dept) int { return d.id },
+		func(e emp) int { return e.deptID },
+		func(d dept, e emp) string {
+			return d.name + ":" + e.name
+		},
+		dept{},
+		emp{},
+	).ToList()
+
+	want := []string{
+		"sales:alice",
+		"eng:bob",
+		"hr:",          // dept 3 has no employees
+		":carol",       // emp 30 has no matching dept
+	}
+	if !slices.Equal(joined, want) {
+		t.Fatalf("FullJoin: got %v, want %v", joined, want)
+	}
+}
+
 func TestMaterializers(t *testing.T) {
 	nums := []int{1, 2, 2, 3}
 	seq := linq.From(nums)

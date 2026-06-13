@@ -272,6 +272,10 @@ func (seq iter.Seq[T]) RightJoin[T, U, K comparable, R any](inner iter.Seq[U], o
 	return RightJoin(seq, inner, outerKey, innerKey, resultFn, defaultOuter)
 }
 
+func (seq iter.Seq[T]) FullJoin[T, U, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T, defaultInner U) iter.Seq[R] {
+	return FullJoin(seq, inner, outerKey, innerKey, resultFn, defaultOuter, defaultInner)
+}
+
 func (seq iter.Seq[T]) TryGetNonEnumeratedCount[T any]() (int, bool) {
 	return TryGetNonEnumeratedCount(seq)
 }
