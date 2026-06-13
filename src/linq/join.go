@@ -9,7 +9,7 @@ import (
 	"slices"
 )
 
-func joinSeq[T, U, K comparable, R any](
+func joinSeq[T, U any, K comparable, R any](
 	outer iter.Seq[T],
 	inner iter.Seq[U],
 	outerKey func(T) K,
@@ -29,7 +29,7 @@ func joinSeq[T, U, K comparable, R any](
 	}
 }
 
-func groupJoinSeq[T, U, K comparable, R any](
+func groupJoinSeq[T, U any, K comparable, R any](
 	outer iter.Seq[T],
 	inner iter.Seq[U],
 	outerKey func(T) K,
@@ -43,7 +43,7 @@ func groupJoinSeq[T, U, K comparable, R any](
 	})
 }
 
-func leftJoinSeq[T, U, K comparable, R any](
+func leftJoinSeq[T, U any, K comparable, R any](
 	outer iter.Seq[T],
 	inner iter.Seq[U],
 	outerKey func(T) K,
@@ -61,7 +61,7 @@ func leftJoinSeq[T, U, K comparable, R any](
 	})
 }
 
-func rightJoinSeq[T, U, K comparable, R any](
+func rightJoinSeq[T, U any, K comparable, R any](
 	outer iter.Seq[T],
 	inner iter.Seq[U],
 	outerKey func(T) K,
@@ -83,7 +83,7 @@ func rightJoinSeq[T, U, K comparable, R any](
 	})
 }
 
-func fullJoinSeq[T, U, K comparable, R any](
+func fullJoinSeq[T, U any, K comparable, R any](
 	outer iter.Seq[T],
 	inner iter.Seq[U],
 	outerKey func(T) K,

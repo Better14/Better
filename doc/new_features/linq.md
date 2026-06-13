@@ -90,38 +90,7 @@ These extension families from the Microsoft docs are **not** in the Go `linq` pa
 
 ### Missing overloads and variants
 
-These methods exist but **not all** .NET overloads are covered:
-
-**Predicate / filtering terminals** — use `Where(pred).First()` etc. as a workaround:
-
-| Method | Missing overload |
-|--------|------------------|
-| `Any` | `Any()` without predicate |
-| `Count`, `LongCount` | `Count(pred)`, `LongCount(pred)` |
-| `First`, `Last`, `Single` | `*(pred)` |
-| `FirstOrDefault`, `LastOrDefault`, `SingleOrDefault` | `*(pred)`, `*(pred, default)` |
-
-**Defaults and aggregates:**
-
-| Method | Missing overload |
-|--------|------------------|
-| `DefaultIfEmpty` | No-arg version (zero value when empty) |
-| `Aggregate` | `Aggregate(seed, accFn, resultSelector)` |
-| `AggregateBy` | Factory-seed overload without explicit seed |
-
-**Index-aware operators:**
-
-| Method | Missing overload |
-|--------|------------------|
-| `Where` | `Where(fn(T, index) bool)` |
-| `Select` | `Select(fn(T, index) U)` |
-| `SelectMany` | Indexed collection selector; result-selector variants |
-
-**Numeric selectors:**
-
-| Method | Missing overload |
-|--------|------------------|
-| `Sum`, `Average` | `Sum(selector)`, `Average(selector)` — use `Select(selector).Sum()` |
+Most common .NET overload variants are implemented (predicate terminals, indexed operators, selector `Sum`/`Average`, `SelectMany` result-selector shapes, `DefaultIfEmpty()`, and three-argument `Aggregate`).
 
 **Custom equality** — Go uses `comparable` / `==` only; no `IEqualityComparer` overloads for:
 
@@ -138,8 +107,8 @@ These methods exist but **not all** .NET overloads are covered:
 | Shape | Status |
 |-------|--------|
 | `fn func(T) iter.Seq[U]` | Implemented |
-| `fn func(T) []U` | Internal only; not public |
-| Collection + result selector | Not implemented |
-| Indexed selectors | Not implemented |
+| `fn func(T) []U` | Use `collectionFn func(T) []C` overload with result selector |
+| Collection + result selector | Implemented |
+| Indexed selectors | Implemented |
 
 **FullJoin** — the tuple-returning overload (`(TOuter?, TInner?)` pairs without a result selector) is not implemented; use `FullJoin` with `resultFn` and explicit `defaultOuter` / `defaultInner` zero values.

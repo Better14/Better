@@ -326,35 +326,150 @@ func GroupBy[T any, K comparable](seq iter.Seq[T], keyFn func(T) K) iter.Seq[Gro
 }
 
 // Join inner-joins with inner.
-func Join[T, U, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R) iter.Seq[R] {
+func Join[T, U any, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R) iter.Seq[R] {
 	return joinSeq(outer, inner, outerKey, innerKey, resultFn)
 }
 
 // GroupJoin groups inner and joins with outer.
-func GroupJoin[T, U, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, iter.Seq[U]) R) iter.Seq[R] {
+func GroupJoin[T, U any, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, iter.Seq[U]) R) iter.Seq[R] {
 	return groupJoinSeq(outer, inner, outerKey, innerKey, resultFn)
 }
 
 // LeftJoin left-joins with inner.
-func LeftJoin[T, U, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultInner U) iter.Seq[R] {
+func LeftJoin[T, U any, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultInner U) iter.Seq[R] {
 	return leftJoinSeq(outer, inner, outerKey, innerKey, resultFn, defaultInner)
 }
 
 // RightJoin right-joins with inner.
-func RightJoin[T, U, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T) iter.Seq[R] {
+func RightJoin[T, U any, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T) iter.Seq[R] {
 	return rightJoinSeq(outer, inner, outerKey, innerKey, resultFn, defaultOuter)
 }
 
 // FullJoin full-outer-joins with inner.
 // Matched keys emit all pairings; unmatched outer rows use defaultInner;
 // unmatched inner rows use defaultOuter.
-func FullJoin[T, U, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T, defaultInner U) iter.Seq[R] {
+func FullJoin[T, U any, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T, defaultInner U) iter.Seq[R] {
 	return fullJoinSeq(outer, inner, outerKey, innerKey, resultFn, defaultOuter, defaultInner)
+}
+
+// Any reports whether the sequence has at least one element.
+func Any[T any](seq iter.Seq[T]) bool {
+	return anyWithoutPredSeq(seq)
+}
+
+// Count returns the number of elements matching pred.
+func Count[T any](seq iter.Seq[T], pred func(T) bool) int {
+	return countPredSeq(seq, pred)
+}
+
+// LongCount returns the number of elements matching pred as int64.
+func LongCount[T any](seq iter.Seq[T], pred func(T) bool) int64 {
+	return longCountPredSeq(seq, pred)
+}
+
+// First returns the first element matching pred.
+func First[T any](seq iter.Seq[T], pred func(T) bool) T {
+	return firstPredSeq(seq, pred)
+}
+
+// FirstOrDefault returns the first element matching pred, or the zero value.
+func FirstOrDefault[T any](seq iter.Seq[T], pred func(T) bool) T {
+	return firstOrDefaultPredSeq(seq, pred)
+}
+
+// FirstOrDefault returns the first element matching pred, or defaultValue.
+func FirstOrDefault[T any](seq iter.Seq[T], pred func(T) bool, defaultValue T) T {
+	return firstOrDefaultPredValueSeq(seq, pred, defaultValue)
+}
+
+// Last returns the last element matching pred.
+func Last[T any](seq iter.Seq[T], pred func(T) bool) T {
+	return lastPredSeq(seq, pred)
+}
+
+// LastOrDefault returns the last element matching pred, or the zero value.
+func LastOrDefault[T any](seq iter.Seq[T], pred func(T) bool) T {
+	return lastOrDefaultPredSeq(seq, pred)
+}
+
+// LastOrDefault returns the last element matching pred, or defaultValue.
+func LastOrDefault[T any](seq iter.Seq[T], pred func(T) bool, defaultValue T) T {
+	return lastOrDefaultPredValueSeq(seq, pred, defaultValue)
+}
+
+// Single returns the only element matching pred.
+func Single[T any](seq iter.Seq[T], pred func(T) bool) T {
+	return singlePredSeq(seq, pred)
+}
+
+// SingleOrDefault returns the only element matching pred, or defaultValue.
+func SingleOrDefault[T any](seq iter.Seq[T], pred func(T) bool, defaultValue T) T {
+	return singleOrDefaultPredSeq(seq, pred, defaultValue)
+}
+
+// DefaultIfEmpty returns the sequence, or a single zero value if empty.
+func DefaultIfEmpty[T any](seq iter.Seq[T]) iter.Seq[T] {
+	return defaultIfEmptyZeroSeq(seq)
+}
+
+// Aggregate folds with seed and applies resultFn to the final accumulator.
+func Aggregate[T any, U any, R any](seq iter.Seq[T], seed U, fn func(U, T) U, resultFn func(U) R) R {
+	return aggregateResultSeq(seq, seed, fn, resultFn)
+}
+
+// AggregateBy groups by key using seedFn for the initial accumulator per group.
+func AggregateBy[T any, K comparable, A any, R any](seq iter.Seq[T], keyFn func(T) K, seedFn func(T) A, fn func(A, T) A, resultFn func(A) R) iter.Seq[KeyValue[K, R]] {
+	return aggregateByFactorySeq(seq, keyFn, seedFn, fn, resultFn)
+}
+
+// Where filters elements using a predicate with index.
+func Where[T any](seq iter.Seq[T], pred func(T, int) bool) iter.Seq[T] {
+	return whereIndexedSeq(seq, pred)
+}
+
+// Select projects each element with index to type U.
+func Select[T, U any](seq iter.Seq[T], fn func(T, int) U) iter.Seq[U] {
+	return selectIndexedSeq(seq, fn)
+}
+
+// SelectMany flattens indexed collection sequences.
+func SelectMany[T, U any](seq iter.Seq[T], fn func(T, int) iter.Seq[U]) iter.Seq[U] {
+	return selectManyIndexedSeq(seq, fn)
+}
+
+// SelectMany flattens collection sequences and projects pairs with resultFn.
+func SelectMany[T, C, U any](seq iter.Seq[T], collectionFn func(T) iter.Seq[C], resultFn func(T, C) U) iter.Seq[U] {
+	return selectManyResultSeq(seq, collectionFn, resultFn)
+}
+
+// SelectMany flattens slice collections and projects pairs with resultFn.
+func SelectMany[T, C, U any](seq iter.Seq[T], collectionFn func(T) []C, resultFn func(T, C) U) iter.Seq[U] {
+	return selectManySliceResultSeq(seq, collectionFn, resultFn)
+}
+
+// SelectMany flattens indexed collection sequences and projects pairs with resultFn.
+func SelectMany[T, C, U any](seq iter.Seq[T], collectionFn func(T, int) iter.Seq[C], resultFn func(T, C) U) iter.Seq[U] {
+	return selectManyIndexedResultSeq(seq, collectionFn, resultFn)
+}
+
+// Sum returns the sum of selector values.
+func Sum[T any, U Number](seq iter.Seq[T], selector func(T) U) U {
+	return sumBySeq(seq, selector)
+}
+
+// Average returns the mean of selector values.
+func Average[T any, U Number](seq iter.Seq[T], selector func(T) U) float64 {
+	return averageBySeq(seq, selector)
 }
 
 // TryGetSeqLen reports a known length without enumerating.
 func TryGetSeqLen[T any](seq iter.Seq[T]) (int, bool) {
 	return tryGetSeqLenSeq(seq)
+}
+
+// TryGetSeqLen reports the length of a slice without wrapping.
+func TryGetSeqLen[T any](s []T) (int, bool) {
+	return len(s), true
 }
 
 // Cast casts each element to U (for iter.Seq[any]).

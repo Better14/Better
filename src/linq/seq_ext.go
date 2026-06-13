@@ -20,12 +20,36 @@ func (seq iter.Seq[T]) Where[T any](pred func(T) bool) iter.Seq[T] {
 	return Where(seq, pred)
 }
 
+func (seq iter.Seq[T]) Where[T any](pred func(T, int) bool) iter.Seq[T] {
+	return Where(seq, pred)
+}
+
 func (seq iter.Seq[T]) Select[T, U any](fn func(T) U) iter.Seq[U] {
+	return Select(seq, fn)
+}
+
+func (seq iter.Seq[T]) Select[T, U any](fn func(T, int) U) iter.Seq[U] {
 	return Select(seq, fn)
 }
 
 func (seq iter.Seq[T]) SelectMany[T, U any](fn func(T) iter.Seq[U]) iter.Seq[U] {
 	return SelectMany(seq, fn)
+}
+
+func (seq iter.Seq[T]) SelectMany[T, U any](fn func(T, int) iter.Seq[U]) iter.Seq[U] {
+	return SelectMany(seq, fn)
+}
+
+func (seq iter.Seq[T]) SelectMany[T, C, U any](collectionFn func(T) iter.Seq[C], resultFn func(T, C) U) iter.Seq[U] {
+	return SelectMany(seq, collectionFn, resultFn)
+}
+
+func (seq iter.Seq[T]) SelectMany[T, C, U any](collectionFn func(T) []C, resultFn func(T, C) U) iter.Seq[U] {
+	return SelectMany(seq, collectionFn, resultFn)
+}
+
+func (seq iter.Seq[T]) SelectMany[T, C, U any](collectionFn func(T, int) iter.Seq[C], resultFn func(T, C) U) iter.Seq[U] {
+	return SelectMany(seq, collectionFn, resultFn)
 }
 
 func (seq iter.Seq[T]) OrderBy[T, K cmp.Ordered](key func(T) K) Ordered[T] {
@@ -90,6 +114,10 @@ func (seq iter.Seq[T]) Reverse[T any]() iter.Seq[T] {
 
 func (seq iter.Seq[T]) Chunk[T any](size int) iter.Seq[[]T] {
 	return Chunk(seq, size)
+}
+
+func (seq iter.Seq[T]) DefaultIfEmpty[T any]() iter.Seq[T] {
+	return DefaultIfEmpty(seq)
 }
 
 func (seq iter.Seq[T]) DefaultIfEmpty[T any](defaultValue T) iter.Seq[T] {
@@ -168,24 +196,56 @@ func (seq iter.Seq[T]) First[T any]() T {
 	return First(seq)
 }
 
+func (seq iter.Seq[T]) First[T any](pred func(T) bool) T {
+	return First(seq, pred)
+}
+
 func (seq iter.Seq[T]) FirstOrDefault[T any]() T {
 	return FirstOrDefault(seq)
+}
+
+func (seq iter.Seq[T]) FirstOrDefault[T any](pred func(T) bool) T {
+	return FirstOrDefault(seq, pred)
+}
+
+func (seq iter.Seq[T]) FirstOrDefault[T any](pred func(T) bool, defaultValue T) T {
+	return FirstOrDefault(seq, pred, defaultValue)
 }
 
 func (seq iter.Seq[T]) Last[T any]() T {
 	return Last(seq)
 }
 
+func (seq iter.Seq[T]) Last[T any](pred func(T) bool) T {
+	return Last(seq, pred)
+}
+
 func (seq iter.Seq[T]) LastOrDefault[T any]() T {
 	return LastOrDefault(seq)
+}
+
+func (seq iter.Seq[T]) LastOrDefault[T any](pred func(T) bool) T {
+	return LastOrDefault(seq, pred)
+}
+
+func (seq iter.Seq[T]) LastOrDefault[T any](pred func(T) bool, defaultValue T) T {
+	return LastOrDefault(seq, pred, defaultValue)
 }
 
 func (seq iter.Seq[T]) Single[T any]() T {
 	return Single(seq)
 }
 
+func (seq iter.Seq[T]) Single[T any](pred func(T) bool) T {
+	return Single(seq, pred)
+}
+
 func (seq iter.Seq[T]) SingleOrDefault[T any](defaultValue T) T {
 	return SingleOrDefault(seq, defaultValue)
+}
+
+func (seq iter.Seq[T]) SingleOrDefault[T any](pred func(T) bool, defaultValue T) T {
+	return SingleOrDefault(seq, pred, defaultValue)
 }
 
 func (seq iter.Seq[T]) ElementAt[T any](index int) T {
@@ -194,6 +254,10 @@ func (seq iter.Seq[T]) ElementAt[T any](index int) T {
 
 func (seq iter.Seq[T]) ElementAtOrDefault[T any](index int, defaultValue T) T {
 	return ElementAtOrDefault(seq, index, defaultValue)
+}
+
+func (seq iter.Seq[T]) Any[T any]() bool {
+	return Any(seq)
 }
 
 func (seq iter.Seq[T]) Any[T any](pred func(T) bool) bool {
@@ -208,8 +272,16 @@ func (seq iter.Seq[T]) Count[T any]() int {
 	return Count(seq)
 }
 
+func (seq iter.Seq[T]) Count[T any](pred func(T) bool) int {
+	return Count(seq, pred)
+}
+
 func (seq iter.Seq[T]) LongCount[T any]() int64 {
 	return LongCount(seq)
+}
+
+func (seq iter.Seq[T]) LongCount[T any](pred func(T) bool) int64 {
+	return LongCount(seq, pred)
 }
 
 func (seq iter.Seq[T]) CountBy[T, K comparable](keyFn func(T) K) iter.Seq[KeyValue[K, int]] {
@@ -224,16 +296,32 @@ func (seq iter.Seq[T]) AggregateWithSeed[T, U any](seed U, fn func(U, T) U) U {
 	return AggregateWithSeed(seq, seed, fn)
 }
 
+func (seq iter.Seq[T]) Aggregate[T, U any, R any](seed U, fn func(U, T) U, resultFn func(U) R) R {
+	return Aggregate(seq, seed, fn, resultFn)
+}
+
 func (seq iter.Seq[T]) AggregateBy[T, K comparable, A any, R any](keyFn func(T) K, seed A, fn func(A, T) A, resultFn func(A) R) iter.Seq[KeyValue[K, R]] {
 	return AggregateBy(seq, keyFn, seed, fn, resultFn)
 }
 
+func (seq iter.Seq[T]) AggregateBy[T, K comparable, A any, R any](keyFn func(T) K, seedFn func(T) A, fn func(A, T) A, resultFn func(A) R) iter.Seq[KeyValue[K, R]] {
+	return AggregateBy(seq, keyFn, seedFn, fn, resultFn)
+}
+
 func (seq iter.Seq[T]) Sum[T Number]() T {
-	return Sum(seq)
+	return sumSeq(seq)
+}
+
+func (seq iter.Seq[T]) Sum[T any, U Number](selector func(T) U) U {
+	return sumBySeq(seq, selector)
 }
 
 func (seq iter.Seq[T]) Average[T Number]() float64 {
-	return Average(seq)
+	return averageSeq(seq)
+}
+
+func (seq iter.Seq[T]) Average[T any, U Number](selector func(T) U) float64 {
+	return averageBySeq(seq, selector)
 }
 
 func (seq iter.Seq[T]) Max[T cmp.Ordered]() T {
@@ -256,27 +344,35 @@ func (seq iter.Seq[T]) GroupBy[T, K comparable](keyFn func(T) K) iter.Seq[Group[
 	return GroupBy(seq, keyFn)
 }
 
-func (seq iter.Seq[T]) Join[T, U, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R) iter.Seq[R] {
+func (seq iter.Seq[T]) Join[T, U any, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R) iter.Seq[R] {
 	return Join(seq, inner, outerKey, innerKey, resultFn)
 }
 
-func (seq iter.Seq[T]) GroupJoin[T, U, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, iter.Seq[U]) R) iter.Seq[R] {
+func (seq iter.Seq[T]) GroupJoin[T, U any, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, iter.Seq[U]) R) iter.Seq[R] {
 	return GroupJoin(seq, inner, outerKey, innerKey, resultFn)
 }
 
-func (seq iter.Seq[T]) LeftJoin[T, U, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultInner U) iter.Seq[R] {
+func (seq iter.Seq[T]) LeftJoin[T, U any, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultInner U) iter.Seq[R] {
 	return LeftJoin(seq, inner, outerKey, innerKey, resultFn, defaultInner)
 }
 
-func (seq iter.Seq[T]) RightJoin[T, U, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T) iter.Seq[R] {
+func (seq iter.Seq[T]) RightJoin[T, U any, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T) iter.Seq[R] {
 	return RightJoin(seq, inner, outerKey, innerKey, resultFn, defaultOuter)
 }
 
-func (seq iter.Seq[T]) FullJoin[T, U, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T, defaultInner U) iter.Seq[R] {
+func (seq iter.Seq[T]) FullJoin[T, U any, K comparable, R any](inner iter.Seq[U], outerKey func(T) K, innerKey func(U) K, resultFn func(T, U) R, defaultOuter T, defaultInner U) iter.Seq[R] {
 	return FullJoin(seq, inner, outerKey, innerKey, resultFn, defaultOuter, defaultInner)
 }
 
+func (seq iter.Seq[any]) Cast[U any]() iter.Seq[U] {
+	return Cast[U](seq)
+}
+
+func (seq iter.Seq[any]) OfType[U any]() iter.Seq[U] {
+	return OfType[U](seq)
+}
+
 func (seq iter.Seq[T]) TryGetSeqLen[T any]() (int, bool) {
-	return TryGetSeqLen(seq)
+	return tryGetSeqLenSeq(seq)
 }
 
