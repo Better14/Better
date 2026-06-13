@@ -174,13 +174,18 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 	}
 
 	if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
-		if kind, handled := check.tryExtensionCall(x, call, sel); handled {
+		if kind, handled := check.tryExtensionCall(x, call, sel, nil); handled {
 			return kind
 		}
 	}
 
 	var inst *syntax.IndexExpr // function instantiation, if any
 	if iexpr, _ := call.Fun.(*syntax.IndexExpr); iexpr != nil {
+		if sel, ok := iexpr.X.(*syntax.SelectorExpr); ok {
+			if kind, handled := check.tryExtensionCall(x, call, sel, iexpr); handled {
+				return kind
+			}
+		}
 		if check.indexExpr(x, iexpr) {
 			// Delay function instantiation to argument checking,
 			// where we combine type and value arguments for type

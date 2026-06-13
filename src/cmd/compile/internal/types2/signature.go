@@ -205,6 +205,23 @@ func (check *Checker) collectRecv(rparam *syntax.Field, scopePos syntax.Pos) (*V
 	// receiver type parameters rtparams may not be present.
 	rptr, rbase, rtparams := check.unpackRecv(rparam.Type, true)
 
+	// If index arguments are already declared types (e.g. iter.Seq[any]),
+	// instantiate the receiver rather than declaring new receiver type
+	// parameters. Only undeclared identifiers such as T in iter.Seq[T]
+	// introduce receiver type parameters.
+	if rtparams != nil {
+		declareParams := false
+		for _, rp := range rtparams {
+			if rp.Value != "_" && check.lookup(rp.Value) == nil {
+				declareParams = true
+				break
+			}
+		}
+		if !declareParams {
+			rtparams = nil
+		}
+	}
+
 	// Determine the receiver base type.
 	var recvType Type = Typ[Invalid]
 	var recvTParamsList *TypeParamList
