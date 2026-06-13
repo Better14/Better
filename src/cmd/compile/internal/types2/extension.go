@@ -168,10 +168,11 @@ func sliceOrArrayElem(typ Type) Type {
 }
 
 type extensionMatch struct {
-	fn      *Func
-	pkgName *PkgName
-	adapt   bool // wrap receiver with slices.Values
-	slice   bool // convert array receiver to slice for []T extensions
+	fn       *Func
+	pkgName  *PkgName
+	adapt    bool   // wrap receiver with slices.Values
+	slice    bool   // convert array receiver to slice for []T extensions
+	linqFast string // unexported linq []T fast path (compiler-only)
 }
 
 // hasInstanceMethod reports whether typ has a concrete or interface method name.
@@ -227,7 +228,13 @@ func (check *Checker) matchExtension(recvType Type, fn *Func) (extensionMatch, b
 
 	if seqElem := iterSeqElem(param0); seqElem != nil {
 		if elem := sliceOrArrayElem(recvType); elem != nil && Identical(elem, seqElem) {
-			return extensionMatch{fn: fn, adapt: true}, true
+			m := extensionMatch{fn: fn, adapt: true}
+			if fn.pkg != nil && fn.pkg.path == linqPkgPath {
+				if fast, ok := linqSliceFastPath(fn.name); ok {
+					m.linqFast = fast
+				}
+			}
+			return m, true
 		}
 	}
 	return extensionMatch{}, false
@@ -306,7 +313,10 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 	if m.slice {
 		recvExpr = &syntax.SliceExpr{X: sel.X}
 	}
-	if m.adapt {
+	funcName := sel.Sel.Value
+	if m.linqFast != "" {
+		funcName = m.linqFast
+	} else if m.adapt {
 		if !check.verifyVersionf(call, go1_27, "slices.Values") {
 			x.invalidate()
 			x.expr = call
@@ -340,11 +350,11 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 	pkgIdent := m.pkgName
 	if pkgIdent == nil {
 		// same package: use an unqualified function name
-		call.Fun = syntax.NewName(call.Pos(), sel.Sel.Value)
+		call.Fun = syntax.NewName(call.Pos(), funcName)
 	} else {
 		call.Fun = &syntax.SelectorExpr{
 			X:   syntax.NewName(call.Pos(), pkgIdent.name),
-			Sel: syntax.NewName(call.Pos(), sel.Sel.Value),
+			Sel: syntax.NewName(call.Pos(), funcName),
 		}
 		check.recordUse(call.Fun.(*syntax.SelectorExpr).X.(*syntax.Name), pkgIdent)
 	}

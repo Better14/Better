@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Verify extension methods on slices and foreign types.
+// Verify extension methods on iter.Seq and foreign types.
 
 package main
 
@@ -12,12 +12,12 @@ import "linq"
 
 func main() {
 	nums := []int{1, 2, 3, 4, 5}
-	out := nums.Where(func(n int) bool { return n < 5 }).Select(func(n int) int { return n + 1 }).ToList()
+	out := linq.From(nums).Where(func(n int) bool { return n < 5 }).Select(func(n int) int { return n + 1 }).ToList()
 	if len(out) != 4 || out[0] != 2 || out[3] != 5 {
 		panic(out)
 	}
-	lazy := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 })
-	if lazy.First() != 4 {
-		panic("lazy chain failed")
+	seq := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 })
+	if seq.First() != 4 {
+		panic("seq chain failed")
 	}
 }

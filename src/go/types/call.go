@@ -994,8 +994,10 @@ func (check *Checker) selector(x *operand, e *ast.SelectorExpr, wantType bool) {
 					goto Error
 				}
 				if !exp.Exported() {
-					check.errorf(e.Sel, UnexportedName, "name %s not exported by package %s", sel, pkg.name)
-					// ok to continue
+					if !isLinqCompilerSliceFast(pkg.path, sel) {
+						check.errorf(e.Sel, UnexportedName, "name %s not exported by package %s", sel, pkg.name)
+						// ok to continue
+					}
 				}
 			}
 			check.recordUse(e.Sel, exp)

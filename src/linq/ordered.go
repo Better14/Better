@@ -6,6 +6,7 @@ package linq
 
 import (
 	"cmp"
+	"iter"
 	"slices"
 )
 
@@ -15,24 +16,24 @@ func orderedFromLess[T any](items []T, less func(a, b T) int) Ordered[T] {
 	return Ordered[T]{items: out, less: less}
 }
 
-func orderedFromLazy[T any](l Lazy[T], less func(a, b T) int) Ordered[T] {
-	return orderedFromLess(lazyToSlice(l), less)
+func orderedFromSeq[T any](seq iter.Seq[T], less func(a, b T) int) Ordered[T] {
+	return orderedFromLess(slices.Collect(seq), less)
 }
 
-func lazyOrderBy[T any, K cmp.Ordered](l Lazy[T], key func(T) K) Ordered[T] {
-	return orderedFromLazy(l, func(a, b T) int { return cmp.Compare(key(a), key(b)) })
+func orderBySeq[T any, K cmp.Ordered](seq iter.Seq[T], key func(T) K) Ordered[T] {
+	return orderedFromSeq(seq, func(a, b T) int { return cmp.Compare(key(a), key(b)) })
 }
 
-func lazyOrderByDescending[T any, K cmp.Ordered](l Lazy[T], key func(T) K) Ordered[T] {
-	return orderedFromLazy(l, func(a, b T) int { return cmp.Compare(key(b), key(a)) })
+func orderByDescendingSeq[T any, K cmp.Ordered](seq iter.Seq[T], key func(T) K) Ordered[T] {
+	return orderedFromSeq(seq, func(a, b T) int { return cmp.Compare(key(b), key(a)) })
 }
 
-func lazyOrder[T cmp.Ordered](l Lazy[T]) Ordered[T] {
-	return orderedFromLazy(l, func(a, b T) int { return cmp.Compare(a, b) })
+func orderSeq[T cmp.Ordered](seq iter.Seq[T]) Ordered[T] {
+	return orderedFromSeq(seq, func(a, b T) int { return cmp.Compare(a, b) })
 }
 
-func lazyOrderDescending[T cmp.Ordered](l Lazy[T]) Ordered[T] {
-	return orderedFromLazy(l, func(a, b T) int { return cmp.Compare(b, a) })
+func orderDescendingSeq[T cmp.Ordered](seq iter.Seq[T]) Ordered[T] {
+	return orderedFromSeq(seq, func(a, b T) int { return cmp.Compare(b, a) })
 }
 
 func (o Ordered[T]) thenBy(keyLess func(a, b T) int) Ordered[T] {
@@ -58,9 +59,9 @@ func (o Ordered[T]) ThenByDescending[K cmp.Ordered](key func(T) K) Ordered[T] {
 	return o.thenBy(func(a, b T) int { return cmp.Compare(key(b), key(a)) })
 }
 
-// Lazy returns the sorted sequence as a lazy iterator.
-func (o Ordered[T]) Lazy() Lazy[T] {
-	return From(o.items)
+// Seq returns the sorted sequence as an iterator.
+func (o Ordered[T]) Seq() iter.Seq[T] {
+	return slices.Values(o.items)
 }
 
 // ToList materializes the ordered sequence.
@@ -69,31 +70,31 @@ func (o Ordered[T]) ToList() []T {
 }
 
 // Where filters the ordered sequence.
-func (o Ordered[T]) Where(pred func(T) bool) Lazy[T] {
-	return lazyWhere(From(o.items), pred)
+func (o Ordered[T]) Where(pred func(T) bool) iter.Seq[T] {
+	return Where(slices.Values(o.items), pred)
 }
 
 // Select projects the ordered sequence.
-func (o Ordered[T]) Select[U any](fn func(T) U) Lazy[U] {
-	return lazySelectBy(From(o.items), fn)
+func (o Ordered[T]) Select[U any](fn func(T) U) iter.Seq[U] {
+	return SelectBy(slices.Values(o.items), fn)
 }
 
 // Take returns at most n elements.
-func (o Ordered[T]) Take(n int) Lazy[T] {
-	return lazyTake(From(o.items), n)
+func (o Ordered[T]) Take(n int) iter.Seq[T] {
+	return Take(slices.Values(o.items), n)
 }
 
 // Skip skips the first n elements.
-func (o Ordered[T]) Skip(n int) Lazy[T] {
-	return lazySkip(From(o.items), n)
+func (o Ordered[T]) Skip(n int) iter.Seq[T] {
+	return Skip(slices.Values(o.items), n)
 }
 
 // First returns the first element, or panics if empty.
 func (o Ordered[T]) First() T {
-	return firstLazy(From(o.items))
+	return First(slices.Values(o.items))
 }
 
 // FirstOrDefault returns the first element or the zero value.
 func (o Ordered[T]) FirstOrDefault() T {
-	return firstOrDefaultLazy(From(o.items))
+	return FirstOrDefault(slices.Values(o.items))
 }

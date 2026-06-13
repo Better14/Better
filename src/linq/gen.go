@@ -4,69 +4,62 @@
 
 package linq
 
-// Empty returns an empty lazy sequence.
-func Empty[T any]() Lazy[T] {
-	return Lazy[T]{next: func() (T, bool) {
-		var z T
-		return z, false
-	}}
+import "iter"
+
+// Empty returns an empty sequence.
+func Empty[T any]() iter.Seq[T] {
+	return func(yield func(T) bool) {}
 }
 
 // Range generates count consecutive integers starting at start.
-func Range(start, count int) Lazy[int] {
+func Range(start, count int) iter.Seq[int] {
 	if count <= 0 {
 		return Empty[int]()
 	}
-	i := 0
-	return Lazy[int]{
-		knownLen: count,
-		next: func() (int, bool) {
-			if i >= count {
-				return 0, false
+	end := start + count
+	return func(yield func(int) bool) {
+		for i := start; i < end; i++ {
+			if !yield(i) {
+				return
 			}
-			v := start + i
-			i++
-			return v, true
-		},
+		}
 	}
 }
 
 // Repeat generates count copies of element.
-func Repeat[T any](element T, count int) Lazy[T] {
+func Repeat[T any](element T, count int) iter.Seq[T] {
 	if count <= 0 {
 		return Empty[T]()
 	}
-	i := 0
-	return Lazy[T]{
-		knownLen: count,
-		next: func() (T, bool) {
-			if i >= count {
-				var z T
-				return z, false
+	return func(yield func(T) bool) {
+		for i := 0; i < count; i++ {
+			if !yield(element) {
+				return
 			}
-			i++
-			return element, true
-		},
+		}
 	}
 }
 
 // InfiniteSequence generates an infinite sequence using generator.
-func InfiniteSequence[T any](generator func() T) Lazy[T] {
-	return Lazy[T]{next: func() (T, bool) {
-		return generator(), true
-	}}
+func InfiniteSequence[T any](generator func() T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for {
+			if !yield(generator()) {
+				return
+			}
+		}
+	}
 }
 
 // Sequence generates an infinite sequence from seed using next.
-func Sequence[T any](seed T, next func(T) T) Lazy[T] {
-	cur := seed
-	first := true
-	return Lazy[T]{next: func() (T, bool) {
-		if first {
-			first = false
-			return cur, true
+func Sequence[T any](seed T, next func(T) T) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		cur := seed
+		for {
+			if !yield(cur) {
+				return
+			}
+			cur = next(cur)
 		}
-		cur = next(cur)
-		return cur, true
-	}}
+	}
 }
