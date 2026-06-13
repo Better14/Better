@@ -280,10 +280,3 @@ func (seq iter.Seq[T]) TryGetSeqLen[T any]() (int, bool) {
 	return TryGetSeqLen(seq)
 }
 
-func (seq iter.Seq[any]) Cast[U any]() iter.Seq[U] {
-	return Cast[U](seq)
-}
-
-func (seq iter.Seq[any]) OfType[U any]() iter.Seq[U] {
-	return OfType[U](seq)
-}

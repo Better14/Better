@@ -4,10 +4,7 @@
 
 package errors
 
-import (
-	"fmt"
-	"runtime"
-)
+import "runtime"
 
 // Error is a structured error with message, stack trace, and optional inner error.
 type Error struct {
@@ -130,13 +127,6 @@ func NewWrapped(message string, wrapped error) error {
 	}
 	setLink(e, wrapped)
 	return e
-}
-
-func formatMessage(format string, args ...any) string {
-	if len(args) == 0 {
-		return format
-	}
-	return fmt.Sprintf(format, args...)
 }
 
 func newError(message string) *Error {

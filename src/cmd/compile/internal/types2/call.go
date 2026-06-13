@@ -358,10 +358,19 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 		if sig.params != nil {
 			var methodRecv *operand
 			if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
-				var recv operand
-				check.expr(nil, &recv, sel.X)
-				if recv.isValid() {
-					methodRecv = &recv
+				skipRecv := false
+				if name, ok := sel.X.(*syntax.Name); ok {
+					if _, isPkg := check.lookup(name.Value).(*PkgName); isPkg {
+						// Package-qualified call (e.g. bits.LeadingZeros64), not a method.
+						skipRecv = true
+					}
+				}
+				if !skipRecv {
+					var recv operand
+					check.expr(nil, &recv, sel.X)
+					if recv.isValid() {
+						methodRecv = &recv
+					}
 				}
 			}
 			args, atargs = check.genericExprListHinted(call.ArgList, sig, sig.params, methodRecv)
