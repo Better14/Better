@@ -22,7 +22,16 @@ nullable_pointers enable   // or: disable | warn
 | ----- | ------- |
 | `disable` | Legacy behavior; `*T` may be `nil`; `*T?` not used (default for existing modules) |
 | `warn` | NPT on; all violations are warnings |
-| `enable` | NPT on; assigning or returning `nil` for `*T` is a compile error; other violations warn |
+| `enable` | NPT on; **definite** violations are compile errors; **flow-analysis** violations are warnings (see [Diagnostics](#diagnostics)) |
+
+### Severity under `enable`
+
+Not every NPT diagnostic is equally certain. Under `enable`:
+
+- **Compile errors** — violations the compiler knows are wrong without control-flow inference, such as assigning or returning `nil` for a non-nullable `*T`.
+- **Warnings** — violations that depend on null-state analysis across branches, calls, or initialization (e.g. dereferencing a `*T?` without a check, passing `*T?` where `*T` is required). These may include false positives or require refactors the analyzer cannot prove are safe.
+
+**Eventual goal:** as null-state analysis matures, more diagnostics move from warnings to compile errors under `enable`, until `enable` treats all NPT violations as compile errors. Until then, `warn` remains the migration mode where everything is a warning.
 
 `go mod tidy` and module graph tools should read this directive so builds are reproducible and importers know which nullability rules apply.
 
@@ -47,8 +56,8 @@ When the context is **disabled** (default), pointer types behave exactly as in c
 
 When the context is **enabled** (`warn` or `enable`), pointer annotations apply:
 
-- `*T` — non-nullable pointer; assigning or passing `nil` where `*T` is expected is a compile error when `nullable_pointers` is `enable`, and a warning when it is `warn`.
-- `*T?` — nullable pointer; holding `nil` is allowed; dereferencing without a nil check produces a warning.
+- `*T` — non-nullable pointer; assigning or passing `nil` where `*T` is expected is a compile error under `enable` (a warning under `warn`).
+- `*T?` — nullable pointer; holding `nil` is allowed; dereferencing without a nil check is a warning under `enable` (see [Diagnostics](#diagnostics)).
 
 The `?` suffix attaches to the pointer type as a whole (`*MyStruct?`), consistent with `int?` for value types. It is not the same as `*int?` (pointer to nullable `int`), which remains “pointer to `int?`” when both features are in use.
 
@@ -219,15 +228,20 @@ Parameter and return annotations are not always enough. A helper may accept `*T?
 
 ## Diagnostics
 
-When NPT is enabled (`nullable_pointers` is `warn` or `enable`):
+When NPT is on (`nullable_pointers` is `warn` or `enable`):
 
-| Situation | `warn` | `enable` |
-| --------- | ------ | -------- |
-| Assign `nil` to `*T` | warning | compile error |
-| Pass `*T?` where `*T` is required | warning | warning |
-| Dereference `*T?` without check | warning | warning |
-| Return `nil` from function declared `*T` | warning | compile error |
-| Leave non-nullable struct field uninitialized | warning | warning |
+| Situation | Category | `warn` | `enable` (v1) | `enable` (goal) |
+| --------- | -------- | ------ | ------------- | --------------- |
+| Assign `nil` to `*T` | definite | warning | compile error | compile error |
+| Return `nil` from function declared `*T` | definite | warning | compile error | compile error |
+| Pass `nil` for a non-nullable `*T` parameter | definite | warning | compile error | compile error |
+| Pass `*T?` where `*T` is required | flow | warning | warning | compile error |
+| Dereference `*T?` without check | flow | warning | warning | compile error |
+| Leave non-nullable struct field uninitialized | flow | warning | warning | compile error |
+
+**Definite** violations do not depend on control-flow inference — the source itself assigns or returns `nil` for a non-nullable type. **Flow** violations depend on null-state analysis; they are warnings under `enable` in v1 because the analyzer may be incomplete or produce debatable results.
+
+Over time, flow diagnostics should be promoted to compile errors under `enable` as analysis improves. `warn` stays available for modules that are not ready for any build failures.
 
 **Runtime:** unchanged. A non-nullable `*T` that holds `nil` at run time still panics on dereference (or behaves as today); NPT does not insert checks.
 
@@ -259,8 +273,9 @@ Mitigation options for a future revision: `required` field markers, constructors
 1. Add `nullable_pointers disable` explicitly to existing `go.mod` files (or omit; default is disable).
 2. Enable per module with warnings first: `nullable_pointers warn`.
 3. Fix warnings module-by-module; use `//go:nullable_pointers disable` on generated or legacy files.
-4. Tighten to `nullable_pointers enable` when clean.
-5. New modules created from a template default to `enable`.
+4. Tighten to `nullable_pointers enable` when definite violations (nil assignment/return) are clean; flow warnings may remain.
+5. As analysis improves, `enable` will promote more flow diagnostics to compile errors without changing the directive name.
+6. New modules created from a template default to `enable`.
 
 Libraries consumed with NPT off keep today’s behavior. When both consumer and provider use NPT, exported APIs should annotate nullable vs non-nullable pointer parameters and results in docs and signatures.
 
