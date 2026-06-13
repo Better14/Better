@@ -260,14 +260,14 @@ func All[T any](seq iter.Seq[T], pred func(T) bool) bool {
 	return allSeq(seq, pred)
 }
 
-// Len returns the number of elements.
-func Len[T any](seq iter.Seq[T]) int {
-	return lenSeq(seq)
+// Count returns the number of elements.
+func Count[T any](seq iter.Seq[T]) int {
+	return countSeq(seq)
 }
 
-// LongLen returns the number of elements as int64.
-func LongLen[T any](seq iter.Seq[T]) int64 {
-	return longLenSeq(seq)
+// LongCount returns the number of elements as int64.
+func LongCount[T any](seq iter.Seq[T]) int64 {
+	return longCountSeq(seq)
 }
 
 // CountBy counts elements by key.

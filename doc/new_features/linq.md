@@ -70,7 +70,7 @@ All **68** core `System.Linq.Enumerable` methods are implemented, including `Ful
 
 Go also provides generators not in `Enumerable`: `From`, `Empty`, `Range`, `Repeat`, `InfiniteSequence`, `Sequence`, and `SelectBy` (alias for `Select`). `ThenBy` / `ThenByDescending` live on `Ordered[T]` (the `IOrderedEnumerable` role).
 
-Go renames a few .NET names to match `iter.Seq[T]`: `AsSeq` (not `AsEnumerable`), `Len` / `LongLen` (not `Count` / `LongCount`), and `TryGetSeqLen` (not `TryGetNonEnumeratedCount`).
+Go renames a few .NET names to match `iter.Seq[T]`: `AsSeq` (not `AsEnumerable`) and `TryGetSeqLen` (not `TryGetNonEnumeratedCount`).
 
 ## Not implemented
 
@@ -97,7 +97,7 @@ These methods exist but **not all** .NET overloads are covered:
 | Method | Missing overload |
 |--------|------------------|
 | `Any` | `Any()` without predicate |
-| `Len`, `LongLen` | `Len(pred)`, `LongLen(pred)` (.NET: `Count`, `LongCount`) |
+| `Count`, `LongCount` | `Count(pred)`, `LongCount(pred)` |
 | `First`, `Last`, `Single` | `*(pred)` |
 | `FirstOrDefault`, `LastOrDefault`, `SingleOrDefault` | `*(pred)`, `*(pred, default)` |
 
