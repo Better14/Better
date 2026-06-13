@@ -5,6 +5,7 @@
 // Package errors implements functions to manipulate errors.
 //
 // The [New] function creates [*Error] values with a message and stack trace.
+// New and [NewCustom] accept an optional format string and arguments (like fmt.Sprintf).
 // [NewCustom] creates a named type that embeds Error, or fills an embedded *Error in place.
 // [Wrap] adds context layers with fresh stack traces. Use [Error.String] for
 // full serialization of the error chain and traces.
@@ -62,12 +63,13 @@
 // because the former will succeed if err wraps an [*io/fs.PathError].
 package errors
 
-// New returns a structured error that formats as the given text.
-// Each call to New returns a distinct error value even if the text is identical.
+// New returns a structured error with the given message.
+// When args are provided, format is interpreted like fmt.Sprintf.
+// Each call to New returns a distinct error value even if the message is identical.
 // The returned *Error includes a stack trace captured at the call site.
 // *Error implements the error interface, so return values assign to error as before.
-func New(text string) *Error {
-	return newError(text)
+func New(format string, args ...any) *Error {
+	return newError(formatMessage(format, args...))
 }
 
 // ErrUnsupported indicates that a requested operation cannot be performed,

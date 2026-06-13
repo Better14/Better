@@ -4,7 +4,7 @@ Go’s standard [`errors`](https://pkg.go.dev/errors) package gains a public **`
 
 ## Overview
 
-Today, `errors.New("…")` returns a `*Error` with message and stack trace (assignable to `error` as before). Diagnosing failures in production often required ad hoc logging or third-party packages to attach stack traces and error chains.
+Today, `errors.New("…")` and `errors.New("…", args…)` return a `*Error` with message and stack trace (assignable to `error` as before). When arguments are provided, the format string is interpreted like `fmt.Sprintf`. Diagnosing failures in production often required ad hoc logging or third-party packages to attach stack traces and error chains.
 
 The extended **`errors.Error`** struct makes that structure first-class:
 
@@ -155,29 +155,31 @@ return errors.New("permission denied")
 
 | Situation | API | Returns |
 | --------- | --- | ------- |
-| Generic structured error | **`errors.New(msg)`** | `*Error` |
-| Named type, embeds `errors.Error` only (no extra fields) | `errors.NewCustom[T]` `(msg)` | `*T` |
-| Named type with extra fields (e.g. `Code int`) | **`NewCustom(&err.Error, msg)`** or **`NewMyError(...)`** | `*MyError` |
+| Generic structured error | **`errors.New(format, args…)`** | `*Error` |
+| Named type, embeds `errors.Error` only (no extra fields) | `errors.NewCustom[T]` `(format, args…)` | `*T` |
+| Named type with extra fields (e.g. `Code int`) | **`NewCustom(&err.Error, format, args…)`** or **`NewMyError(...)`** | `*MyError` |
 
 #### `errors.New` — generic structured error
 
-Use for root errors and sentinels when **`errors.Error`** is enough:
+Use for root errors and sentinels when **`errors.Error`** is enough. The first argument is a format string; optional arguments are formatted like `fmt.Sprintf`:
 
 ```go
 var ErrNotFound = errors.New("not found")
 
 func openFile(path string) error {
-	return errors.New("open file: " + path)
+	return errors.New("open file: %s", path)
 }
 ```
+
+With no extra arguments, the format string is used as-is (so literals containing `%` are unchanged).
 
 #### `errors.NewCustom` — custom errors that embed `errors.Error`
 
 Two overloads share the same name; the compiler picks by argument types ([overloading](overloading.md)):
 
 ```go
-func NewCustom[T ~struct{ Error }](message string) *T
-func NewCustom(e *Error, message string)
+func NewCustom[T ~struct{ Error }](format string, args ...any) *T
+func NewCustom(e *Error, format string, args ...any)
 ```
 
 Both set **`Message`**, **`StackTrace`**, and **`InnerError`** (`nil`) on the embedded layer. Use **`errors.Wrap`** to add outer layers.
@@ -186,10 +188,10 @@ Both set **`Message`**, **`StackTrace`**, and **`InnerError`** (`nil`) on the em
 
 | Overload | Use when | Example |
 | -------- | -------- | ------- |
-| `NewCustom[T]` `(msg)` | Named type embeds **only** `errors.Error` (no extra fields) | `return errors.NewCustom[AppError]` `("…")` |
-| **`NewCustom(&err.Error, msg)`** | Named type has **extra domain fields**; initialize the embedded layer in place | `errors.NewCustom(&myErr.Error, msg); myErr.Code = 404` |
+| `NewCustom[T]` `(format, args…)` | Named type embeds **only** `errors.Error` (no extra fields) | `return errors.NewCustom[AppError]("invalid id: %s", id)` |
+| **`NewCustom(&err.Error, format, args…)`** | Named type has **extra domain fields**; initialize the embedded layer in place | `errors.NewCustom(&myErr.Error, "code %d", code); myErr.Code = code` |
 
-**`NewCustom[T]` `(msg)`** — embed only, no extra fields
+**`NewCustom[T]` `(format, args…)`** — embed only, no extra fields
 
 ```go
 type AppError struct {
@@ -197,11 +199,11 @@ type AppError struct {
 }
 
 func validate(id string) *AppError {
-	return errors.NewCustom[AppError]("invalid id: " + id)
+	return errors.NewCustom[AppError]("invalid id: %s", id)
 }
 ```
 
-**`NewCustom(&err.Error, msg)` — extra fields on the same struct**
+**`NewCustom(&err.Error, format, args…)` — extra fields on the same struct**
 
 ```go
 type MyError struct {
@@ -211,7 +213,7 @@ type MyError struct {
 
 func NewMyError(code int, message string) *MyError {
 	var err MyError
-	errors.NewCustom(&err.Error, message)
+	errors.NewCustom(&err.Error, "%s", message)
 	err.Code = code
 	return &err
 }
@@ -221,29 +223,29 @@ Pass **`&err.Error`** (address of the embedded field), not `&err`.
 
 #### `NewMyError` — alternative constructor with extra fields
 
-Equivalent to `NewCustom(&err.Error, msg)` plus assigning domain fields; you can also copy from **`errors.New`**:
+Equivalent to `NewCustom(&err.Error, format, args…)` plus assigning domain fields; you can also copy from **`errors.New`**:
 
 ```go
 func NewMyError(code int, message string) *MyError {
 	var err MyError
-	errors.NewCustom(&err.Error, message)
+	errors.NewCustom(&err.Error, "%s", message)
 	err.Code = code
 	return &err
 }
 ```
 
-Or copy from `*errors.New(message)` in a composite literal:
+Or copy from `*errors.New(format, args…)` in a composite literal:
 
 ```go
 func NewMyErrorAlt(code int, message string) *MyError {
 	return &MyError{
-		Error: *errors.New(message),
+		Error: *errors.New("%s", message),
 		Code:  code,
 	}
 }
 ```
 
-Both set **`Message`** and **`StackTrace`** on the embedded struct. Prefer **`NewCustom(&err.Error, msg)`** when building the value field-by-field.
+Both set **`Message`** and **`StackTrace`** on the embedded struct. Prefer **`NewCustom(&err.Error, format, args…)`** when building the value field-by-field.
 
 ### `Wrap` — add context and a new stack frame layer
 
@@ -325,7 +327,7 @@ Stack traces are captured when an `*Error` is created through **`New`**, **`Wrap
 func openFile(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
-		return errors.New("open file: " + path)
+		return errors.New("open file: %s", path)
 	}
 	defer f.Close()
 	// ...
@@ -479,7 +481,7 @@ This change is **opt-in at the call site**. The `error` interface, function sign
 
 ### `errors.New` — root errors
 
-Prefer **`errors.New`** for new root errors and sentinels. Every call captures a stack trace at the creation site; no API signature changes are required:
+Prefer **`errors.New`** for new root errors and sentinels. Every call captures a stack trace at the creation site:
 
 ```go
 var ErrNotFound = errors.New("not found")
@@ -490,9 +492,13 @@ func validate(id string) error {
 	}
 	return nil
 }
+
+func openFile(path string) error {
+	return errors.New("open file: %s", path)
+}
 ```
 
-Existing `errors.New("…")` call sites automatically gain stack traces once this stdlib update is in place.
+Existing `errors.New("…")` call sites continue to work. Use format arguments instead of string concatenation for dynamic messages.
 
 ### `fmt.Errorf` — stack traces without rewrites
 
@@ -534,7 +540,7 @@ type MyError struct {
 
 func NewMyError(code int, message string) *MyError {
 	var err MyError
-	errors.NewCustom(&err.Error, message)
+	errors.NewCustom(&err.Error, "%s", message)
 	err.Code = code
 	return &err
 }
@@ -571,9 +577,9 @@ Mechanical rewrites (e.g. `fmt.Errorf("… %w", err)` → `errors.Wrap(err, "…
 
 | API | Purpose |
 | --- | ------- |
-| `errors.New(msg)` | Root `*Error` with stack trace |
-| `errors.NewCustom[T]` `(msg)` | Root custom `*T` embedding `errors.Error` |
-| `errors.NewCustom(&e, msg)` | Fill embedded `*errors.Error` in place (extra domain fields) |
+| `errors.New(format, args…)` | Root `*Error` with stack trace |
+| `errors.NewCustom[T]` `(format, args…)` | Root custom `*T` embedding `errors.Error` |
+| `errors.NewCustom(&e, format, args…)` | Fill embedded `*errors.Error` in place (extra domain fields) |
 | `NewMyError(...)` | Custom `*MyError` with extra fields |
 | `err.Wrap(msg)` | New outer layer; `InnerError = err` |
 | `err.Error()` | Returns `Message` only |

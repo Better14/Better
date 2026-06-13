@@ -132,6 +132,38 @@ func TestNewCustomInPlace(t *testing.T) {
 	}
 }
 
+func TestNewFormat(t *testing.T) {
+	err := errors.New("open file: %s", "/etc/app.conf")
+	if got := err.Error(); got != "open file: /etc/app.conf" {
+		t.Fatalf("Error() = %q, want open file: /etc/app.conf", got)
+	}
+	if got := errors.New("100% complete").Error(); got != "100% complete" {
+		t.Fatalf("literal percent = %q, want 100%% complete", got)
+	}
+}
+
+func TestNewCustomFormat(t *testing.T) {
+	type AppError struct {
+		errors.Error
+	}
+
+	err := errors.NewCustom[AppError]("invalid id: %s", "abc")
+	if err.Error() != "invalid id: abc" {
+		t.Fatalf("Error() = %q, want invalid id: abc", err.Error())
+	}
+
+	type MyError struct {
+		errors.Error
+		Code int
+	}
+	var myErr MyError
+	errors.NewCustom(&myErr.Error, "not found: %d", 404)
+	myErr.Code = 404
+	if myErr.Error() != "not found: 404" {
+		t.Fatalf("Error() = %q, want not found: 404", myErr.Error())
+	}
+}
+
 func TestNewCustom(t *testing.T) {
 	type AppError struct {
 		errors.Error

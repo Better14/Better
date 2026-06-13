@@ -5,6 +5,7 @@
 package errors
 
 import (
+	"fmt"
 	"runtime"
 )
 
@@ -131,6 +132,13 @@ func NewWrapped(message string, wrapped error) error {
 	return e
 }
 
+func formatMessage(format string, args ...any) string {
+	if len(args) == 0 {
+		return format
+	}
+	return fmt.Sprintf(format, args...)
+}
+
 func newError(message string) *Error {
 	return &Error{
 		Message:    message,
@@ -141,19 +149,21 @@ func newError(message string) *Error {
 // NewCustom returns a root error of type T with Message, StackTrace, and InnerError set
 // on the embedded Error field. T must be a named type whose underlying type is
 // struct{ Error } — that is, it embeds errors.Error and adds no other fields.
-func NewCustom[T ~struct{ Error }](message string) *T {
-	return &T{Error: *newError(message)}
+// When args are provided, format is interpreted like fmt.Sprintf.
+func NewCustom[T ~struct{ Error }](format string, args ...any) *T {
+	return &T{Error: *newError(formatMessage(format, args...))}
 }
 
 // NewCustom assigns Message, StackTrace, and InnerError on e from a new root error
 // captured at the call site. Use this to initialize the embedded errors.Error field
 // of a custom type that has extra domain fields, e.g. NewCustom(&myErr.Error, msg).
+// When args are provided, format is interpreted like fmt.Sprintf.
 // If e is nil, NewCustom does nothing.
-func NewCustom(e *Error, message string) {
+func NewCustom(e *Error, format string, args ...any) {
 	if e == nil {
 		return
 	}
-	*e = *newError(message)
+	*e = *newError(formatMessage(format, args...))
 }
 
 func setLink(e *Error, err error) {
