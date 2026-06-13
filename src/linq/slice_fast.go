@@ -100,7 +100,7 @@ func lastOrDefaultSlice[T any](s []T) T {
 	return z
 }
 
-func lenSlice[T any](s []T) int {
+func countSlice[T any](s []T) int {
 	return len(s)
 }
 
@@ -311,8 +311,8 @@ func elementAtOrDefaultFromSlice[T any](s []T, index int, defaultValue T) T {
 	return defaultValue
 }
 
-func longLenSlice[T any](s []T) int64 {
-	return int64(lenSlice(s))
+func longCountSlice[T any](s []T) int64 {
+	return int64(countSlice(s))
 }
 
 func toHashSetSlice[T comparable](s []T) HashSet[T] {

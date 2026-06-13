@@ -110,7 +110,7 @@ func allSeq[T any](seq iter.Seq[T], pred func(T) bool) bool {
 	return true
 }
 
-func lenSeq[T any](seq iter.Seq[T]) int {
+func countSeq[T any](seq iter.Seq[T]) int {
 	n := 0
 	for range seq {
 		n++
@@ -118,7 +118,7 @@ func lenSeq[T any](seq iter.Seq[T]) int {
 	return n
 }
 
-func longLenSeq[T any](seq iter.Seq[T]) int64 {
+func longCountSeq[T any](seq iter.Seq[T]) int64 {
 	var n int64
 	for range seq {
 		n++

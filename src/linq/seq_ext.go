@@ -204,12 +204,12 @@ func (seq iter.Seq[T]) All[T any](pred func(T) bool) bool {
 	return All(seq, pred)
 }
 
-func (seq iter.Seq[T]) Len[T any]() int {
-	return Len(seq)
+func (seq iter.Seq[T]) Count[T any]() int {
+	return Count(seq)
 }
 
-func (seq iter.Seq[T]) LongLen[T any]() int64 {
-	return LongLen(seq)
+func (seq iter.Seq[T]) LongCount[T any]() int64 {
+	return LongCount(seq)
 }
 
 func (seq iter.Seq[T]) CountBy[T, K comparable](keyFn func(T) K) iter.Seq[KeyValue[K, int]] {
