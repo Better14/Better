@@ -463,7 +463,7 @@ type (
 		Rbrace  token.Pos // position of "}"
 	}
 
-	// A ForceExpr node represents error propagation: x! unwraps the success value.
+	// A ForceExpr node represents error propagation: x! unwraps (T, error) or early-returns on error.
 	ForceExpr struct {
 		X    Expr
 		Bang token.Pos // position of '!'

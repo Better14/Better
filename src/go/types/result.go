@@ -35,6 +35,15 @@ func ResultStruct(pkg *Package, res *Result) *Struct {
 	}, nil)
 }
 
+// canForceReturn reports whether ! may early-return an error from the current function.
+func (check *Checker) canForceReturn() bool {
+	if check.sig == nil {
+		return false
+	}
+	res := check.sig.Results()
+	return res != nil && res.Len() == 2 && Identical(res.At(1).Type(), universeError)
+}
+
 func (check *Checker) resultSelector(x *operand, e *ast.SelectorExpr) bool {
 	res, ok := x.typ().Underlying().(*Result)
 	if !ok {

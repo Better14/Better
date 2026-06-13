@@ -309,7 +309,7 @@ const (
 	OGETCALLERSP // internal/runtime/sys.GetCallerSP() (stack pointer in caller frame)
 
 	OTRY   // X? — X is (T, error); lowers to guard + return
-	OFORCE // X! — X is (T, error); lowers to guard + panic(err)
+	OFORCE // X! — X is (T, error) or error; lowers to guard + early return
 
 	ONULLCOND     // ?. access on nullable value
 	ONULLCOALESCE // ?? null coalescing

@@ -1191,3 +1191,40 @@ var _ = T{{x}}
 		t.Fatalf("unexpected type for {x}: %s", tv.Type)
 	}
 }
+
+func TestErrForce(t *testing.T) {
+	testenv.MustHaveGoBuild(t)
+
+	src := `
+package p
+
+func possibleError() error { return nil }
+
+func ok() int! {
+	err := possibleError()
+	err!
+	return 42
+}
+
+func badStmt() {
+	err := possibleError()
+	err! /* ERROR "invalid operation" */
+}
+
+func badValue() int! {
+	err := possibleError()
+	_ = err! /* ERROR "used as value" */
+	return 0
+}
+`
+	_, err := typecheck(src, nil, nil)
+	if err == nil {
+		t.Fatal("expected errors")
+	}
+	if !strings.Contains(err.Error(), "invalid operation") {
+		t.Fatalf("got %v; want invalid operation error", err)
+	}
+	if !strings.Contains(err.Error(), "used as value") {
+		t.Fatalf("got %v; want used as value error", err)
+	}
+}
