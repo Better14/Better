@@ -786,8 +786,13 @@ func (check *Checker) funcDecl(obj *Func, decl *declInfo) {
 		check.finishExtensionFunc(obj, sig)
 		if alt := check.pkg.scope.Lookup(obj.name); alt == nil {
 			check.declare(check.pkg.scope, fdecl.Name, obj, nopos)
-		} else if f, ok := alt.(*Func); !ok || !f.IsExtension() {
+		} else if _, ok := alt.(*Func); !ok {
 			check.errorf(fdecl.Name, DuplicateDecl, "%s already declared in this package", obj.name)
+		} else {
+			// Extension methods may share a name with package-level functions
+			// (e.g. linq.Where and iter.Seq.Where) or with other extensions.
+			obj.parent = check.pkg.scope
+			check.recordDef(fdecl.Name, obj)
 		}
 	}
 

@@ -269,9 +269,16 @@ func (check *Checker) extensionTypesMatch(recv, param Type) bool {
 }
 
 func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.SelectorExpr) (exprKind, bool) {
-	// Do not intercept package-qualified calls.
+	// Do not intercept package-qualified calls or other selector expressions
+	// whose receiver is a bare identifier. Evaluating the identifier alone
+	// would report "use of package X not in selector" before the ordinary
+	// call checker can handle pkg.Func.
 	if name, ok := sel.X.(*ast.Ident); ok {
-		if _, ok := check.lookup(name.Name).(*PkgName); ok {
+		obj := check.lookup(name.Name)
+		if obj == nil {
+			return statement, false
+		}
+		if _, ok := obj.(*PkgName); ok {
 			return statement, false
 		}
 	}
