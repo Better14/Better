@@ -100,7 +100,7 @@ func lastOrDefaultSlice[T any](s []T) T {
 	return z
 }
 
-func countSlice[T any](s []T) int {
+func lenSlice[T any](s []T) int {
 	return len(s)
 }
 
@@ -311,8 +311,8 @@ func elementAtOrDefaultFromSlice[T any](s []T, index int, defaultValue T) T {
 	return defaultValue
 }
 
-func longCountSlice[T any](s []T) int64 {
-	return int64(countSlice(s))
+func longLenSlice[T any](s []T) int64 {
+	return int64(lenSlice(s))
 }
 
 func toHashSetSlice[T comparable](s []T) HashSet[T] {
@@ -323,6 +323,6 @@ func toHashSetSlice[T comparable](s []T) HashSet[T] {
 	return set
 }
 
-func tryGetNonEnumeratedCountSlice[T any](s []T) (int, bool) {
+func tryGetSeqLenSlice[T any](s []T) (int, bool) {
 	return len(s), true
 }

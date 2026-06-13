@@ -110,7 +110,7 @@ func allSeq[T any](seq iter.Seq[T], pred func(T) bool) bool {
 	return true
 }
 
-func countSeq[T any](seq iter.Seq[T]) int {
+func lenSeq[T any](seq iter.Seq[T]) int {
 	n := 0
 	for range seq {
 		n++
@@ -118,7 +118,7 @@ func countSeq[T any](seq iter.Seq[T]) int {
 	return n
 }
 
-func longCountSeq[T any](seq iter.Seq[T]) int64 {
+func longLenSeq[T any](seq iter.Seq[T]) int64 {
 	var n int64
 	for range seq {
 		n++
@@ -386,7 +386,7 @@ func toLookupSeq[T any, K comparable, V any](seq iter.Seq[T], keyFn func(T) K, v
 	return Lookup[K, V]{groups: groups, keys: keys}
 }
 
-func tryGetNonEnumeratedCountSeq[T any](seq iter.Seq[T]) (int, bool) {
+func tryGetSeqLenSeq[T any](seq iter.Seq[T]) (int, bool) {
 	return 0, false
 }
 

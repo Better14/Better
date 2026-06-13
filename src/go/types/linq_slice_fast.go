@@ -29,8 +29,8 @@ var linqSliceFastPaths = map[string]string{
 	"ElementAtOrDefault":     "elementAtOrDefaultFromSlice",
 	"Any":                    "anySlice",
 	"All":                    "allSlice",
-	"Count":                  "countSlice",
-	"LongCount":              "longCountSlice",
+	"Len":                    "lenSlice",
+	"LongLen":                "longLenSlice",
 	"Sum":                    "sumSlice",
 	"Average":                "averageSlice",
 	"Max":                    "maxSlice",
@@ -42,7 +42,7 @@ var linqSliceFastPaths = map[string]string{
 	"ToList":                 "toListSlice",
 	"ToArray":                "toListSlice",
 	"ToHashSet":              "toHashSetSlice",
-	"TryGetNonEnumeratedCount": "tryGetNonEnumeratedCountSlice",
+	"TryGetSeqLen":           "tryGetSeqLenSlice",
 }
 
 func linqSliceFastPath(method string) (string, bool) {

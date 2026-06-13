@@ -15,8 +15,8 @@ func From[T any](s []T) iter.Seq[T] {
 	return slices.Values(s)
 }
 
-// AsEnumerable returns seq unchanged.
-func AsEnumerable[T any](seq iter.Seq[T]) iter.Seq[T] {
+// AsSeq returns seq unchanged.
+func AsSeq[T any](seq iter.Seq[T]) iter.Seq[T] {
 	return seq
 }
 
@@ -260,14 +260,14 @@ func All[T any](seq iter.Seq[T], pred func(T) bool) bool {
 	return allSeq(seq, pred)
 }
 
-// Count returns the number of elements.
-func Count[T any](seq iter.Seq[T]) int {
-	return countSeq(seq)
+// Len returns the number of elements.
+func Len[T any](seq iter.Seq[T]) int {
+	return lenSeq(seq)
 }
 
-// LongCount returns the number of elements as int64.
-func LongCount[T any](seq iter.Seq[T]) int64 {
-	return longCountSeq(seq)
+// LongLen returns the number of elements as int64.
+func LongLen[T any](seq iter.Seq[T]) int64 {
+	return longLenSeq(seq)
 }
 
 // CountBy counts elements by key.
@@ -352,9 +352,9 @@ func FullJoin[T, U, K comparable, R any](outer iter.Seq[T], inner iter.Seq[U], o
 	return fullJoinSeq(outer, inner, outerKey, innerKey, resultFn, defaultOuter, defaultInner)
 }
 
-// TryGetNonEnumeratedCount reports a known length without enumerating.
-func TryGetNonEnumeratedCount[T any](seq iter.Seq[T]) (int, bool) {
-	return tryGetNonEnumeratedCountSeq(seq)
+// TryGetSeqLen reports a known length without enumerating.
+func TryGetSeqLen[T any](seq iter.Seq[T]) (int, bool) {
+	return tryGetSeqLenSeq(seq)
 }
 
 // Cast casts each element to U (for iter.Seq[any]).
