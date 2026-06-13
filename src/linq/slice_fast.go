@@ -101,7 +101,7 @@ func lastOrDefaultSlice[T any](s []T) T {
 }
 
 func countSlice[T any](s []T) int {
-	return len(s)
+	return CountSlice(s)
 }
 
 func anySlice[T any](s []T, pred func(T) bool) bool {
@@ -312,7 +312,7 @@ func elementAtOrDefaultFromSlice[T any](s []T, index int, defaultValue T) T {
 }
 
 func longCountSlice[T any](s []T) int64 {
-	return int64(countSlice(s))
+	return LongCountSlice(s)
 }
 
 func toHashSetSlice[T comparable](s []T) HashSet[T] {
@@ -324,5 +324,17 @@ func toHashSetSlice[T comparable](s []T) HashSet[T] {
 }
 
 func tryGetSeqLenSlice[T any](s []T) (int, bool) {
-	return len(s), true
+	return TryGetSeqLenSlice(s)
+}
+
+func countMap[K comparable, V any](m map[K]V) int {
+	return len(m)
+}
+
+func longCountMap[K comparable, V any](m map[K]V) int64 {
+	return int64(len(m))
+}
+
+func tryGetSeqLenMap[K comparable, V any](m map[K]V) (int, bool) {
+	return len(m), true
 }

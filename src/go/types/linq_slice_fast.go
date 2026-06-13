@@ -29,8 +29,8 @@ var linqSliceFastPaths = map[string]string{
 	"ElementAtOrDefault":     "elementAtOrDefaultFromSlice",
 	"Any":                    "anySlice",
 	"All":                    "allSlice",
-	"Count":                  "countSlice",
-	"LongCount":              "longCountSlice",
+	"Count":                  "CountSlice",
+	"LongCount":              "LongCountSlice",
 	"Sum":                    "sumSlice",
 	"Average":                "averageSlice",
 	"Max":                    "maxSlice",
@@ -42,7 +42,7 @@ var linqSliceFastPaths = map[string]string{
 	"ToList":                 "toListSlice",
 	"ToArray":                "toListSlice",
 	"ToHashSet":              "toHashSetSlice",
-	"TryGetSeqLen":           "tryGetSeqLenSlice",
+	"TryGetSeqLen":           "TryGetSeqLenSlice",
 }
 
 func linqSliceFastPath(method string) (string, bool) {
@@ -58,6 +58,10 @@ func isLinqCompilerSliceFast(pkgPath, name string) bool {
 		if fast == name {
 			return true
 		}
+	}
+	switch name {
+	case "countSlice", "longCountSlice", "tryGetSeqLenSlice", "countMap", "longCountMap", "tryGetSeqLenMap":
+		return true
 	}
 	return false
 }

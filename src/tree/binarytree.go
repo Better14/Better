@@ -5,7 +5,10 @@
 // Package tree provides container types; this file implements an ordered binary search tree.
 package tree
 
-import "cmp"
+import (
+	"cmp"
+	"iter"
+)
 
 type node[K cmp.Ordered, V any] struct {
 	key   K
@@ -23,6 +26,26 @@ type Tree[K cmp.Ordered, V any] struct {
 func New[K cmp.Ordered, V any]() *Tree[K, V] { return &Tree[K, V]{} }
 
 func (t *Tree[K, V]) Len() int { return t.size }
+
+// All returns an iterator over key/value pairs in ascending key order.
+func (t *Tree[K, V]) All() iter.Seq[struct{ Key K; Value V }] {
+	return func(yield func(struct{ Key K; Value V }) bool) {
+		var walk func(*node[K, V]) bool
+		walk = func(n *node[K, V]) bool {
+			if n == nil {
+				return true
+			}
+			if !walk(n.left) {
+				return false
+			}
+			if !yield(struct{ Key K; Value V }{n.key, n.val}) {
+				return false
+			}
+			return walk(n.right)
+		}
+		walk(t.root)
+	}
+}
 
 func (t *Tree[K, V]) Insert(key K, val V) {
 	t.root = t.insert(t.root, key, val)

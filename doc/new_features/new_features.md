@@ -6,6 +6,7 @@ This directory documents language and library extensions planned or implemented 
 
 - [Result types (`T!`)](result_types.md) — `(T, error)` shorthand and `!.value` / `!.field` error propagation
 - [Nullable types (`T?`)](nullable_types.md) — optional values, `?.`, and `??`
+- [Nullable pointer types (`*T` / `*T?`)](nullable_pointer_types.md) — non-nullable vs nullable pointers (proposed)
 - [Enums](enums.md) — algebraic enums, variants, and exhaustive switching
 - [Operator overloading](operator_overloading.md) — user-defined operators via operator methods
 
@@ -43,6 +44,7 @@ This directory documents language and library extensions planned or implemented 
 | ------ | -------- |
 | `int!`, `expr!.value` | [result_types.md](result_types.md) |
 | `int?`, `expr?.field`, `expr ?? fallback` | [nullable_types.md](nullable_types.md) |
+| `*T`, `*T?` (with `nullable_pointers` in go.mod) | [nullable_pointer_types.md](nullable_pointer_types.md) |
 | `enum E { … }` | [enums.md](enums.md) |
 | `func f(a int, b int = 1)` | [default_arguments.md](default_arguments.md) |
 | `(x, y) => x + y` | [lambda_syntax.md](lambda_syntax.md) |

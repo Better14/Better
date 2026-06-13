@@ -62,6 +62,17 @@ func (l *List[T]) AddRange(r iter.Seq[T]) {
 
 func (l *List[T]) Len() int { return len(l.data) }
 
+// All returns an iterator over the list elements in order.
+func (l *List[T]) All() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, v := range l.data {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 func (l *List[T]) Cap() int { return cap(l.data) }
 
 func (l *List[T]) At(i int) T { return l.data[i] }

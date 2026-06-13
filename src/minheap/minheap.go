@@ -4,7 +4,10 @@
 
 package minheap
 
-import "cmp"
+import (
+	"cmp"
+	"iter"
+)
 
 type Heap[T cmp.Ordered] struct {
 	data []T
@@ -13,6 +16,17 @@ type Heap[T cmp.Ordered] struct {
 func New[T cmp.Ordered]() *Heap[T] { return &Heap[T]{} }
 
 func (h *Heap[T]) Len() int { return len(h.data) }
+
+// All returns an iterator over heap elements in arbitrary order.
+func (h *Heap[T]) All() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, v := range h.data {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
 
 func (h *Heap[T]) Push(v T) {
 	h.data = append(h.data, v)

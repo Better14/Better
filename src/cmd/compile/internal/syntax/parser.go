@@ -1636,7 +1636,9 @@ func (p *parser) baseTypeOrNil() Expr {
 	case _Star:
 		// ptrtype
 		p.next()
-		return newIndirect(pos, p.type_())
+		// Parse the pointed-to type without ? / ! suffixes so *T? means (*T)?,
+		// not *(T?). Suffixes are applied by typeOrNil after the full base type.
+		return newIndirect(pos, p.baseTypeOrNil())
 
 	case _Arrow:
 		// recvchantype
