@@ -398,6 +398,18 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []ast.Expr, returnStmt ast.S
 		context = "multiple assignment"
 	}
 
+	// return r for func () T! when r has type T! (value type): return r.value, r.err
+	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
+		if rhs, ok := check.multiExpr(orig_rhs[0], true); ok && len(rhs) == 2 {
+			if rhs[0].isValid() && Identical(rhs[0].typ(), lhs[0].typ) && Identical(rhs[1].typ(), lhs[1].typ) {
+				check.initVar(lhs[0], rhs[0], context)
+				check.initVar(lhs[1], rhs[1], context)
+				check.recordCommaOkTypes(orig_rhs[0], rhs)
+				return
+			}
+		}
+	}
+
 	// return v for func () T? means return v, nil
 	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
 		var x operand
@@ -408,6 +420,20 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []ast.Expr, returnStmt ast.S
 			nerr.mode_ = nilvalue
 			nerr.typ_ = universeError
 			check.initVar(lhs[1], &nerr, context)
+			return
+		}
+	}
+
+	// return err for func () T! means return zero, err
+	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
+		var x operand
+		check.expr(nil, &x, orig_rhs[0])
+		if x.isValid() && !AssignableTo(x.typ(), lhs[0].typ) && AssignableTo(x.typ(), lhs[1].typ) {
+			var zero operand
+			zero.mode_ = value
+			zero.typ_ = lhs[0].typ
+			check.initVar(lhs[0], &zero, context)
+			check.initVar(lhs[1], &x, context)
 			return
 		}
 	}

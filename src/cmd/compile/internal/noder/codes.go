@@ -71,6 +71,7 @@ const (
 	exprResultWrap       // wrap T as T! {value, nil} or error as T! {zero, err}; Bool selects
 	exprOptionalUnwrap   // unwrap T? to T; Bool: panic if nil
 	exprResultUnwrap     // unwrap T!.value to T; Bool: panic if err != nil
+	exprResultErr        // T!.err field
 	exprIfExpr         // if e { a } else { b }
 	exprSwitchExpr     // switch e { case ...: body ... }
 )
