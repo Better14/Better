@@ -388,8 +388,12 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 	}
 
 	var recv operand
-	check.expr(nil, &recv, sel.X)
+	check.exprOrType(&recv, sel.X, true)
 	if !recv.isValid() {
+		return statement, false
+	}
+	if recv.mode() == typexpr {
+		// Method expression (T.m)(args), not an extension call.
 		return statement, false
 	}
 

@@ -432,6 +432,14 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 		if Identical(V, universeError) || Identical(Vu, universeError) {
 			return true, 0
 		}
+		if check != nil {
+			var vx operand
+			vx.mode_ = value
+			vx.typ_ = V
+			if ok, _ := vx.assignableTo(check, universeError, nil); ok {
+				return true, 0
+			}
+		}
 		if vres, ok := Vu.(*Result); ok && Identical(res.elem, vres.elem) {
 			return true, 0
 		}

@@ -45,6 +45,7 @@ var (
 
 	shard  = flag.Int("shard", 0, "shard index to run. Only applicable if -shards is non-zero.")
 	shards = flag.Int("shards", 0, "number of shards. If 0, all tests are run. This is used by the continuous build.")
+	cmdTimeout = flag.Int("cmdtimeout", 0, "default timeout in seconds for test subprocesses without an explicit -t flag (0 means no timeout)")
 )
 
 // defaultAllCodeGen returns the default value of the -all_codegen
@@ -634,6 +635,9 @@ func (t test) run() error {
 
 		var err error
 
+		if tim == 0 && *cmdTimeout > 0 {
+			tim = *cmdTimeout
+		}
 		if tim != 0 {
 			err = cmd.Start()
 			// This command-timeout code adapted from cmd/go/test.go
@@ -1916,7 +1920,6 @@ var types2Failures = setOf(
 	"fixedbugs/issue10700.go", // types2 should give hint about ptr to interface
 	"fixedbugs/issue18331.go", // missing error about misuse of //go:noescape (irgen needs code from noder)
 	"fixedbugs/issue18419.go", // types2 reports no field or method member, but should say unexported
-	"fixedbugs/issue20233.go", // types2 reports two instead of one error (preference: 1.17 compiler)
 	"fixedbugs/issue20245.go", // types2 reports two instead of one error (preference: 1.17 compiler)
 	"fixedbugs/issue31053.go", // types2 reports "unknown field" instead of "cannot refer to unexported field"
 )

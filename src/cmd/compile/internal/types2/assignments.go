@@ -484,7 +484,7 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []syntax.Expr, returnStmt sy
 		return
 	}
 
-	rhs, commaOk := check.multiExpr(orig_rhs[0], l == 2 && returnStmt == nil)
+	rhs, commaOk := check.multiExpr(orig_rhs[0], l == 2)
 	r = len(rhs)
 	if l == r {
 		for i, lhs := range lhs {
