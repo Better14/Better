@@ -74,19 +74,19 @@ func SetAsSeq[T comparable](s set.Set[T]) iter.Seq[T] {
 	return s.All()
 }
 
-func CountTree[K cmp.Ordered, V any](t *tree.Tree[K, V]) int {
+func CountTree[K cmp.Ordered, V any](t *tree.BinaryTree[K, V]) int {
 	return t.Len()
 }
 
-func LongCountTree[K cmp.Ordered, V any](t *tree.Tree[K, V]) int64 {
+func LongCountTree[K cmp.Ordered, V any](t *tree.BinaryTree[K, V]) int64 {
 	return int64(t.Len())
 }
 
-func TryGetSeqLenTree[K cmp.Ordered, V any](t *tree.Tree[K, V]) (int, bool) {
+func TryGetSeqLenTree[K cmp.Ordered, V any](t *tree.BinaryTree[K, V]) (int, bool) {
 	return t.Len(), true
 }
 
-func TreeAsSeq[K cmp.Ordered, V any](t *tree.Tree[K, V]) iter.Seq[struct{ Key K; Value V }] {
+func TreeAsSeq[K cmp.Ordered, V any](t *tree.BinaryTree[K, V]) iter.Seq[struct{ Key K; Value V }] {
 	return t.All()
 }
 
