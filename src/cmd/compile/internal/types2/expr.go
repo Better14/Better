@@ -1550,7 +1550,8 @@ func (check *Checker) multiExpr(e syntax.Expr, allowCommaOk bool) (list []*opera
 				{mode_: value, expr: e, typ_: res.elem},
 				{mode_: value, expr: e, typ_: universeError},
 			}
-			return list, true
+			// Not comma-ok: do not record tuple types on e (noder lowers T! separately).
+			return list, false
 		}
 	}
 

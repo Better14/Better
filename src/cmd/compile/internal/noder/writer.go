@@ -1487,7 +1487,7 @@ func (w *writer) stmt1(stmt syntax.Stmt) {
 				break
 			}
 		}
-		w.multiExpr(stmt, dstType, results)
+		w.multiExpr(stmt, resultTypes.Len(), dstType, results)
 
 	case *syntax.SelectStmt:
 		w.Code(stmtSelect)
@@ -1602,7 +1602,7 @@ func (w *writer) assignStmt(pos poser, lhs0, rhs0 syntax.Expr) {
 		return w.p.typeOf(dst)
 	}
 
-	w.multiExpr(pos, dstType, rhs)
+	w.multiExpr(pos, len(lhs), dstType, rhs)
 }
 
 func (w *writer) blockStmt(stmt *syntax.BlockStmt) {
@@ -2408,7 +2408,7 @@ func (w *writer) expr(expr syntax.Expr) {
 			return paramTypes.At(i).Type()
 		}
 
-		w.multiExpr(expr, paramType, expr.ArgList)
+		w.multiExpr(expr, len(expr.ArgList), paramType, expr.ArgList)
 		w.Bool(expr.HasDots)
 		if rtype != nil {
 			w.rtype(rtype)
@@ -2595,6 +2595,22 @@ func (w *writer) zeroExpr(pos poser, typ types2.Type) {
 	w.typ(typ)
 }
 
+// writeResultDestructurePair writes a 2-value expansion of a T! expression.
+// The caller must have already emitted pkgbits.SyncMultiExpr.
+func (w *writer) writeResultDestructurePair(pos poser, expr syntax.Expr, valTyp, errTyp types2.Type, checkErr bool) {
+	w.Bool(false) // N:N assignment
+	w.Len(2)
+	w.Code(exprResultUnwrap)
+	w.Bool(checkErr)
+	w.pos(pos)
+	w.typ(valTyp)
+	w.expr(expr)
+	w.Code(exprResultErr)
+	w.pos(pos)
+	w.typ(errTyp)
+	w.expr(expr)
+}
+
 // resultReturnMultiExpr handles "return v" and "return err" sugar in a T!
 // function, expanding a single expression into (value, error). It reports
 // whether the return was handled.
@@ -2645,12 +2661,26 @@ func (w *writer) resultReturnMultiExpr(pos poser, expr syntax.Expr, dstType func
 	return false
 }
 
-func (w *writer) multiExpr(pos poser, dstType func(int) types2.Type, exprs []syntax.Expr) {
+func (w *writer) multiExpr(pos poser, nDst int, dstType func(int) types2.Type, exprs []syntax.Expr) {
 	w.Sync(pkgbits.SyncMultiExpr)
 
 	if len(exprs) == 1 {
 		expr := exprs[0]
-		if tuple, ok := w.p.typeOf(expr).(*types2.Tuple); ok {
+		src := w.p.typeOf(expr)
+
+		if nDst == 2 {
+			if _, ok := types2.AsResult(src); ok {
+				valTyp := dstType(0)
+				errTyp := dstType(1)
+				universeErr := types2.Universe.Lookup("error").Type()
+				if valTyp != nil && errTyp != nil && types2.Identical(errTyp, universeErr) {
+					w.writeResultDestructurePair(pos, expr, valTyp, errTyp, false)
+					return
+				}
+			}
+		}
+
+		if tuple, ok := src.(*types2.Tuple); ok {
 			assert(tuple.Len() > 1)
 			w.Bool(true) // N:1 assignment
 			w.pos(pos)
