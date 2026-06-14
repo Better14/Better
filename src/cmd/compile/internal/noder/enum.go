@@ -42,6 +42,27 @@ func enumCaseBinds(p *pkgWriter, enumTyp *types2.Enum, cas syntax.Expr) map[stri
 				}
 			}
 		}
+
+	case *syntax.CompositeLit:
+		name, ok := syntax.Unparen(cas.Type).(*syntax.Name)
+		if !ok {
+			break
+		}
+		obj := p.info.Uses[name]
+		v := enumVariantObj(enumTyp, obj)
+		for i, f := range v.Fields() {
+			if f == nil {
+				continue
+			}
+			for _, elem := range cas.ElemList {
+				n, ok := elem.(*syntax.Name)
+				if !ok || n.Value != f.Name() || n.Value == "_" {
+					continue
+				}
+				binds[n.Value] = i
+				break
+			}
+		}
 	}
 	return binds
 }
@@ -98,6 +119,21 @@ func enumVariantFromCase(p *pkgWriter, enumTyp *types2.Enum, cas syntax.Expr) (*
 			return nil, false
 		}
 		obj := p.info.Uses[cas.Variant]
+		if obj == nil {
+			return nil, false
+		}
+		v := enumVariantObj(enumTyp, obj)
+		if v == nil || len(v.Fields()) == 0 {
+			return nil, false
+		}
+		return v, true
+
+	case *syntax.CompositeLit:
+		name, ok := syntax.Unparen(cas.Type).(*syntax.Name)
+		if !ok {
+			return nil, false
+		}
+		obj := p.info.Uses[name]
 		if obj == nil {
 			return nil, false
 		}
@@ -463,6 +499,12 @@ func enumBindNames(cas syntax.Expr) []*syntax.Name {
 				names = append(names, f.Name)
 			}
 		}
+	case *syntax.CompositeLit:
+		for _, elem := range cas.ElemList {
+			if n, ok := elem.(*syntax.Name); ok && n.Value != "_" {
+				names = append(names, n)
+			}
+		}
 	}
 	return names
 }
@@ -541,6 +583,32 @@ func (w *writer) writeEnumSwitchBindings(tag syntax.Expr, enumTyp *types2.Enum, 
 					bind = pf.Name
 					break
 				}
+			}
+			if bind == nil || bind.Value == "_" {
+				continue
+			}
+			w.writeEnumPayloadBind(cas.Pos(), bind, tag, i)
+		}
+
+	case *syntax.CompositeLit:
+		name, ok := syntax.Unparen(cas.Type).(*syntax.Name)
+		if !ok {
+			break
+		}
+		obj := w.p.info.Uses[name]
+		v := enumVariantObj(enumTyp, obj)
+		for i, f := range v.Fields() {
+			if f == nil {
+				continue
+			}
+			var bind *syntax.Name
+			for _, elem := range cas.ElemList {
+				n, ok := elem.(*syntax.Name)
+				if !ok || n.Value != f.Name() {
+					continue
+				}
+				bind = n
+				break
 			}
 			if bind == nil || bind.Value == "_" {
 				continue

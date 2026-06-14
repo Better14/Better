@@ -758,48 +758,7 @@ func (check *Checker) enumCasePattern(tag Type, enumTyp *Enum, pattern syntax.Ex
 			check.error(p, InvalidSyntaxTree, "invalid enum case pattern")
 			return
 		}
-		obj := enumTyp.scope.Lookup(p.Variant.Value)
-		if obj == nil {
-			check.errorf(p.Variant, UndeclaredName, "undefined: %s", p.Variant.Value)
-			return
-		}
-		v := enumVariantByObj(enumTyp, obj)
-		if v == nil || len(v.fields) == 0 {
-			check.errorf(p.Variant, InvalidSyntaxTree, "%s is not a struct enum variant", p.Variant.Value)
-			return
-		}
-		seen := make(map[string]bool)
-		for _, f := range p.Fields {
-			if f == nil || f.Name == nil {
-				continue
-			}
-			name := f.Name.Value
-			if name == "" {
-				continue
-			}
-			if seen[name] {
-				check.errorf(f.Name, DuplicateDecl, "%s repeated in enum pattern", name)
-				continue
-			}
-			seen[name] = true
-			var ftyp Type
-			found := false
-			for _, vf := range v.fields {
-				if vf.name == name {
-					ftyp = vf.typ
-					found = true
-					break
-				}
-			}
-			if !found {
-				check.errorf(f.Name, MissingFieldOrMethod, "unknown field %s in %s", name, v.name)
-				continue
-			}
-			if name != "_" {
-				vobj := newVar(LocalVar, f.Name.Pos(), check.pkg, name, ftyp)
-				check.declare(check.scope, f.Name, vobj, f.Name.Pos())
-			}
-		}
+		check.enumStructCasePattern(p.Variant, enumPatternFieldNames(p), enumTyp, covered)
 		for _, arg := range p.Args {
 			if arg == nil {
 				continue
@@ -809,10 +768,90 @@ func (check *Checker) enumCasePattern(tag Type, enumTyp *Enum, pattern syntax.Ex
 				check.declare(check.scope, arg, vobj, arg.Pos())
 			}
 		}
-		covered[v.name] = true
-		check.recordUse(p.Variant, obj)
+		check.recordUse(p.Variant, enumTyp.scope.Lookup(p.Variant.Value))
+
+	case *syntax.CompositeLit:
+		name, ok := syntax.Unparen(p.Type).(*syntax.Name)
+		if !ok {
+			check.error(p, InvalidSyntaxTree, "invalid enum case pattern")
+			return
+		}
+		check.enumStructCasePattern(name, compositeLitFieldNames(p), enumTyp, covered)
+		if obj := enumTyp.scope.Lookup(name.Value); obj != nil {
+			check.recordUse(name, obj)
+		}
 
 	default:
 		check.error(pattern, InvalidSyntaxTree, "invalid enum case pattern")
 	}
+}
+
+func enumPatternFieldNames(p *syntax.EnumPattern) []*syntax.Name {
+	var names []*syntax.Name
+	for _, f := range p.Fields {
+		if f != nil && f.Name != nil {
+			names = append(names, f.Name)
+		}
+	}
+	return names
+}
+
+func compositeLitFieldNames(cl *syntax.CompositeLit) []*syntax.Name {
+	var names []*syntax.Name
+	for _, elem := range cl.ElemList {
+		if n, ok := elem.(*syntax.Name); ok {
+			names = append(names, n)
+		}
+	}
+	return names
+}
+
+func (check *Checker) enumStructCasePattern(variant *syntax.Name, fieldNames []*syntax.Name, enumTyp *Enum, covered map[string]bool) {
+	if variant == nil {
+		check.error(variant, InvalidSyntaxTree, "invalid enum case pattern")
+		return
+	}
+	obj := enumTyp.scope.Lookup(variant.Value)
+	if obj == nil {
+		check.errorf(variant, UndeclaredName, "undefined: %s", variant.Value)
+		return
+	}
+	v := enumVariantByObj(enumTyp, obj)
+	if v == nil || len(v.fields) == 0 {
+		check.errorf(variant, InvalidSyntaxTree, "%s is not a struct enum variant", variant.Value)
+		return
+	}
+	seen := make(map[string]bool)
+	for _, f := range fieldNames {
+		if f == nil {
+			continue
+		}
+		name := f.Value
+		if name == "" {
+			continue
+		}
+		if seen[name] {
+			check.errorf(f, DuplicateDecl, "%s repeated in enum pattern", name)
+			continue
+		}
+		seen[name] = true
+		var ftyp Type
+		found := false
+		for _, vf := range v.fields {
+			if vf.name == name {
+				ftyp = vf.typ
+				found = true
+				break
+			}
+		}
+		if !found {
+			check.errorf(f, MissingFieldOrMethod, "unknown field %s in %s", name, v.name)
+			continue
+		}
+		if name != "_" {
+			vobj := newVar(LocalVar, f.Pos(), check.pkg, name, ftyp)
+			check.declare(check.scope, f, vobj, f.Pos())
+		}
+	}
+	covered[v.name] = true
 }
