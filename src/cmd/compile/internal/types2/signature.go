@@ -223,7 +223,11 @@ func (check *Checker) collectRecv(rparam *syntax.Field, scopePos syntax.Pos) (*V
 	if rtparams != nil {
 		declareParams := false
 		for _, rp := range rtparams {
-			if rp.Value != "_" && check.lookup(rp.Value) == nil {
+			if rp.Value == "_" {
+				declareParams = true
+				break
+			}
+			if check.lookup(rp.Value) == nil {
 				declareParams = true
 				break
 			}

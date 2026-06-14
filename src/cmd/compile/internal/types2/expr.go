@@ -1347,8 +1347,19 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 
 	case *syntax.ArrayType, *syntax.SliceType, *syntax.StructType, *syntax.FuncType,
 		*syntax.InterfaceType, *syntax.MapType, *syntax.ChanType:
+		typ := check.typ(e)
+		if sig, ok := typ.(*Signature); ok && sig.params != nil {
+			for _, v := range sig.params.vars {
+				if !isValid(v.typ) {
+					goto Error
+				}
+			}
+		}
+		if !isValid(typ) {
+			goto Error
+		}
 		x.mode_ = typexpr
-		x.typ_ = check.typ(e)
+		x.typ_ = typ
 		// Note: rawExpr (caller of exprInternal) will call check.recordTypeAndValue
 		// even though check.typ has already called it. This is fine as both
 		// times the same expression and type are recorded. It is also not a
@@ -1535,8 +1546,8 @@ func (check *Checker) multiExpr(e syntax.Expr, allowCommaOk bool) (list []*opera
 	}
 
 	// Result(T) destructuring: val, err := r
-	if allowCommaOk && x.isValid() && (x.mode() == variable || x.mode() == value) {
-		if res, ok := x.typ().Underlying().(*Result); ok {
+	if x.isValid() && (x.mode() == variable || x.mode() == value) {
+		if res, ok := AsResult(x.typ()); ok {
 			list = []*operand{
 				{mode_: value, expr: e, typ_: res.elem},
 				{mode_: value, expr: e, typ_: universeError},
@@ -1609,6 +1620,22 @@ func (check *Checker) exclude(x *operand, modeset uint) {
 			msg = "%s must be called"
 			code = UncalledBuiltin
 		case typexpr:
+			if _, ok := x.expr.(*syntax.FuncType); ok {
+				x.invalidate()
+				return
+			}
+			if !isValid(x.typ()) {
+				x.invalidate()
+				return
+			}
+			if sig, ok := x.typ().(*Signature); ok && sig.params != nil {
+				for _, v := range sig.params.vars {
+					if !isValid(v.typ) {
+						x.invalidate()
+						return
+					}
+				}
+			}
 			msg = "%s is not an expression"
 			code = NotAnExpr
 		default:

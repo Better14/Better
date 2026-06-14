@@ -364,6 +364,11 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 			var methodRecv *operand
 			if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
 				skipRecv := false
+				if check.Selections != nil {
+					if s := check.Selections[sel]; s != nil && s.Kind() == MethodExpr {
+						skipRecv = true
+					}
+				}
 				if name, ok := sel.X.(*syntax.Name); ok {
 					if _, isPkg := check.lookup(name.Value).(*PkgName); isPkg {
 						// Package-qualified call (e.g. bits.LeadingZeros64), not a method.

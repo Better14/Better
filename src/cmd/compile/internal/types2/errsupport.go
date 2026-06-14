@@ -79,22 +79,15 @@ func (check *Checker) lookupError(typ Type, sel string, obj Object, structLit bo
 			return check.sprintf("cannot refer to unexported field %s in struct literal of type %s", alt, typ)
 		}
 	} else {
-		what := "object"
-		switch obj.(type) {
-		case *Var:
-			what = "field"
-		case *Func:
-			what = "method"
-		}
 		switch e {
 		case missing:
 			return check.sprintf("type %s has no field or method %s", typ, sel)
 		case misspelled:
-			return check.sprintf("type %s has no field or method %s, but does have %s %s", typ, sel, what, alt)
+			return check.sprintf("type %s has no field or method %s, but does have %s", typ, sel, alt)
 		case unexported:
-			return check.sprintf("type %s has no field or method %s, but does have unexported %s %s", typ, sel, what, alt)
+			return check.sprintf("type %s has no field or method %s, but does have unexported %s", typ, sel, alt)
 		case inaccessible:
-			return check.sprintf("cannot refer to unexported %s %s", what, alt)
+			return check.sprintf("cannot refer to unexported field or method %s", alt)
 		}
 	}
 
