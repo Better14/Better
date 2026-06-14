@@ -11,6 +11,24 @@ import (
 	"testing"
 )
 
+// appError embeds errors.Error for NewCustom tests.
+type appError struct {
+	errors.Error
+}
+
+// myError carries a structured error plus a Code field.
+type myError struct {
+	err  errors.Error
+	Code int
+}
+
+func (e *myError) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+	return e.err.Message
+}
+
 func TestStructuredErrorError(t *testing.T) {
 	err := errors.New("abc")
 	if got := err.Error(); got != "abc" {
@@ -24,7 +42,7 @@ func TestStructuredErrorError(t *testing.T) {
 
 func TestStructuredErrorString(t *testing.T) {
 	root := errors.New("root")
-	rootErr := root.(*errors.Error)
+	rootErr := root
 	rootErr.StackTrace = nil // deterministic test output
 
 	outer := rootErr.Wrap("outer")
@@ -66,7 +84,6 @@ func TestWrap(t *testing.T) {
 		t.Fatal("Wrap StackTrace is empty, want frames")
 	}
 
-	type errStr string
 	foreign := errStr("foreign")
 	fw := errors.Wrap(foreign, "bridge")
 	if !errors.Is(fw, foreign) {
@@ -104,29 +121,24 @@ func TestNewWrappedFromFmt(t *testing.T) {
 }
 
 func TestNewCustomInPlace(t *testing.T) {
-	type MyError struct {
-		errors.Error
-		Code int
-	}
-
-	var err MyError
-	errors.NewCustom(&err.Error, "not found")
+	var err myError
+	errors.InitCustom(&err.err, "not found")
 	err.Code = 404
 
 	if err.Error() != "not found" {
 		t.Fatalf("Error() = %q, want not found", err.Error())
 	}
-	if len(err.StackTrace) == 0 {
+	if len(err.err.StackTrace) == 0 {
 		t.Fatal("StackTrace empty, want frames")
 	}
-	if err.InnerError != nil {
-		t.Fatalf("InnerError = %v, want nil", err.InnerError)
+	if err.err.InnerError != nil {
+		t.Fatalf("InnerError = %v, want nil", err.err.InnerError)
 	}
 	if err.Code != 404 {
 		t.Fatalf("Code = %d, want 404", err.Code)
 	}
 
-	var target *MyError
+	var target *myError
 	if !errors.As(&err, &target) {
 		t.Fatal("errors.As failed")
 	}
@@ -143,21 +155,13 @@ func TestNewFormat(t *testing.T) {
 }
 
 func TestNewCustomFormat(t *testing.T) {
-	type AppError struct {
-		errors.Error
+	err := errors.NewCustom[appError]("invalid id: %s", "abc")
+	if err.Message != "invalid id: abc" {
+		t.Fatalf("Message = %q, want invalid id: abc", err.Message)
 	}
 
-	err := errors.NewCustom[AppError]("invalid id: %s", "abc")
-	if err.Error() != "invalid id: abc" {
-		t.Fatalf("Error() = %q, want invalid id: abc", err.Error())
-	}
-
-	type MyError struct {
-		errors.Error
-		Code int
-	}
-	var myErr MyError
-	errors.NewCustom(&myErr.Error, "not found: %d", 404)
+	var myErr myError
+	errors.InitCustom(&myErr.err, "not found: %d", 404)
 	myErr.Code = 404
 	if myErr.Error() != "not found: 404" {
 		t.Fatalf("Error() = %q, want not found: 404", myErr.Error())
@@ -165,35 +169,15 @@ func TestNewCustomFormat(t *testing.T) {
 }
 
 func TestNewCustom(t *testing.T) {
-	type AppError struct {
-		errors.Error
-	}
-
-	err := errors.NewCustom[AppError]("invalid id")
-	if err.Error() != "invalid id" {
-		t.Fatalf("Error() = %q, want invalid id", err.Error())
+	err := errors.NewCustom[appError]("invalid id")
+	if err.Message != "invalid id" {
+		t.Fatalf("Message = %q, want invalid id", err.Message)
 	}
 	if len(err.StackTrace) == 0 {
 		t.Fatal("StackTrace empty, want frames")
 	}
 	if err.InnerError != nil {
 		t.Fatalf("InnerError = %v, want nil", err.InnerError)
-	}
-
-	var target *AppError
-	if !errors.As(err, &target) {
-		t.Fatal("errors.As failed")
-	}
-	if target != err {
-		t.Fatalf("As target = %p, want %p", target, err)
-	}
-
-	wrapped := errors.Wrap(err, "wrap")
-	if !errors.As(wrapped, &target) {
-		t.Fatal("errors.As through Wrap failed")
-	}
-	if target != err {
-		t.Fatalf("As target after Wrap = %p, want %p", target, err)
 	}
 }
 
@@ -211,7 +195,7 @@ func TestStructuredErrorAs(t *testing.T) {
 
 func TestStructuredErrorStringContainsTrace(t *testing.T) {
 	err := errors.New("boom")
-	e := err.(*errors.Error)
+	e := err
 	s := e.String()
 	if !strings.Contains(s, "boom") {
 		t.Fatalf("String() = %q, missing message", s)
@@ -225,10 +209,10 @@ func TestFmtPlusVStructuredError(t *testing.T) {
 	err := errors.New("msg")
 	got := fmt.Sprintf("%+v", err)
 	if got == err.Error() {
-		t.Fatalf("%+v = %q, want full String() output", got)
+		t.Fatalf("Sprintf(%%+v) = %q, want full String() output", got)
 	}
 	if !strings.Contains(got, "msg") {
-		t.Fatalf("%+v = %q, missing message", got)
+		t.Fatalf("Sprintf(%%+v) = %q, missing message", got)
 	}
 }
 

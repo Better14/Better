@@ -22,7 +22,16 @@ type Locale struct {
 	DateSeparator string
 	TimeSeparator string
 	EraDesignator string
+	DateOrder     dateOrder // component order for slash-separated short dates
 }
+
+// dateOrder controls locale-specific reordering of MM/dd/yyyy-style patterns.
+type dateOrder byte
+
+const (
+	dateOrderMDY dateOrder = iota // month/day/year (default)
+	dateOrderDMY                  // day/month/year (e.g. de-DE)
+)
 
 var (
 	errUnknownLocale = errors.New("time: unknown locale")
@@ -74,6 +83,7 @@ func init() {
 			DateSeparator: ".",
 			TimeSeparator: ":",
 			EraDesignator: "n. Chr.",
+			DateOrder:     dateOrderDMY,
 		},
 		"fr-FR": {
 			Tag: "fr-FR",

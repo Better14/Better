@@ -17,43 +17,72 @@ package test
 // Issue 55357: data race when building multiple instantiations of
 // generic closures with _ parameters.
 func Issue55357() {
-	type U struct {
-		A int
-		B string
-		C string
-	}
-	var q T55357[U]
+	var q t55357U
 	q.Count()
 	q.List()
 
-	type M struct {
-		A int64
-		B uint32
-		C uint32
-	}
-	var q2 T55357[M]
+	var q2 t55357M
 	q2.Count()
 	q2.List()
 }
 
-type T55357[T any] struct{}
+type issue55357U struct {
+	A int
+	B string
+	C string
+}
+
+type issue55357M struct {
+	A int64
+	B uint32
+	C uint32
+}
+
+type t55357U struct{}
 
 //go:noinline
-func (q *T55357[T]) do(w, v bool, fn func(bk []byte, v T) error) error {
+func (q *t55357U) do(w, v bool, fn func(bk []byte, v issue55357U) error) error {
 	return nil
 }
 
-func (q *T55357[T]) Count() (n int, rerr error) {
-	err := q.do(false, false, func(kb []byte, _ T) error {
+func (q *t55357U) Count() (n int, rerr error) {
+	err := q.do(false, false, func(kb []byte, _ issue55357U) error {
 		n++
 		return nil
 	})
 	return n, err
 }
 
-func (q *T55357[T]) List() (list []T, rerr error) {
-	var l []T
-	err := q.do(false, true, func(_ []byte, v T) error {
+func (q *t55357U) List() (list []issue55357U, rerr error) {
+	var l []issue55357U
+	err := q.do(false, true, func(_ []byte, v issue55357U) error {
+		l = append(l, v)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return l, nil
+}
+
+type t55357M struct{}
+
+//go:noinline
+func (q *t55357M) do(w, v bool, fn func(bk []byte, v issue55357M) error) error {
+	return nil
+}
+
+func (q *t55357M) Count() (n int, rerr error) {
+	err := q.do(false, false, func(kb []byte, _ issue55357M) error {
+		n++
+		return nil
+	})
+	return n, err
+}
+
+func (q *t55357M) List() (list []issue55357M, rerr error) {
+	var l []issue55357M
+	err := q.do(false, true, func(_ []byte, v issue55357M) error {
 		l = append(l, v)
 		return nil
 	})

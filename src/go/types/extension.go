@@ -106,6 +106,59 @@ func extensionSliceRecvTypeParam(recv *Var, rparams *TypeParamList) (*TypeParam,
 	return nil, false
 }
 
+// extensionMapRecvTypeParams reports whether recv/rparams describe an extension
+// on map[K]V with K and V declared by the receiver map type.
+func extensionMapRecvTypeParams(recv *Var, rparams *TypeParamList) (*TypeParam, *TypeParam, bool) {
+	if recv == nil || rparams == nil || rparams.Len() != 2 {
+		return nil, nil, false
+	}
+	if _, ok := Unalias(recv.typ).(*Named); ok {
+		return nil, nil, false
+	}
+	m, ok := Unalias(recv.typ).Underlying().(*Map)
+	if !ok {
+		return nil, nil, false
+	}
+	k := rparams.At(0)
+	v := rparams.At(1)
+	if Identical(m.key, k) && Identical(m.elem, v) {
+		return k, v, true
+	}
+	return nil, nil, false
+}
+
+// prepareReceiverMapMethodTypeParams handles method type parameters for extensions
+// on map[K]V; the first two entries must restate K and V from the receiver.
+func (check *Checker) prepareReceiverMapMethodTypeParams(keyPar, valPar *TypeParam, list []*ast.Field, at positioner, required bool) []*ast.Field {
+	keyName := keyPar.obj.name
+	valName := valPar.obj.name
+	if len(list) < 2 {
+		if required {
+			check.errorf(at, BadDecl, "extension method on map[%s]%s must declare type parameters %s and %s (e.g. …[%s comparable, %s any](…))", keyName, valName, keyName, valName, keyName, valName)
+		}
+		return nil
+	}
+	if len(list[0].Names) == 0 || list[0].Names[0].Name != keyName {
+		if required {
+			check.errorf(atPos(list[0].Pos()), BadDecl, "first type parameter must be %s", keyName)
+		}
+		return list
+	}
+	if len(list[1].Names) == 0 || list[1].Names[0].Name != valName {
+		if required {
+			check.errorf(atPos(list[1].Pos()), BadDecl, "second type parameter must be %s", valName)
+		}
+		return list
+	}
+	if bound := check.bound(list[0].Type); isValid(bound) {
+		keyPar.SetConstraint(bound)
+	}
+	if bound := check.bound(list[1].Type); isValid(bound) {
+		valPar.SetConstraint(bound)
+	}
+	return list[2:]
+}
+
 // prepareReceiverMethodTypeParams handles a method type parameter list whose first
 // entry restates a receiver type parameter (e.g. Where[T any] on []T or Lazy[T]).
 // When required is true (extension []T), list must be non-empty and start with T.

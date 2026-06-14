@@ -314,7 +314,7 @@ func testReadAtLeast(t *testing.T, rb ReadWriter) {
 	}
 	rb.Write([]byte("4"))
 	n, err = ReadAtLeast(rb, buf, 2)
-	want := ErrUnexpectedEOF
+	var want error = ErrUnexpectedEOF
 	if rb, ok := rb.(*dataAndErrorBuffer); ok && rb.err != EOF {
 		want = rb.err
 	}

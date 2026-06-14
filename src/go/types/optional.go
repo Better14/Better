@@ -204,7 +204,7 @@ func (check *Checker) nullCoalesce(x *operand, e ast.Expr, lhs, rhs ast.Expr) {
 			if _, _, code := check.implicitTypeAndValue(&y, elem); code == 0 {
 				x.typ_ = elem
 			} else {
-				check.errorf(e, MismatchedTypes, "invalid operation: ?? (cannot use %s as %s)", y, elem)
+				check.errorf(e, MismatchedTypes, "invalid operation: ?? (cannot use %s as %s)", y.typ(), elem)
 				x.invalidate()
 			}
 		} else if ok, _ := y.assignableTo(check, elem, nil); ok {

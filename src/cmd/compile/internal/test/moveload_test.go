@@ -7,11 +7,11 @@ package test
 import "testing"
 
 // From issue #77720.
-type moveLoadBenchHandle[T any] struct {
-	value *T
+type moveLoadBenchHandle struct {
+	value *moveLoadBenchBig
 }
 
-func (h moveLoadBenchHandle[T]) Value() T {
+func (h moveLoadBenchHandle) Value() moveLoadBenchBig {
 	return *h.value
 }
 
@@ -24,7 +24,7 @@ type moveLoadBenchBig struct {
 }
 
 type moveLoadBenchS struct {
-	h moveLoadBenchHandle[moveLoadBenchBig]
+	h moveLoadBenchHandle
 }
 
 var moveLoadBenchSink int8
@@ -34,7 +34,7 @@ func moveLoadBenchTypViaValue(s moveLoadBenchS) int8 {
 }
 
 func moveLoadBenchTypViaPtr(s moveLoadBenchS) int8 {
-	return (*s.h.value).typ
+	return s.h.value.typ
 }
 
 func benchmarkMoveLoad(b *testing.B, f func(moveLoadBenchS) int8) {
@@ -42,7 +42,7 @@ func benchmarkMoveLoad(b *testing.B, f func(moveLoadBenchS) int8) {
 	ss := make([]moveLoadBenchS, len(backing))
 	for i := range backing {
 		backing[i].typ = int8(i)
-		ss[i] = moveLoadBenchS{h: moveLoadBenchHandle[moveLoadBenchBig]{&backing[i]}}
+		ss[i] = moveLoadBenchS{h: moveLoadBenchHandle{value: &backing[i]}}
 	}
 
 	b.ResetTimer()

@@ -80,7 +80,7 @@ func (l *List[T]) At(i int) T { return l.data[i] }
 func (l *List[T]) Set(i int, v T) { l.data[i] = v }
 
 // IndexOf returns the index of the first element equal to v, or -1.
-func (l *List[T]) IndexOf[T comparable](v T) int {
+func IndexOf[T comparable](l *List[T], v T) int {
 	for i, x := range l.data {
 		if x == v {
 			return i
@@ -90,8 +90,8 @@ func (l *List[T]) IndexOf[T comparable](v T) int {
 }
 
 // Contains reports whether v is present.
-func (l *List[T]) Contains[T comparable](v T) bool {
-	return l.IndexOf(v) >= 0
+func Contains[T comparable](l *List[T], v T) bool {
+	return IndexOf(l, v) >= 0
 }
 
 func (l *List[T]) ToSlice() []T { return append([]T(nil), l.data...) }
@@ -108,14 +108,4 @@ func (l *List[T]) Insert(i int, v T) {
 func (l *List[T]) RemoveAt(i int) {
 	copy(l.data[i:], l.data[i+1:])
 	l.data = l.data[:len(l.data)-1]
-}
-
-// Index operator methods enable l[i] and l[i] = v syntax.
-
-func (l *List[T]) [][T any](i int) T {
-	return l.At(i)
-}
-
-func (l *List[T]) []=[T any](i int, v T) {
-	l.Set(i, v)
 }

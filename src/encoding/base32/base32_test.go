@@ -200,7 +200,7 @@ func (b *badReader) Read(p []byte) (int, error) {
 		p[i] = b.data[i]
 	}
 	b.data = b.data[lim:]
-	err := io.EOF
+	var err error = io.EOF
 	if b.called < len(b.errs) {
 		err = b.errs[b.called]
 	}

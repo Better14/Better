@@ -17,7 +17,7 @@ func RunStealOrderTest() {
 			renum := ord.start(uint32(co))
 			checked := make([]bool, procs)
 			for p := 0; p < procs; p++ {
-				x := enum.position()
+				x := renum.position()
 				if checked[x] {
 					println("procs:", procs, "inc:", renum.inc)
 					panic("duplicate during enumeration")
