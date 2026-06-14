@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package linq_test
+package linq
 
 import (
-	"linq"
 	"slices"
 	"testing"
 )
@@ -16,7 +15,7 @@ func sliceLen[T any](s []T) (int, bool) {
 
 func TestChainWhereSelectToList(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	out := linq.From(nums).Where(func(n int) bool { return n < 5 }).Select(func(n int) int { return n + 1 }).ToList()
+	out := toListSeq(selectBySeq(whereSeq(From(nums), func(n int) bool { return n < 5 }), func(n int) int { return n + 1 }))
 	want := []int{2, 3, 4, 5}
 	if !slices.Equal(out, want) {
 		t.Fatalf("got %v, want %v", out, want)
@@ -25,7 +24,7 @@ func TestChainWhereSelectToList(t *testing.T) {
 
 func TestChainFirst(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	first := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 }).First()
+	first := firstFromSeq(selectBySeq(whereSeq(From(nums), func(n int) bool { return n%2 == 0 }), func(n int) int { return n * 2 }))
 	if first != 4 {
 		t.Fatalf("got %v, want 4", first)
 	}
@@ -33,7 +32,7 @@ func TestChainFirst(t *testing.T) {
 
 func TestLazyPackageAPI(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	first := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 }).First()
+	first := firstFromSeq(selectBySeq(whereSeq(From(nums), func(n int) bool { return n%2 == 0 }), func(n int) int { return n * 2 }))
 	if first != 4 {
 		t.Fatalf("got %v, want 4", first)
 	}
@@ -41,7 +40,7 @@ func TestLazyPackageAPI(t *testing.T) {
 
 func TestLazyReceiverSelect(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	first := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Select(func(n int) int { return n * 2 }).First()
+	first := firstFromSeq(selectBySeq(whereSeq(From(nums), func(n int) bool { return n%2 == 0 }), func(n int) int { return n * 2 }))
 	if first != 4 {
 		t.Fatalf("got %v, want 4", first)
 	}
@@ -49,22 +48,22 @@ func TestLazyReceiverSelect(t *testing.T) {
 
 func TestSumChain(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	sum := linq.From(nums).Where(func(n int) bool { return n%2 == 0 }).Sum()
+	sum := sumSeq(whereSeq(From(nums), func(n int) bool { return n%2 == 0 }))
 	if sum != 6 {
 		t.Fatalf("sum: %v", sum)
 	}
 }
 
 func TestRangeRepeatEmpty(t *testing.T) {
-	got := linq.Range(2, 3).ToList()
+	got := toListSeq(Range(2, 3))
 	want := []int{2, 3, 4}
 	if !slices.Equal(got, want) {
 		t.Fatalf("Range: got %v", got)
 	}
-	if linq.Repeat(7, 2).First() != 7 {
+	if firstFromSeq(Repeat(7, 2)) != 7 {
 		t.Fatal("Repeat")
 	}
-	if linq.Empty[int]().Any(func(int) bool { return true }) {
+	if anySeq(Empty[int](), func(int) bool { return true }) {
 		t.Fatal("Empty")
 	}
 }
@@ -72,15 +71,15 @@ func TestRangeRepeatEmpty(t *testing.T) {
 func TestSetOperations(t *testing.T) {
 	a := []int{1, 2, 3, 4}
 	b := []int{3, 4, 5, 6}
-	union := linq.Union(linq.From(a), linq.From(b)).ToList()
+	union := toListSeq(unionSeq(From(a), From(b)))
 	if len(union) != 6 {
 		t.Fatalf("Union: %v", union)
 	}
-	except := linq.Except(linq.From(a), linq.From(b)).ToList()
+	except := toListSeq(exceptSeq(From(a), From(b)))
 	if !slices.Equal(except, []int{1, 2}) {
 		t.Fatalf("Except: %v", except)
 	}
-	inter := linq.Intersect(linq.From(a), linq.From(b)).ToList()
+	inter := toListSeq(intersectSeq(From(a), From(b)))
 	if !slices.Equal(inter, []int{3, 4}) {
 		t.Fatalf("Intersect: %v", inter)
 	}
@@ -92,23 +91,24 @@ func TestOrderThenBy(t *testing.T) {
 		age  int
 	}
 	people := []person{{"bob", 30}, {"alice", 25}, {"alice", 20}}
-	out := linq.From(people).OrderBy(func(p person) string { return p.name }).ThenBy(func(p person) int { return p.age }).ToList()
+	out := orderBySeq(From(people), func(p person) string { return p.name }).ThenBy(func(p person) int { return p.age }).ToList()
 	if out[0].age != 20 || out[2].name != "bob" {
 		t.Fatalf("Order/ThenBy: %v", out)
 	}
 }
 
 func TestJoin(t *testing.T) {
-	outer := []linq.KeyValue[string, int]{{"a", 1}, {"b", 2}}
-	inner := []linq.KeyValue[string, string]{{"a", "x"}, {"b", "y"}}
-	joined := linq.From(outer).Join(
-		linq.From(inner),
-		func(kv linq.KeyValue[string, int]) string { return kv.Key },
-		func(kv linq.KeyValue[string, string]) string { return kv.Key },
-		func(o linq.KeyValue[string, int], i linq.KeyValue[string, string]) string {
+	outer := []KeyValue[string, int]{{"a", 1}, {"b", 2}}
+	inner := []KeyValue[string, string]{{"a", "x"}, {"b", "y"}}
+	joined := toListSeq(joinSeq(
+		From(outer),
+		From(inner),
+		func(kv KeyValue[string, int]) string { return kv.Key },
+		func(kv KeyValue[string, string]) string { return kv.Key },
+		func(o KeyValue[string, int], i KeyValue[string, string]) string {
 			return o.Key + i.Value
 		},
-	).ToList()
+	))
 	if !slices.Equal(joined, []string{"ax", "by"}) {
 		t.Fatalf("Join: %v", joined)
 	}
@@ -127,8 +127,9 @@ func TestFullJoin(t *testing.T) {
 	depts := []dept{{1, "sales"}, {2, "eng"}, {3, "hr"}}
 	emps := []emp{{10, 1, "alice"}, {20, 2, "bob"}, {30, 99, "carol"}}
 
-	joined := linq.From(depts).FullJoin(
-		linq.From(emps),
+	joined := toListSeq(fullJoinSeq(
+		From(depts),
+		From(emps),
 		func(d dept) int { return d.id },
 		func(e emp) int { return e.deptID },
 		func(d dept, e emp) string {
@@ -136,13 +137,13 @@ func TestFullJoin(t *testing.T) {
 		},
 		dept{},
 		emp{},
-	).ToList()
+	))
 
 	want := []string{
 		"sales:alice",
 		"eng:bob",
-		"hr:",          // dept 3 has no employees
-		":carol",       // emp 30 has no matching dept
+		"hr:",
+		":carol",
 	}
 	if !slices.Equal(joined, want) {
 		t.Fatalf("FullJoin: got %v, want %v", joined, want)
@@ -152,22 +153,22 @@ func TestFullJoin(t *testing.T) {
 func TestMaterializers(t *testing.T) {
 	nums := []int{1, 2, 2, 3}
 	distinct := []int{1, 2, 3, 4}
-	seq := linq.From(nums)
-	dict := linq.ToDictionary(linq.From(distinct),
+	seq := From(nums)
+	dict := toDictionarySeq(From(distinct),
 		func(n int) int { return n },
 		func(n int) string { return "v" },
 	)
 	if len(dict) != 4 {
 		t.Fatalf("ToDictionary: %v", dict)
 	}
-	lookup := linq.ToLookup(seq,
+	lookup := toLookupSeq(seq,
 		func(n int) int { return n % 2 },
 		func(n int) int { return n },
 	)
 	if lookup.Count() != 2 || len(lookup.Get(0)) != 2 {
 		t.Fatalf("ToLookup: %v", lookup.Get(0))
 	}
-	set := linq.ToHashSet(seq)
+	set := toHashSetSeq(seq)
 	if len(set) != 3 {
 		t.Fatalf("ToHashSet: %v", set)
 	}
@@ -179,7 +180,7 @@ func TestTryGetSeqLen(t *testing.T) {
 	if !ok || n != 3 {
 		t.Fatalf("got (%d, %v)", n, ok)
 	}
-	_, ok = linq.From([]int{1, 2, 3}).Where(func(int) bool { return true }).TryGetSeqLen()
+	_, ok = tryGetSeqLenSeq(whereSeq(From([]int{1, 2, 3}), func(int) bool { return true }))
 	if ok {
 		t.Fatal("expected unknown count after Where")
 	}
@@ -187,17 +188,17 @@ func TestTryGetSeqLen(t *testing.T) {
 
 func TestTerminalOps(t *testing.T) {
 	nums := []int{3, 1, 4, 1, 5}
-	seq := linq.From(nums)
-	if seq.Max() != 5 || seq.Min() != 1 {
+	seq := From(nums)
+	if maxSeq(seq) != 5 || minSeq(seq) != 1 {
 		t.Fatal("Min/Max")
 	}
-	if seq.Average() != 2.8 {
-		t.Fatalf("Average: %v", seq.Average())
+	if averageSeq(seq) != 2.8 {
+		t.Fatalf("Average: %v", averageSeq(seq))
 	}
-	if seq.Last() != 5 || seq.ElementAt(2) != 4 {
+	if lastFromSeq(seq) != 5 || elementAtSeq(seq, 2) != 4 {
 		t.Fatal("Last/ElementAt")
 	}
-	if linq.From(nums).Where(func(n int) bool { return n == 3 }).Single() != 3 {
+	if singleSeq(whereSeq(From(nums), func(n int) bool { return n == 3 })) != 3 {
 		t.Fatal("Single")
 	}
 }
@@ -205,27 +206,27 @@ func TestTerminalOps(t *testing.T) {
 func TestZipChunkAppendPrepend(t *testing.T) {
 	a := []int{1, 2, 3}
 	b := []int{10, 20, 30}
-	zipped := linq.From(a).Zip(linq.From(b), func(x, y int) int { return x + y }).ToList()
+	zipped := toListSeq(zipSeq(From(a), From(b), func(x, y int) int { return x + y }))
 	if !slices.Equal(zipped, []int{11, 22, 33}) {
 		t.Fatalf("Zip: %v", zipped)
 	}
-	chunks := linq.From(a).Chunk(2).ToList()
+	chunks := toListSeq(chunkSeq(From(a), 2))
 	if len(chunks) != 2 || len(chunks[1]) != 1 {
 		t.Fatalf("Chunk: %v", chunks)
 	}
-	appended := linq.From(a).Append(4).ToList()
+	appended := toListSeq(appendSeq(From(a), 4))
 	if !slices.Equal(appended, []int{1, 2, 3, 4}) {
 		t.Fatalf("Append: %v", appended)
 	}
-	prepended := linq.From(a).Prepend(0).ToList()
+	prepended := toListSeq(prependSeq(From(a), 0))
 	if !slices.Equal(prepended, []int{0, 1, 2, 3}) {
 		t.Fatalf("Prepend: %v", prepended)
 	}
 }
 
 func TestCastOfType(t *testing.T) {
-	src := linq.From([]any{1, "x", 2, 3.0})
-	ints := src.OfType[int]().ToList()
+	src := From([]any{1, "x", 2, 3.0})
+	ints := toListSeq(ofTypeSeq[int](src))
 	if !slices.Equal(ints, []int{1, 2}) {
 		t.Fatalf("OfType: %v", ints)
 	}

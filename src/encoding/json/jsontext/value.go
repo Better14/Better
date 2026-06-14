@@ -348,7 +348,7 @@ func mustReorderObjectsFromDecoder(d *Decoder, scratch *[]byte) {
 
 			currMember := objectMember{name, d.s.buf[beforeName:afterValue]}
 			if isSorted && len(*members) > 0 {
-				isSorted = objectMember.Compare(prevMember, currMember) < 0
+				isSorted = prevMember.Compare(currMember) < 0
 			}
 			*members = append(*members, currMember)
 			prevMember = currMember

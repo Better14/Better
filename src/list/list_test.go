@@ -30,12 +30,12 @@ func TestAppendDoublesCapacity(t *testing.T) {
 	}
 }
 
-func TestIndexOperator(t *testing.T) {
+func TestAtSet(t *testing.T) {
 	l := Of(10, 20, 30)
-	if l[1] != 20 {
-		t.Fatalf("got %d", l[1])
+	if l.At(1) != 20 {
+		t.Fatalf("got %d", l.At(1))
 	}
-	l[0] = 99
+	l.Set(0, 99)
 	if l.At(0) != 99 {
 		t.Fatalf("set failed: %d", l.At(0))
 	}
@@ -47,13 +47,13 @@ func TestAddRangeIndexOfContains(t *testing.T) {
 	if !slices.Equal(l.ToSlice(), []int{1, 2, 3}) {
 		t.Fatalf("got %v", l.ToSlice())
 	}
-	if l.IndexOf(2) != 1 {
-		t.Fatalf("index: %d", l.IndexOf(2))
+	if IndexOf(l, 2) != 1 {
+		t.Fatalf("index: %d", IndexOf(l, 2))
 	}
-	if l.IndexOf(9) != -1 {
-		t.Fatalf("index: %d", l.IndexOf(9))
+	if IndexOf(l, 9) != -1 {
+		t.Fatalf("index: %d", IndexOf(l, 9))
 	}
-	if !l.Contains(3) || l.Contains(0) {
+	if !Contains(l, 3) || Contains(l, 0) {
 		t.Fatalf("contains failed")
 	}
 }

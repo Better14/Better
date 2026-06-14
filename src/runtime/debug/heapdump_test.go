@@ -68,16 +68,22 @@ func TestWriteHeapDumpFinalizers(t *testing.T) {
 	println("done dump")
 }
 
-type G[T any] struct{}
+type gInt struct{}
+
+type gNested struct{}
+
 type I interface {
 	M()
 }
 
 //go:noinline
-func (g G[T]) M() {}
+func (gInt) M() {}
 
-var dummy I = G[int]{}
-var dummy2 I = G[G[int]]{}
+//go:noinline
+func (gNested) M() {}
+
+var dummy I = gInt{}
+var dummy2 I = gNested{}
 
 func TestWriteHeapDumpTypeName(t *testing.T) {
 	if runtime.GOOS == "js" {

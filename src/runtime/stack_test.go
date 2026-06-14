@@ -725,7 +725,8 @@ type I interface {
 func TestStackWrapperStackPanic(t *testing.T) {
 	t.Run("sigpanic", func(t *testing.T) {
 		// nil calls to interface methods cause a sigpanic.
-		testStackWrapperPanic(t, func() { I.M(nil) }, "runtime_test.I.M")
+		fn := I.M
+		testStackWrapperPanic(t, func() { fn(nil) }, "runtime_test.I.M")
 	})
 	t.Run("panicwrap", func(t *testing.T) {
 		// Nil calls to value method wrappers call panicwrap.

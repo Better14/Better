@@ -196,10 +196,74 @@ func isCustomFormatStart(s string, i int) bool {
 func formatCustomTokens(t Time, tokens []ctoken, loc *Locale) string {
 	t = t.In(t.Location())
 	var b []byte
-	for _, tok := range tokens {
-		b = appendCustomToken(b, t, tok, loc)
+	for i := 0; i < len(tokens); {
+		if run, ni := slashDateRun(tokens, i); run != nil && loc.DateOrder == dateOrderDMY {
+			b = appendSlashDateDMY(b, t, run, loc)
+			i = ni
+			continue
+		}
+		b = appendCustomToken(b, t, tokens[i], loc)
+		i++
 	}
 	return string(b)
+}
+
+// slashDateRun detects MM/dd/yyyy-style runs (d/M/y with '/' separators).
+func slashDateRun(tokens []ctoken, i int) (run []ctoken, next int) {
+	if i >= len(tokens) || tokens[i].spec != 'M' && tokens[i].spec != 'd' && tokens[i].spec != 'y' {
+		return nil, i
+	}
+	j := i
+	for j < len(tokens) {
+		switch tokens[j].spec {
+		case 'M', 'd', 'y':
+			j++
+		case '/':
+			if j+1 >= len(tokens) {
+				return nil, i
+			}
+			next := tokens[j+1].spec
+			if next != 'M' && next != 'd' && next != 'y' {
+				return nil, i
+			}
+			j++
+		default:
+			goto done
+		}
+	}
+done:
+	if j <= i+1 {
+		return nil, i
+	}
+	return tokens[i:j], j
+}
+
+func appendSlashDateDMY(b []byte, t Time, run []ctoken, loc *Locale) []byte {
+	var day, month, year []ctoken
+	for _, tok := range run {
+		switch tok.spec {
+		case 'd':
+			day = append(day, tok)
+		case 'M':
+			month = append(month, tok)
+		case 'y':
+			year = append(year, tok)
+		}
+	}
+	emit := func(parts ...[]ctoken) []byte {
+		first := true
+		for _, group := range parts {
+			for _, tok := range group {
+				if !first {
+					b = append(b, loc.DateSeparator...)
+				}
+				first = false
+				b = appendCustomToken(b, t, tok, loc)
+			}
+		}
+		return b
+	}
+	return emit(day, month, year)
 }
 
 func appendCustomToken(b []byte, t Time, tok ctoken, loc *Locale) []byte {

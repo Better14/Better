@@ -271,9 +271,9 @@ func selectManyIndexedResultSeq[T, C, U any](seq iter.Seq[T], collectionFn func(
 }
 
 func sumBySeq[T any, U Number](seq iter.Seq[T], selector func(T) U) U {
-	return sumSeq(Select(seq, selector))
+	return sumSeq(selectBySeq(seq, selector))
 }
 
 func averageBySeq[T any, U Number](seq iter.Seq[T], selector func(T) U) float64 {
-	return averageSeq(Select(seq, selector))
+	return averageSeq(selectBySeq(seq, selector))
 }

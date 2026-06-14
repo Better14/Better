@@ -71,30 +71,30 @@ func (o Ordered[T]) ToList() []T {
 
 // Where filters the ordered sequence.
 func (o Ordered[T]) Where(pred func(T) bool) iter.Seq[T] {
-	return Where(slices.Values(o.items), pred)
+	return whereSeq(slices.Values(o.items), pred)
 }
 
 // Select projects the ordered sequence.
 func (o Ordered[T]) Select[U any](fn func(T) U) iter.Seq[U] {
-	return SelectBy(slices.Values(o.items), fn)
+	return selectBySeq(slices.Values(o.items), fn)
 }
 
 // Take returns at most n elements.
 func (o Ordered[T]) Take(n int) iter.Seq[T] {
-	return Take(slices.Values(o.items), n)
+	return takeSeq(slices.Values(o.items), n)
 }
 
 // Skip skips the first n elements.
 func (o Ordered[T]) Skip(n int) iter.Seq[T] {
-	return Skip(slices.Values(o.items), n)
+	return skipSeq(slices.Values(o.items), n)
 }
 
 // First returns the first element, or panics if empty.
 func (o Ordered[T]) First() T {
-	return First(slices.Values(o.items))
+	return firstFromSeq(slices.Values(o.items))
 }
 
 // FirstOrDefault returns the first element or the zero value.
 func (o Ordered[T]) FirstOrDefault() T {
-	return FirstOrDefault(slices.Values(o.items))
+	return firstOrDefaultSeq(slices.Values(o.items))
 }

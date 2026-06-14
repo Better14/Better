@@ -430,7 +430,7 @@ func testAfterQueuing(t *testing.T, after func(Duration) <-chan Time) {
 	// This test flakes out on some systems,
 	// so we'll try it a few times before declaring it a failure.
 	const attempts = 5
-	err := errors.New("!=nil")
+	var err error = errors.New("!=nil")
 	for i := 0; i < attempts && err != nil; i++ {
 		delta := Duration(20+i*50) * Millisecond
 		if err = testAfterQueuing1(delta, after); err != nil {

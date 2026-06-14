@@ -90,7 +90,7 @@ func (check *Checker) multipleSwitchExprDefaults(body []*ast.SwitchExprClause) {
 			continue
 		}
 		if first != nil {
-			check.errorf(c, DuplicateDefault, "multiple defaults (first at %s)", first.Colon)
+			check.errorf(c, DuplicateDefault, "multiple defaults (first at %s)", check.fset.Position(first.Colon))
 		} else {
 			first = c
 		}

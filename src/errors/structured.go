@@ -144,12 +144,12 @@ func NewCustom[T ~struct{ Error }](format string, args ...any) *T {
 	return &T{Error: *newError(formatMessage(format, args...))}
 }
 
-// NewCustom assigns Message, StackTrace, and InnerError on e from a new root error
+// InitCustom assigns Message, StackTrace, and InnerError on e from a new root error
 // captured at the call site. Use this to initialize the embedded errors.Error field
-// of a custom type that has extra domain fields, e.g. NewCustom(&myErr.Error, msg).
+// of a custom type that has extra domain fields, e.g. InitCustom(&myErr.Error, msg).
 // When args are provided, format is interpreted like fmt.Sprintf.
-// If e is nil, NewCustom does nothing.
-func NewCustom(e *Error, format string, args ...any) {
+// If e is nil, InitCustom does nothing.
+func InitCustom(e *Error, format string, args ...any) {
 	if e == nil {
 		return
 	}

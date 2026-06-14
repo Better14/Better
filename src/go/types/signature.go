@@ -175,8 +175,21 @@ func (check *Checker) funcType(sig *Signature, recvPar *ast.FieldList, ftyp *ast
 	}
 
 	// collect and declare function type parameters
+	var methodTParams []*ast.Field
 	if ftyp.TypeParams != nil {
-		check.collectTypeParams(&sig.tparams, ftyp.TypeParams)
+		methodTParams = ftyp.TypeParams.List
+	}
+	if recvTPar, ok := extensionSliceRecvTypeParam(recv, rparams); ok {
+		methodTParams = check.prepareReceiverMethodTypeParams(recvTPar, methodTParams, ftyp, true)
+	} else if keyPar, valPar, ok := extensionMapRecvTypeParams(recv, rparams); ok {
+		methodTParams = check.prepareReceiverMapMethodTypeParams(keyPar, valPar, methodTParams, ftyp, true)
+	} else if rparams != nil && rparams.Len() == 1 && len(methodTParams) > 0 {
+		if len(methodTParams[0].Names) > 0 && methodTParams[0].Names[0].Name == rparams.At(0).obj.name {
+			methodTParams = check.prepareReceiverMethodTypeParams(rparams.At(0), methodTParams, ftyp, false)
+		}
+	}
+	if len(methodTParams) > 0 {
+		check.collectTypeParams(&sig.tparams, &ast.FieldList{List: methodTParams})
 	}
 
 	// collect ordinary and result parameters
@@ -236,6 +249,35 @@ func (check *Checker) collectRecv(rparam *ast.Field, scopePos token.Pos) (*Var, 
 	var recvType Type = Typ[Invalid]
 	var recvTParamsList *TypeParamList
 	if rtparams == nil {
+		// Extension: func (s []T) declares T via the slice element type.
+		if name, ok := extensionSliceElemTypeParam(rparam.Type); ok && check.lookup(name.Name) == nil {
+			tpar := check.declareTypeParam(name, scopePos)
+			tpar.SetConstraint(universeAny.Type())
+			recvTParamsList = bindTParams([]*TypeParam{tpar})
+			recvType = NewSlice(tpar)
+			if rptr {
+				recvType = NewPointer(recvType)
+			}
+			check.recordUse(name, tpar.obj)
+			check.recordTypeAndValue(name, typexpr, tpar, nil)
+			check.recordParenthesizedRecvTypes(rparam.Type, recvType)
+		} else if keyName, valName, ok := extensionMapTypeParams(rparam.Type); ok && check.lookup(keyName.Name) == nil && check.lookup(valName.Name) == nil {
+			// Extension: func (m map[K]V) declares K and V via map key/value types.
+			keyPar := check.declareTypeParam(keyName, scopePos)
+			keyPar.SetConstraint(universeComparable.Type())
+			valPar := check.declareTypeParam(valName, scopePos)
+			valPar.SetConstraint(universeAny.Type())
+			recvTParamsList = bindTParams([]*TypeParam{keyPar, valPar})
+			recvType = NewMap(keyPar, valPar)
+			if rptr {
+				recvType = NewPointer(recvType)
+			}
+			check.recordUse(keyName, keyPar.obj)
+			check.recordTypeAndValue(keyName, typexpr, keyPar, nil)
+			check.recordUse(valName, valPar.obj)
+			check.recordTypeAndValue(valName, typexpr, valPar, nil)
+			check.recordParenthesizedRecvTypes(rparam.Type, recvType)
+		} else {
 		// If there are no type parameters, we can simply typecheck rparam.Type.
 		// If that is a generic type, varType will complain.
 		// Further receiver constraints will be checked later, with validRecv.
@@ -255,6 +297,7 @@ func (check *Checker) collectRecv(rparam *ast.Field, scopePos token.Pos) (*Var, 
 				break
 			}
 			a, _ = baseType.(*Alias)
+		}
 		}
 	} else {
 		// If there are type parameters, rbase must denote a generic base type.
@@ -365,7 +408,9 @@ func (check *Checker) collectRecv(rparam *ast.Field, scopePos token.Pos) (*Var, 
 	// Delay validation of receiver type as it may cause premature expansion of types
 	// the receiver type is dependent on (see go.dev/issue/51232, go.dev/issue/51233).
 	check.later(func() {
-		check.validRecv(rbase, recv)
+		if !check.isExtensionRecv(recv.typ) {
+			check.validRecv(rbase, recv)
+		}
 	}).describef(recv, "validRecv(%s)", recv)
 
 	return recv, recvTParamsList
