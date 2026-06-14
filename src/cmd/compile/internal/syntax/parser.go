@@ -2814,7 +2814,7 @@ func (p *parser) switchExprClause() *SwitchExprClause {
 	switch p.tok {
 	case _Case:
 		p.next()
-		c.Cases = p.enumCaseList()
+		c.Cases = p.exprList()
 
 	case _Default:
 		p.next()
@@ -2912,7 +2912,7 @@ func (p *parser) caseClause() *CaseClause {
 	switch p.tok {
 	case _Case:
 		p.next()
-		c.Cases = p.enumCaseList()
+		c.Cases = p.exprList()
 
 	case _Default:
 		p.next()
@@ -2957,7 +2957,11 @@ func (p *parser) enumCasePattern() Expr {
 		for p.tok != _EOF && p.tok != _Rbrace {
 			if p.tok != _Name {
 				p.syntaxError("expected identifier in enum struct pattern")
-				p.advance(_Comma, _Rbrace)
+				if p.tok == _Comma {
+					p.next()
+				} else {
+					p.advance(_Comma, _Rbrace)
+				}
 				continue
 			}
 			f := new(Field)

@@ -417,6 +417,42 @@ func TestLineDirectivesWithDir(t *testing.T) {
 	}
 }
 
+func TestIssue8947SwitchCaseParse(t *testing.T) {
+	const src = `package main
+func f1() {
+	type T [2]int
+	p := T{0, 1}
+	switch p {
+	case T{0, 0}:
+	case T{0, 1}:
+	}
+}
+func main() { f1() }`
+
+	done := make(chan error, 1)
+	go func() {
+		var first error
+		_, err := Parse(NewFileBase("issue8947.go"), strings.NewReader(src), func(err error) {
+			if first == nil {
+				first = err
+			}
+		}, nil, 0)
+		if err != nil && first == nil {
+			first = err
+		}
+		done <- first
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("parse hung on switch case composite literal")
+	}
+}
+
 // Test that typical uses of UnpackListExpr don't allocate.
 func TestUnpackListExprAllocs(t *testing.T) {
 	var x Expr = NewName(Pos{}, "x")
