@@ -17,18 +17,18 @@ type node[K cmp.Ordered, V any] struct {
 	right *node[K, V]
 }
 
-// Tree is a binary search tree keyed by K with values V.
-type Tree[K cmp.Ordered, V any] struct {
+// BinaryTree is a binary search tree keyed by K with values V.
+type BinaryTree[K cmp.Ordered, V any] struct {
 	root *node[K, V]
 	size int
 }
 
-func New[K cmp.Ordered, V any]() *Tree[K, V] { return &Tree[K, V]{} }
+func New[K cmp.Ordered, V any]() *BinaryTree[K, V] { return &BinaryTree[K, V]{} }
 
-func (t *Tree[K, V]) Len() int { return t.size }
+func (t *BinaryTree[K, V]) Len() int { return t.size }
 
 // All returns an iterator over key/value pairs in ascending key order.
-func (t *Tree[K, V]) All() iter.Seq[struct{ Key K; Value V }] {
+func (t *BinaryTree[K, V]) All() iter.Seq[struct{ Key K; Value V }] {
 	return func(yield func(struct{ Key K; Value V }) bool) {
 		var walk func(*node[K, V]) bool
 		walk = func(n *node[K, V]) bool {
@@ -47,11 +47,11 @@ func (t *Tree[K, V]) All() iter.Seq[struct{ Key K; Value V }] {
 	}
 }
 
-func (t *Tree[K, V]) Insert(key K, val V) {
+func (t *BinaryTree[K, V]) Insert(key K, val V) {
 	t.root = t.insert(t.root, key, val)
 }
 
-func (t *Tree[K, V]) insert(n *node[K, V], key K, val V) *node[K, V] {
+func (t *BinaryTree[K, V]) insert(n *node[K, V], key K, val V) *node[K, V] {
 	if n == nil {
 		t.size++
 		return &node[K, V]{key: key, val: val}
@@ -67,7 +67,7 @@ func (t *Tree[K, V]) insert(n *node[K, V], key K, val V) *node[K, V] {
 	return n
 }
 
-func (t *Tree[K, V]) Search(key K) (V, bool) {
+func (t *BinaryTree[K, V]) Search(key K) (V, bool) {
 	n := t.root
 	for n != nil {
 		switch {
@@ -83,7 +83,7 @@ func (t *Tree[K, V]) Search(key K) (V, bool) {
 	return z, false
 }
 
-func (t *Tree[K, V]) Inorder(fn func(K, V)) {
+func (t *BinaryTree[K, V]) Inorder(fn func(K, V)) {
 	var walk func(*node[K, V])
 	walk = func(n *node[K, V]) {
 		if n == nil {
@@ -96,11 +96,11 @@ func (t *Tree[K, V]) Inorder(fn func(K, V)) {
 	walk(t.root)
 }
 
-func (t *Tree[K, V]) Delete(key K) {
+func (t *BinaryTree[K, V]) Delete(key K) {
 	t.root = t.delete(t.root, key)
 }
 
-func (t *Tree[K, V]) delete(n *node[K, V], key K) *node[K, V] {
+func (t *BinaryTree[K, V]) delete(n *node[K, V], key K) *node[K, V] {
 	if n == nil {
 		return nil
 	}

@@ -6,7 +6,7 @@
 package length
 
 // ILength is implemented by collections that expose a cheap Len() int.
-// Slices, maps, list.List, set.Set, tree.Tree, and min/max heap types
+// Slices, maps, list.List, set.Set, tree.BinaryTree, and min/max heap types
 // implement this interface.
 type ILength interface {
 	Len() int

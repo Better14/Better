@@ -28,7 +28,7 @@ func TestSliceMapLenExtension(t *testing.T) {
 func TestCollectionsImplementILength(t *testing.T) {
 	var _ length.ILength = (*list.List[int])(nil)
 	var _ length.ILength = set.Set[int](nil)
-	var _ length.ILength = (*tree.Tree[int, string])(nil)
+	var _ length.ILength = (*tree.BinaryTree[int, string])(nil)
 	var _ length.ILength = (*minheap.Heap[int])(nil)
 	var _ length.ILength = (*maxheap.Heap[int])(nil)
 }

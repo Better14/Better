@@ -196,7 +196,7 @@ Supports `Push`, `Pop`, `Peek`, `Len`, `Fix` (after changing a stored element), 
 A generic ordered binary tree (typically BST) for keyed lookup and ordered traversal:
 
 ```go
-t := tree.New[int, string]()  // key int, value string
+t := tree.New[int, string]()  // *tree.BinaryTree[int, string]
 t.Insert(2, "two")
 t.Insert(1, "one")
 v, ok := t.Search(2)          // "two", true
