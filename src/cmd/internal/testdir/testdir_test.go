@@ -1947,9 +1947,7 @@ func overlayDir(dstRoot, srcRoot string) error {
 // List of files that the compiler cannot errorcheck with the new typechecker (types2).
 var types2Failures = setOf(
 	"shift1.go",               // types2 reports two new errors which are probably not right
-	"fixedbugs/issue10700.go", // types2 should give hint about ptr to interface
 	"fixedbugs/issue18331.go", // missing error about misuse of //go:noescape (irgen needs code from noder)
-	"fixedbugs/issue18419.go", // types2 reports no field or method member, but should say unexported
 	"fixedbugs/issue20245.go", // types2 reports two instead of one error (preference: 1.17 compiler)
 	"fixedbugs/issue31053.go", // types2 reports "unknown field" instead of "cannot refer to unexported field"
 )

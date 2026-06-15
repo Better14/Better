@@ -1546,7 +1546,7 @@ func (check *Checker) multiExpr(e syntax.Expr, allowCommaOk bool) (list []*opera
 	}
 
 	// Result(T) destructuring: val, err := r
-	if x.isValid() && (x.mode() == variable || x.mode() == value) {
+	if allowCommaOk && x.isValid() && (x.mode() == variable || x.mode() == value) {
 		if res, ok := AsResult(x.typ()); ok {
 			list = []*operand{
 				{mode_: value, expr: e, typ_: res.elem},
