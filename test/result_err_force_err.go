@@ -13,13 +13,11 @@ import "errors"
 func possibleError() error { return nil }
 
 func noResultFunc() {
-	err := possibleError()
-	err! // ERROR "invalid operation"
+	possibleError()! // ERROR "invalid operation|requires enclosing function"
 }
 
 func plainReturn() int {
-	err := possibleError()
-	err! // ERROR "invalid operation"
+	possibleError()! // ERROR "invalid operation|requires enclosing function"
 	return 1
 }
 

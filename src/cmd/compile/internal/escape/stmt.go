@@ -185,6 +185,8 @@ func (e *escape) stmt(n ir.Node) {
 		e.assignList(dsts, n.Results, "return", n)
 	case ir.OCALLFUNC, ir.OCALLMETH, ir.OCALLINTER, ir.OINLCALL, ir.OCLEAR, ir.OCLOSE, ir.OCOPY, ir.ODELETE, ir.OPANIC, ir.OPRINT, ir.OPRINTLN, ir.ORECOVER:
 		e.call(nil, n)
+	case ir.OFORCE:
+		e.expr(e.heapHole(), n)
 	case ir.OGO, ir.ODEFER:
 		n := n.(*ir.GoDeferStmt)
 		e.goDeferStmt(n)

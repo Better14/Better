@@ -1617,6 +1617,8 @@ func (check *Checker) exclude(x *operand, modeset uint) {
 		var msg string
 		var code Code
 		switch x.mode() {
+		case invalid:
+			return
 		case novalue:
 			if modeset&(1<<typexpr) != 0 {
 				msg = "%s used as value"

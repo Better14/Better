@@ -2213,7 +2213,13 @@ func (w *writer) expr(expr syntax.Expr) {
 		tv := w.p.typeAndValue(expr)
 		w.Code(exprForce)
 		w.pos(expr)
-		w.typ(tv.Type)
+		typ := tv.Type
+		if typ == nil {
+			typ = types2.Typ[types2.Invalid]
+		} else if tup, ok := typ.(*types2.Tuple); ok && tup == nil {
+			typ = types2.Universe.Lookup("error").Type()
+		}
+		w.typ(typ)
 		w.expr(expr.X)
 
 	case *syntax.AssertExpr:

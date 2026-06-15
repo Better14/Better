@@ -531,8 +531,7 @@ func (p *printer) printRawNode(n Node) {
 		p.print(_Map, _Lbrack, n.Key, _Rbrack, n.Value)
 
 	case *ResultType:
-		p.print(n.Elem)
-		p.print(n.Bang, Not)
+		p.print(n.Elem, Not)
 
 	case *NullableType:
 		p.print(n.Elem, _Question)
@@ -541,12 +540,10 @@ func (p *printer) printRawNode(n Node) {
 		p.print(n.X, _Question)
 
 	case *TryExpr:
-		p.print(n.X)
-		p.print(n.Bang, Not)
+		p.print(n.X, Not)
 
 	case *ForceExpr:
-		p.print(n.X)
-		p.print(n.Bang, Not)
+		p.print(n.X, Not)
 
 	case *IfExpr:
 		p.print(_If)

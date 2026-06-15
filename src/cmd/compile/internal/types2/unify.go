@@ -656,7 +656,7 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 		// and either both functions are variadic or neither is.
 		// Parameter and result names are not required to match.
 		// TODO(gri) handle type parameters or document why we can ignore them.
-		if y, ok := y.(*Signature); ok {
+		if y, ok := y.(*Signature); ok && x != nil && y != nil {
 			return x.variadic == y.variadic &&
 				u.nify(x.params, y.params, emode, p) &&
 				u.nify(x.results, y.results, emode, p)
