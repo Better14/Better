@@ -45,7 +45,7 @@ var (
 
 	shard  = flag.Int("shard", 0, "shard index to run. Only applicable if -shards is non-zero.")
 	shards = flag.Int("shards", 0, "number of shards. If 0, all tests are run. This is used by the continuous build.")
-	cmdTimeout = flag.Int("cmdtimeout", 0, "default timeout in seconds for test subprocesses without an explicit -t flag (0 means no timeout)")
+	cmdTimeout = flag.Int("cmdtimeout", 45, "default timeout in seconds for test subprocesses without an explicit -t flag (0 means no timeout)")
 )
 
 // defaultAllCodeGen returns the default value of the -all_codegen

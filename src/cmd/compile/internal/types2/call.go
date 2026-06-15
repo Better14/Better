@@ -957,7 +957,11 @@ func (check *Checker) arguments(call *syntax.CallExpr, sig *Signature, targs []T
 	// infer missing type arguments of callee and function arguments
 	if len(tparams) > 0 {
 		err := check.newError(CannotInferTypeArgs)
+		if sig.results.Len() > 0 {
+			check.inferResultType = sig.results.At(0).typ
+		}
 		targs = check.infer(call.Pos(), tparams, targs, sigParams, args, false, err)
+		check.inferResultType = nil
 		if targs == nil {
 			// TODO(gri) If infer inferred the first targs[:n], consider instantiating
 			//           the call signature for better error messages/gopls behavior.

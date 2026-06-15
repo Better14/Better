@@ -270,11 +270,8 @@ func (check *Checker) assignVar(lhs, rhs syntax.Expr, x *operand, context string
 
 	if x == nil {
 		var target *target
-		// avoid calling ExprString if not needed
 		if T != nil {
-			if _, ok := T.Underlying().(*Signature); ok {
-				target = newTarget(T, ExprString(lhs))
-			}
+			target = newTarget(T, ExprString(lhs))
 		}
 		x = new(operand)
 		check.expr(target, x, rhs)
@@ -481,6 +478,15 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []syntax.Expr, returnStmt sy
 				v.typ = Typ[Invalid]
 			}
 		}
+		return
+	}
+
+	// Single-value return of a call expression: pass the expected result type
+	// so generic calls can infer type arguments (e.g. linq.Select with => lambdas).
+	if returnStmt != nil && l == 1 && isCall {
+		var x operand
+		check.expr(newTarget(lhs[0].typ, "result variable"), &x, orig_rhs[0])
+		check.initVar(lhs[0], &x, context)
 		return
 	}
 

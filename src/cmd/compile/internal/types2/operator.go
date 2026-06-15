@@ -28,7 +28,7 @@ func (check *Checker) validateOperatorPairs() {
 		}
 		for _, name := range pair {
 			for _, fn := range check.operatorFuncs(name) {
-				check.errorf(fn.pos, InvalidSyntaxTree, "operator %s requires paired operator %s", fn.name, missing)
+				check.errorf(fn.pos, BadDecl, "operator %s requires paired operator %s", fn.name, missing)
 			}
 		}
 	}

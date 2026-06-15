@@ -155,6 +155,9 @@ type Checker struct {
 	overloadBySig        map[string]*Func                     // overload func by name + parameter-type suffix
 	overloadResolveCache map[overloadResolveKey]*Func         // memoized overload resolution by arg types
 
+	callExpectedType Type // if set, infer missing type args from this expected expression type
+	inferResultType  Type // function result type for callExpectedType inference
+
 	firstErr   error                    // first error encountered
 	methods    map[*TypeName][]*Func    // maps package scope type names to associated non-blank (non-interface) methods
 	untyped    map[syntax.Expr]exprInfo // map of expressions without final type

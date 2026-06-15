@@ -19,13 +19,13 @@ Rebuild the compiler first if you changed it:
 
 Vanilla Go does not apply a default subprocess timeout in testdir; only recipes with an explicit `-t N` flag are timed.
 
-This fork adds **`-cmdtimeout=N`** (seconds). When a test recipe does not specify `-t`, subprocesses use `-cmdtimeout` if it is greater than zero. **`0` means no timeout** (vanilla behavior).
+This fork adds **`-cmdtimeout=N`** (seconds). When a test recipe does not specify `-t`, subprocesses use `-cmdtimeout` if it is greater than zero. The default is **45** seconds; set **`-cmdtimeout=0`** for vanilla behavior (no timeout).
 
-Example: cap per-command runtime at 15 seconds during a shard run:
+Example: cap per-command runtime at 45 seconds during a shard run:
 
 ```bash
 go test -count=1 -timeout=45m -parallel=8 -v cmd/internal/testdir \
-  -shard=0 -shards=8 -cmdtimeout=15 2>&1 | tee /root/go/testdir_output.txt
+  -shard=0 -shards=8 -cmdtimeout=45 2>&1 | tee /root/go/testdir_output.txt
 ```
 
 Use a generous **package timeout** (`-timeout=…` on `go test`) so the shard can finish. Individual hangs are capped by `-cmdtimeout` when set.
@@ -64,7 +64,7 @@ Example: **N=8**, shard **0**, **8** parallel subtests, **45m** package timeout:
 
 ```bash
 go test -count=1 -timeout=45m -parallel=8 -v cmd/internal/testdir \
-  -shard=0 -shards=8 -cmdtimeout=15 2>&1 | tee /root/go/testdir_output.txt
+  -shard=0 -shards=8 -cmdtimeout=45 2>&1 | tee /root/go/testdir_output.txt
 ```
 
 Run other shards by changing `-shard` (0 through 7 when `-shards=8`):
@@ -111,7 +111,7 @@ done
 |------|---------|
 | `-shard=N` | Which shard to run (0-based) |
 | `-shards=N` | Split suite into N shards; `0` means no sharding (all tests) |
-| `-cmdtimeout=N` | Default subprocess timeout in seconds when a recipe has no `-t` (`0` = none) |
+| `-cmdtimeout=N` | Default subprocess timeout in seconds when a recipe has no `-t` (default **45**; `0` = none) |
 | `-parallel=N` | Max concurrent subtests (`go test` flag) |
 | `-timeout=…` | Max wall time for the whole `go test` invocation |
 | `-run='Test/…'` | Run only matching subtests |

@@ -134,14 +134,48 @@ func (check *Checker) checkOverloadDuplicates(name string, cands []*Func, kind s
 	}
 }
 
+func (check *Checker) resolveRecvBaseName(recvName string) string {
+	_, base := check.resolveBaseTypeName(false, syntax.NewName(nopos, recvName))
+	if base != nil {
+		return base.Name()
+	}
+	return recvName
+}
+
+func (check *Checker) checkMethodOverloadDuplicates() {
+	merged := make(map[methodKey][]*Func)
+	for key, cands := range check.overloadMeths {
+		baseName := check.resolveRecvBaseName(key.recvName)
+		mk := methodKey{recvName: baseName, name: key.name}
+		merged[mk] = append(merged[mk], cands...)
+	}
+	for key, cands := range merged {
+		seen := make(map[string]*Func)
+		for _, fn := range cands {
+			if fn == nil || fn.typ == nil {
+				continue
+			}
+			sig, ok := fn.typ.(*Signature)
+			if !ok {
+				continue
+			}
+			sigKey := overloadSigKey(key.name, sig)
+			if prev, ok := seen[sigKey]; ok {
+				check.errorf(fn.pos, DuplicateMethod, "method %s.%s already declared", key.recvName, key.name)
+				_ = prev
+				continue
+			}
+			seen[sigKey] = fn
+		}
+	}
+}
+
 func (check *Checker) assignOverloadSuffixes() {
 	check.validateOperatorPairs()
 	for name, cands := range check.overloadFuncs {
 		check.checkOverloadDuplicates(name, cands, "function")
 	}
-	for key, cands := range check.overloadMeths {
-		check.checkOverloadDuplicates(key.name, cands, "method")
-	}
+	check.checkMethodOverloadDuplicates()
 
 	check.buildCheckerIndexes()
 
