@@ -48,40 +48,54 @@ func (check *Checker) lambdaExpr(x *operand, e *syntax.LambdaExpr, hint Type) {
 		}
 		params[i] = newVar(ParamVar, f.Pos(), check.pkg, name, hintSig.params.At(i).typ)
 	}
+
+	check.openScope(e, "function")
+	sigScope := check.scope
+	sigScope.isFunc = true
+	check.recordScope(e, sigScope)
+	scopePos := syntax.EndPos(e)
+	for i, f := range e.ParamList {
+		if f.Name != nil && f.Name.Value != "" {
+			check.declare(sigScope, f.Name, params[i], scopePos)
+		}
+	}
+
+	resultType := hintSig.results.At(0).typ
+	bodyChecked := false
+	if _, ok := resultType.(*TypeParam); ok {
+		var bodyVal operand
+		check.expr(nil, &bodyVal, e.Body)
+		if bodyVal.isValid() {
+			resultType = bodyVal.typ()
+			bodyChecked = true
+		}
+	}
+
 	var recvTP, typeTP []*TypeParam
-	if r := hintSig.RecvTypeParams(); r != nil {
-		recvTP = r.list()
+	if !bodyChecked {
+		if r := hintSig.RecvTypeParams(); r != nil {
+			recvTP = r.list()
+		}
+		if t := hintSig.TypeParams(); t != nil {
+			typeTP = t.list()
+		}
 	}
-	if t := hintSig.TypeParams(); t != nil {
-		typeTP = t.list()
-	}
-	sig := NewSignatureType(nil, recvTP, typeTP, NewTuple(params...), hintSig.results, hintSig.variadic)
+	results := NewTuple(newVar(ResultVar, nopos, check.pkg, "", resultType))
+	sig := NewSignatureType(nil, recvTP, typeTP, NewTuple(params...), results, hintSig.variadic)
+	sig.scope = sigScope
 
 	ret := new(syntax.ReturnStmt)
 	ret.SetPos(e.Body.Pos())
 	ret.Results = e.Body
-	body := new(syntax.BlockStmt)
-	body.SetPos(e.Pos())
-	body.List = []syntax.Stmt{ret}
+	block := new(syntax.BlockStmt)
+	block.SetPos(e.Pos())
+	block.List = []syntax.Stmt{ret}
 
-	check.openScope(e, "function")
-	sig.scope = check.scope
-	check.scope.isFunc = true
-	check.recordScope(e, check.scope)
-	scopePos := syntax.EndPos(e)
-	for i, f := range e.ParamList {
-		if f.Name != nil && f.Name.Value != "" {
-			check.declare(check.scope, f.Name, params[i], scopePos)
-		}
-	}
-	if r := hintSig.results.vars[0]; r.name != "" {
-		// result names are not in lambda syntax
-	}
-	if !check.conf.IgnoreFuncBodies {
+	if !check.conf.IgnoreFuncBodies && !bodyChecked {
 		decl := check.decl
 		iota := check.iota
 		check.later(func() {
-			check.funcBody(decl, "<lambda>", sig, body, iota)
+			check.funcBody(decl, "<lambda>", sig, block, iota)
 		}).describef(e, "lambda")
 	}
 	check.closeScope()
