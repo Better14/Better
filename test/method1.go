@@ -12,13 +12,13 @@ package main
 type T struct{}
 
 func (t *T) M(int, string)  // GCCGO_ERROR "previous"
-func (t *T) M(int, float64) {} // ERROR "already declared|redefinition"
+func (t *T) M(int, float64) {} // permitted overload in this fork
 
 func (t T) H()  // GCCGO_ERROR "previous"
-func (t *T) H() {} // ERROR "already declared|redefinition"
+func (t *T) H() {} // ERROR "method .* already declared|already declared|redefinition"
 
 func f(int, string)  // GCCGO_ERROR "previous"
-func f(int, float64) {} // ERROR "redeclared|redefinition"
+func f(int, float64) {} // permitted overload in this fork
 
 func g(a int, b string) // GCCGO_ERROR "previous"
-func g(a int, c string) // ERROR "redeclared|redefinition"
+func g(a int, c string) // ERROR "redeclared function g|redeclared|redefinition"

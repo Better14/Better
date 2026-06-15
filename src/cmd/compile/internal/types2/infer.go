@@ -327,7 +327,9 @@ func (check *Checker) infer(pos syntax.Pos, tparams []*TypeParam, targs []Type, 
 			}
 			smap := makeSubstMap(tparams, u.inferred(tparams))
 			result = check.subst(pos, result, smap, nil, check.context())
-			u.unify(result, expected, assign)
+			if result != nil {
+				u.unify(result, expected, assign)
+			}
 		}
 	}
 

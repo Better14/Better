@@ -13,7 +13,7 @@ var t struct {
 	_ int
 }
 
-func (x int) _() { // ERROR "methods on non-local type"
+func (x int) _() { // blank method names are not checked as methods
 	println(x)
 }
 

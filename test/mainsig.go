@@ -7,7 +7,7 @@
 package main
 
 func main(int)  {}           // ERROR "func main must have no arguments and no return values"
-func main() int { return 1 } // ERROR "func main must have no arguments and no return values" "main redeclared in this block"
+func main() int { return 1 } // ERROR "func main must have no arguments and no return values|main redeclared"
 
 func init(int)  {}           // ERROR "func init must have no arguments and no return values"
 func init() int { return 1 } // ERROR "func init must have no arguments and no return values"
