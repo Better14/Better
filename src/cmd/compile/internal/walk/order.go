@@ -1356,14 +1356,23 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 			if c.List == nil {
 				hasDefault = true
 			}
+			saveout := o.out
+			o.out = nil
 			body := typecheck.DefaultLit(o.expr1(c.Body, nil), n.Type())
 			as := ir.NewAssignStmt(pos, res, body)
 			as.SetTypecheck(1)
+			caseInit := o.out
+			o.out = saveout
+
+			var caseBody ir.Nodes
+			caseBody.Append(caseInit...)
+			caseBody.Append(as)
+
 			var list []ir.Node
 			for _, cv := range c.List {
 				list = append(list, o.expr1(cv, nil))
 			}
-			cases = append(cases, ir.NewCaseStmt(pos, list, []ir.Node{as}))
+			cases = append(cases, ir.NewCaseStmt(pos, list, caseBody))
 		}
 		if !hasDefault {
 			// Exhaustive enum switch expressions omit default, but walkSwitchExpr
