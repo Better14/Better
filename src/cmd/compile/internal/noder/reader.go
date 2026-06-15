@@ -313,6 +313,9 @@ func (pr *pkgReader) posBaseIdx(idx index) *src.PosBase {
 // to oldBase, which must be a non-inlined position. When not
 // inlining, this is just oldBase.
 func (r *reader) inlPosBase(oldBase *src.PosBase) *src.PosBase {
+	if oldBase == nil {
+		return nil
+	}
 	if index := oldBase.InliningIndex(); index >= 0 {
 		base.Fatalf("oldBase %v already has inlining index %v", oldBase, index)
 	}
@@ -335,7 +338,9 @@ func (r *reader) inlPosBase(oldBase *src.PosBase) *src.PosBase {
 // is just xpos.
 func (r *reader) inlPos(xpos src.XPos) src.XPos {
 	pos := base.Ctxt.PosTable.Pos(xpos)
-	pos.SetBase(r.inlPosBase(pos.Base()))
+	if pos.IsKnown() && pos.Base() != nil {
+		pos.SetBase(r.inlPosBase(pos.Base()))
+	}
 	return base.Ctxt.PosTable.XPos(pos)
 }
 
