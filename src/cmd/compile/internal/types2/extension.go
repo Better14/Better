@@ -66,6 +66,18 @@ func extensionMapTypeParams(rtyp syntax.Expr) (key, val *syntax.Name, ok bool) {
 // for a method declared in defPkg.
 func (check *Checker) isExtensionRecv(typ Type) bool {
 	typ, _ = deref(typ)
+	// Methods declared on a package-local type or alias name follow standard
+	// method rules, even when the underlying type is a basic or imported type.
+	switch t := typ.(type) {
+	case *Alias:
+		if obj := t.Obj(); obj != nil && obj.pkg == check.pkg {
+			return false
+		}
+	case *Named:
+		if t.obj != nil && t.obj.pkg == check.pkg && !isCGoTypeObj(t.obj) {
+			return false
+		}
+	}
 	typ = Unalias(typ)
 	if !isValid(typ) {
 		return false
