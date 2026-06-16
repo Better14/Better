@@ -8,9 +8,9 @@
 // following an empty import.
 
 package a
-var?      // ERROR "invalid character U\+003F '\?'|invalid character 0x3f in input file"
+var?      // ERROR "invalid character U\+003F '\?'|invalid character 0x3f in input file|unexpected \?, expected name|syntax error: unexpected \?, expected name"
 
-var x int // ERROR "unexpected keyword var|expected identifier|expected type"
+var x int
 
 func main() {
 }

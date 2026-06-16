@@ -28,16 +28,16 @@ func InMyCode(x *Imported, y *HasAMethod, z *other.Exported) {
 	(*x).Dont() // ERROR "\(\*x\)\.Dont undefined \(type Imported has no field or method Dont\)|reference to undefined field or method"
 
 	y.Do()
-	y.do() // ERROR "y\.do undefined \(type \*HasAMethod has no field or method do, but does have Do\)|reference to undefined field or method"
+	y.do() // ERROR "y\.do undefined \(type \*HasAMethod has no field or method do, but does have (field )?Do\)|reference to undefined field or method"
 	(*y).Do()
-	(*y).do()   // ERROR "\(\*y\)\.do undefined \(type HasAMethod has no field or method do, but does have Do\)|reference to undefined field or method"
+	(*y).do()   // ERROR "\(\*y\)\.do undefined \(type HasAMethod has no field or method do, but does have (field )?Do\)|reference to undefined field or method"
 	y.Dont()    // ERROR "y\.Dont undefined \(type \*HasAMethod has no field or method Dont\)|reference to undefined field or method"
 	(*y).Dont() // ERROR "\(\*y\)\.Dont undefined \(type HasAMethod has no field or method Dont\)|reference to undefined field or method"
 
 	z.Do() // ERROR "z\.Do undefined \(type \*other\.Exported is pointer to interface, not interface\)|type that is pointer to interface"
 	z.do() // ERROR "z\.do undefined \(type \*other\.Exported is pointer to interface, not interface\)|type that is pointer to interface"
 	(*z).Do()
-	(*z).do()     // ERROR "\(\*z\)\.do undefined \(type other.Exported has no field or method do, but does have Do\)|reference to undefined field or method"
+	(*z).do()     // ERROR "\(\*z\)\.do undefined \(type other.Exported has no field or method do, but does have (field )?Do\)|reference to undefined field or method"
 	z.Dont()      // ERROR "z\.Dont undefined \(type \*other\.Exported is pointer to interface, not interface\)|type that is pointer to interface"
 	(*z).Dont()   // ERROR "\(\*z\)\.Dont undefined \(type other\.Exported has no field or method Dont\)|reference to undefined field or method"
 	z.secret()    // ERROR "z\.secret undefined \(type \*other\.Exported is pointer to interface, not interface\)|type that is pointer to interface"

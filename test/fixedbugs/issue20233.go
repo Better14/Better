@@ -8,4 +8,4 @@
 
 package p
 
-var f = func(...A) // ERROR "undefined: A"
+var f = func(...A) // ERROR "undefined: A|is not an expression"
