@@ -72,9 +72,9 @@ func (check *Checker) lookupError(typ Type, sel string, obj Object, structLit bo
 		case missing:
 			return check.sprintf("unknown field %s in struct literal of type %s", sel, typ)
 		case misspelled:
-			return check.sprintf("unknown field %s in struct literal of type %s, but does have %s", sel, typ, alt)
+			return check.sprintf("unknown field %s in struct literal of type %s, but does have field %s", sel, typ, alt)
 		case unexported:
-			return check.sprintf("unknown field %s in struct literal of type %s, but does have unexported %s", sel, typ, alt)
+			return check.sprintf("unknown field %s in struct literal of type %s, but does have unexported field %s", sel, typ, alt)
 		case inaccessible:
 			return check.sprintf("cannot refer to unexported field %s in struct literal of type %s", alt, typ)
 		}
@@ -83,9 +83,9 @@ func (check *Checker) lookupError(typ Type, sel string, obj Object, structLit bo
 		case missing:
 			return check.sprintf("type %s has no field or method %s", typ, sel)
 		case misspelled:
-			return check.sprintf("type %s has no field or method %s, but does have %s", typ, sel, alt)
+			return check.sprintf("type %s has no field or method %s, but does have field %s", typ, sel, alt)
 		case unexported:
-			return check.sprintf("type %s has no field or method %s, but does have unexported %s", typ, sel, alt)
+			return check.sprintf("type %s has no field or method %s, but does have unexported field %s", typ, sel, alt)
 		case inaccessible:
 			return check.sprintf("cannot refer to unexported field or method %s", alt)
 		}

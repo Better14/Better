@@ -384,7 +384,37 @@ func extensionSeqElemMatch(check *Checker, elem, pattern Type) bool {
 	return false
 }
 
+// extensionMethodExists reports whether method is declared as an extension
+// in the current package or any import, without type-checking receivers.
+func (check *Checker) extensionMethodExists(method string) bool {
+	if len(extensionFuncsInPackage(check.pkg, method)) > 0 {
+		return true
+	}
+	for _, imp := range check.imports {
+		if imp.imported != nil && len(extensionFuncsInPackage(imp.imported, method)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *syntax.SelectorExpr, inst *syntax.IndexExpr) (exprKind, bool) {
+	method := sel.Sel.Value
+
+	// Cheap name lookup only; avoids re-evaluating long receiver chains for
+	// ordinary method calls (test/torture.go).
+	if !check.extensionMethodExists(method) {
+		return statement, false
+	}
+
+	// Extension probing evaluates the full receiver via exprOrType, which
+	// re-enters callExpr on nested calls in long chains. When already probing,
+	// the name check above is enough to gate nested work.
+	if !check.inExtensionProbe {
+		check.inExtensionProbe = true
+		defer func() { check.inExtensionProbe = false }()
+	}
+
 	// Do not intercept package-qualified calls or other selector expressions
 	// whose receiver is a bare identifier. Evaluating the identifier alone
 	// would report "use of package X not in selector" before the ordinary
@@ -409,7 +439,6 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 		return statement, false
 	}
 
-	method := sel.Sel.Value
 	if check.hasInstanceMethod(recv.typ(), recv.mode() == variable, method) {
 		return statement, false
 	}

@@ -1609,6 +1609,7 @@ func (check *Checker) exclude(x *operand, modeset uint) {
 			code = UncalledBuiltin
 		case typexpr:
 			if _, ok := x.expr.(*syntax.FuncType); ok {
+				check.errorf(x, NotAnExpr, "%s is not an expression", x)
 				x.invalidate()
 				return
 			}

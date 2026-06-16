@@ -126,7 +126,7 @@ func (check *Checker) checkOverloadDuplicates(name string, cands []*Func, kind s
 		}
 		key := overloadSigKey(name, sig)
 		if prev, ok := seen[key]; ok {
-			check.errorf(fn.pos, DuplicateDecl, "redeclared %s %s", kind, name)
+			check.errorf(fn.pos, DuplicateDecl, "%s redeclared in this block", name)
 			_ = prev
 			continue
 		}
@@ -201,6 +201,20 @@ func (check *Checker) assignOverloadSuffixes() {
 	}
 }
 
+func (check *Checker) hasCallOverloads() bool {
+	for _, cands := range check.overloadFuncs {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	for _, cands := range check.overloadMeths {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	return false
+}
+
 func (check *Checker) recvBaseNameFromExpr(x syntax.Expr) string {
 	var recv operand
 	check.rawExpr(nil, &recv, x, nil, true)
@@ -244,6 +258,9 @@ func methodIndexInNamed(recv Type, fn *Func) int {
 }
 
 func (check *Checker) overloadCandidatesForCall(call *syntax.CallExpr) []*Func {
+	if !check.hasCallOverloads() {
+		return nil
+	}
 	switch fun := call.Fun.(type) {
 	case *syntax.Name:
 		return check.overloadFuncs[fun.Value]
