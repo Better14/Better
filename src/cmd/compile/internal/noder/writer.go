@@ -1997,8 +1997,7 @@ func (w *writer) expr(expr syntax.Expr) {
 		// to another shape-identical type to allow use in field
 		// selection, indexing, etc.
 		if typ := tv.Type; !tv.IsBuiltin() && !isTuple(typ) && !isUntyped(typ) {
-			_, isCall := expr.(*syntax.CallExpr)
-			if _, ok := types2.CoreType(typ).(*types2.Signature); !ok && !isCall {
+			if _, ok := types2.CoreType(typ).(*types2.Signature); !ok {
 				w.Code(exprReshape)
 				w.typ(typ)
 			}

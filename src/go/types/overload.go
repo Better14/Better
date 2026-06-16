@@ -43,6 +43,15 @@ func sameParamSignature(a, b *Func) bool {
 
 func briefType(t Type) string {
 	t = Unalias(t)
+	if n, ok := t.(*Named); ok && n.obj != nil {
+		if n.obj.Exported() {
+			return n.obj.name
+		}
+		if n.obj.pkg != nil {
+			return n.obj.pkg.name + "." + n.obj.name
+		}
+		return n.obj.name
+	}
 	switch u := t.Underlying().(type) {
 	case *Basic:
 		return u.name
