@@ -1190,13 +1190,13 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 			cands := check.overloadMeths[methodKey{recvName: recvBaseNameFromType(x.typ()), name: sel}]
 			if len(cands) == 0 {
 				for k, v := range check.overloadMeths {
-					if k.name == sel && len(v) > 0 {
+					if k.name == sel && len(v) > 1 {
 						cands = v
 						break
 					}
 				}
 			}
-			if len(cands) > 0 {
+			if len(cands) > 1 {
 				obj = cands[0]
 				if m := methodIndexInNamed(x.typ(), obj.(*Func)); m >= 0 {
 					index = []int{m}
