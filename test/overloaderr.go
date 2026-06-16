@@ -18,7 +18,7 @@ func addAmbig(a A) int { return 0 }
 func addAmbig(a B) int { return 0 }
 
 func dup(int)     {}
-func dup(int) {} // ERROR "redeclared function dup"
+func dup(int) {} // ERROR "redeclared function dup|redeclared in this block"
 
 func badNoMatch() {
 	addInt("x") // ERROR "no matching overload"
