@@ -4,7 +4,10 @@
 
 package types
 
-import "go/ast"
+import (
+	"go/ast"
+	. "internal/types/errors"
+)
 
 // A Result represents a result value type T! (value + error).
 type Result struct {
@@ -41,7 +44,78 @@ func (check *Checker) canForceReturn() bool {
 		return false
 	}
 	res := check.sig.Results()
-	return res != nil && res.Len() == 2 && Identical(res.At(1).Type(), universeError)
+	if res == nil {
+		return false
+	}
+	switch res.Len() {
+	case 1:
+		return Identical(res.At(0).Type(), universeError)
+	case 2:
+		return Identical(res.At(1).Type(), universeError)
+	default:
+		return false
+	}
+}
+
+// checkForceReturn verifies the enclosing function can propagate errors for exprTyp,
+// which must be error or a 2-tuple (T, error).
+func (check *Checker) checkForceReturn(at positioner, exprTyp Type) bool {
+	if check.canForceReturnFor(exprTyp) {
+		return true
+	}
+	check.errorf(at, InvalidSyntaxTree, "invalid operation: ! requires enclosing function whose return type needs to be %s", check.forceReturnWant(exprTyp))
+	return false
+}
+
+func (check *Checker) canForceReturnFor(exprTyp Type) bool {
+	if check.sig == nil {
+		return false
+	}
+	res := check.sig.Results()
+	if res == nil || res.Len() == 0 {
+		return false
+	}
+
+	if Identical(exprTyp, universeError) {
+		switch res.Len() {
+		case 1:
+			return Identical(res.At(0).Type(), universeError)
+		case 2:
+			return Identical(res.At(1).Type(), universeError)
+		default:
+			return false
+		}
+	}
+
+	tup, ok := exprTyp.(*Tuple)
+	if !ok || tup.Len() != 2 || !Identical(tup.At(1).Type(), universeError) {
+		return false
+	}
+	switch res.Len() {
+	case 2:
+		return Identical(res.At(1).Type(), universeError)
+	case 1:
+		_, ok := res.At(0).Type().Underlying().(*Result)
+		return ok
+	default:
+		return false
+	}
+}
+
+func (check *Checker) forceReturnWant(exprTyp Type) string {
+	if Identical(exprTyp, universeError) {
+		if check.sig != nil {
+			res := check.sig.Results()
+			if res != nil && res.Len() == 1 && !Identical(res.At(0).Type(), universeError) {
+				return TypeString(NewResult(res.At(0).Type()), nil)
+			}
+		}
+		return "error"
+	}
+	if tup, ok := exprTyp.(*Tuple); ok && tup.Len() >= 1 {
+		return TypeString(NewResult(tup.At(0).Type()), nil)
+	}
+	return "error"
 }
 
 func (check *Checker) resultSelector(x *operand, e *ast.SelectorExpr) bool {

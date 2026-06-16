@@ -1239,7 +1239,7 @@ func ok() int! {
 
 func badStmt() {
 	err := possibleError()
-	err! /* ERROR "invalid operation" */
+	err! /* ERROR "return type needs to be error" */
 }
 
 func badValue() int! {
@@ -1248,14 +1248,19 @@ func badValue() int! {
 	return 0
 }
 `
-	_, err := typecheck(src, nil, nil)
+	var errs []error
+	conf := &Config{
+		Error: func(err error) { errs = append(errs, err) },
+	}
+	_, err := typecheck(src, conf, nil)
 	if err == nil {
 		t.Fatal("expected errors")
 	}
-	if !strings.Contains(err.Error(), "invalid operation") {
-		t.Fatalf("got %v; want invalid operation error", err)
+	got := fmt.Sprint(errs)
+	if !strings.Contains(got, "return type needs to be error") {
+		t.Fatalf("got %v; want return type needs to be error", got)
 	}
-	if !strings.Contains(err.Error(), "used as value") {
-		t.Fatalf("got %v; want used as value error", err)
+	if !strings.Contains(got, "used as value") {
+		t.Fatalf("got %v; want used as value error", got)
 	}
 }

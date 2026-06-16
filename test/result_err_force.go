@@ -46,6 +46,18 @@ func withTupleErrForce() (int, error) {
 	return 1, nil
 }
 
+func withErrorReturn() error {
+	var a error = possibleError()
+	a!
+	return nil
+}
+
+func withErrorReturnFail() error {
+	a := possibleErrorBoom()
+	a!
+	return nil
+}
+
 func main() {
 	v, err := withErrForce()
 	if err != nil || v != 42 {
@@ -65,6 +77,16 @@ func main() {
 	v, err = withTupleErrForce()
 	if err != errBoom || v != 0 {
 		panic(fmt.Sprintf("withTupleErrForce: v=%d err=%v", v, err))
+	}
+
+	err = withErrorReturn()
+	if err != nil {
+		panic(fmt.Sprintf("withErrorReturn: err=%v", err))
+	}
+
+	err = withErrorReturnFail()
+	if err != errBoom {
+		panic(fmt.Sprintf("withErrorReturnFail: err=%v", err))
 	}
 
 	fmt.Println("ok")

@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// err! is only valid in functions that return (T, error) or T!.
+// err! is valid in functions that return error, (T, error), or T!.
 
 package main
 
@@ -13,11 +13,11 @@ import "errors"
 func possibleError() error { return nil }
 
 func noResultFunc() {
-	possibleError()! // ERROR "invalid operation|requires enclosing function"
+	possibleError()! // ERROR "return type needs to be error"
 }
 
 func plainReturn() int {
-	possibleError()! // ERROR "invalid operation|requires enclosing function"
+	possibleError()! // ERROR "return type needs to be int!"
 	return 1
 }
 

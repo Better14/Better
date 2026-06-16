@@ -1188,7 +1188,7 @@ func (o *orderState) expr(n, lhs ir.Node) ir.Node {
 	return n
 }
 
-// forceReturnOnErr emits "if err != nil { return zero, err }" for ! propagation.
+// forceReturnOnErr emits "if err != nil { return ... }" for ! propagation.
 func (o *orderState) forceReturnOnErr(pos src.XPos, err ir.Node) {
 	t1typ := types.ErrorType
 	nilErr := ir.NewNilExpr(pos, t1typ)
@@ -1198,10 +1198,18 @@ func (o *orderState) forceReturnOnErr(pos src.XPos, err ir.Node) {
 	cmp.SetTypecheck(1)
 	fn := ir.CurFunc
 	r := fn.Type().Results()
-	if len(r) != 2 {
-		base.FatalfAt(pos, "invalid use of ! — enclosing function must have results (T, error)")
+	var retvals []ir.Node
+	switch len(r) {
+	case 1:
+		if r[0].Type != types.ErrorType {
+			base.FatalfAt(pos, "invalid use of ! — enclosing function must return error or (T, error)")
+		}
+		retvals = []ir.Node{err}
+	case 2:
+		retvals = []ir.Node{ir.NewZero(pos, r[0].Type), err}
+	default:
+		base.FatalfAt(pos, "invalid use of ! — enclosing function must return error or (T, error)")
 	}
-	retvals := []ir.Node{ir.NewZero(pos, r[0].Type), err}
 	for i := range retvals {
 		retvals[i].SetTypecheck(1)
 	}

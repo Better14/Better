@@ -1491,12 +1491,6 @@ func (check *Checker) tryExpr(x *operand, e *syntax.TryExpr) {
 
 // forceExpr type-checks e.X! where e.X is a (value, error) pair or a plain error.
 func (check *Checker) forceExpr(x *operand, e *syntax.ForceExpr) {
-	if !check.canForceReturn() {
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: ! requires enclosing function with (T, error) or T! result")
-		x.invalidate()
-		return
-	}
-
 	var inner operand
 	check.rawExpr(nil, &inner, e.X, nil, false)
 	check.exclude(&inner, 1<<novalue|1<<builtin|1<<typexpr)
@@ -1506,6 +1500,10 @@ func (check *Checker) forceExpr(x *operand, e *syntax.ForceExpr) {
 	}
 
 	if Identical(inner.typ(), universeError) {
+		if !check.checkForceReturn(e, inner.typ()) {
+			x.invalidate()
+			return
+		}
 		x.mode_ = novalue
 		x.typ_ = universeError
 		x.expr = e
@@ -1521,6 +1519,10 @@ func (check *Checker) forceExpr(x *operand, e *syntax.ForceExpr) {
 	}
 	if !Identical(tup.At(1).Type(), universeError) {
 		check.errorf(e, InvalidSyntaxTree, "invalid operation: second return value must be error, got %s", tup.At(1).Type())
+		x.invalidate()
+		return
+	}
+	if !check.checkForceReturn(e, inner.typ()) {
 		x.invalidate()
 		return
 	}
