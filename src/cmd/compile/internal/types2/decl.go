@@ -692,6 +692,10 @@ func (check *Checker) funcDecl(obj *Func, decl *declInfo) {
 	check.funcType(sig, fdecl.Recv, fdecl.TParamList, fdecl.Type)
 
 	if sig.recv != nil && check.isExtensionRecv(sig.recv.typ) {
+		if check.hasInstanceMethod(sig.recv.typ, true, obj.name) {
+			rtyp, _ := deref(sig.recv.typ)
+			check.errorf(fdecl.Name, DuplicateMethod, "redefinition of method %s on non-local type %s", obj.name, rtyp)
+		}
 		check.finishExtensionFunc(obj, sig)
 		if alt := check.pkg.scope.Lookup(obj.name); alt == nil {
 			check.declare(check.pkg.scope, fdecl.Name, obj, nopos)
