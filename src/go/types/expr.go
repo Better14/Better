@@ -1207,10 +1207,9 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 		if !x.isValid() {
 			goto Error
 		}
-		if x.mode() == novalue {
-			x.expr = e
-			return statement
-		}
+		// expr! and err! may appear as statements (error propagation only).
+		x.expr = e
+		return statement
 
 	case *ast.NullCondExpr:
 		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone ?.; use ?.field or ?.[index]")

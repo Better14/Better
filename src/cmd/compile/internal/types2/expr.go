@@ -1254,10 +1254,9 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		if !x.isValid() {
 			goto Error
 		}
-		if x.mode() == novalue {
-			x.expr = e
-			return statement
-		}
+		// expr! and err! may appear as statements (error propagation only).
+		x.expr = e
+		return statement
 
 	case *syntax.CallExpr:
 		return check.callExpr(x, e, hint)

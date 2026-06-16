@@ -52,9 +52,20 @@ Behavior for `expr!`:
 2. If `err != nil`, return early from the current function with:
   - zero value of the function's value result
   - the error
-3. Otherwise, use the unwrapped `T`
+3. Otherwise, use the unwrapped `T` (or discard it when `expr!` is used as a statement)
 
 Behavior for `expr!.field` is the same early-return on error, then access `.field` on the success value.
+
+When you only need error propagation and do not use the success value, `expr!` may appear as a **statement** on its own. The unwrapped `T` is discarded, the same way a multi-value call like `conn.Exec(...)` may appear as a statement in standard Go:
+
+```go
+func setup(db *sql.DB) int! {
+	conn.Exec("CREATE DATABASE mydb")!  // ok: check err, discard sql.Result
+	return 0
+}
+```
+
+You do **not** need `_ =` for this pattern. `_ = expr!` is still valid when you want to be explicit.
 
 ```go
 func readName() string! {
@@ -212,5 +223,6 @@ See [Null-coalescing operator (`??`)](nullable_types.md#null-coalescing-operator
 
 - `T!` is the canonical shorthand for `(T, error)` in function signatures and a value type elsewhere.
 - Use `expr!`, `expr!.field`, or `err!` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
+- `expr!` and `err!` may be used as standalone statements when only error propagation is needed; the success value of `expr!` is discarded without requiring `_ =`.
 - You can still do `if err != nil { panic(err) }` or `log.Fatal` as today.
 
