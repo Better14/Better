@@ -12,7 +12,6 @@
 package main
 
 import (
-	"errors"
 	"unsafe"
 )
 
@@ -304,7 +303,11 @@ func F0() *S { return &S{1, 2, 3} }
 
 var LitSNoArgs = F0()
 
-var myError = errors.New("mine")
+type errorString struct{ s string }
+
+func newMine(s string) *errorString { return &errorString{s} }
+
+var myError = newMine("mine")
 
 func gopherize(s string) string { return "gopher gopher gopher " + s }
 
