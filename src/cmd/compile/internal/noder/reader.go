@@ -2515,8 +2515,7 @@ func (r *reader) expr() (res ir.Node) {
 		var val, err ir.Node
 		if fromErr {
 			err = r.expr()
-			val = ir.NewZero(pos, typ.Field(0).Type)
-			val.SetTypecheck(1)
+			val = typecheck.Expr(ir.NewZero(pos, typ.Field(0).Type))
 		} else {
 			val = r.expr()
 			err = ir.NewNilExpr(pos, types.ErrorType)

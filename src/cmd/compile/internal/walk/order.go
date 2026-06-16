@@ -1206,12 +1206,15 @@ func (o *orderState) forceReturnOnErr(pos src.XPos, err ir.Node) {
 		}
 		retvals = []ir.Node{err}
 	case 2:
-		retvals = []ir.Node{ir.NewZero(pos, r[0].Type), err}
+		zero := typecheck.Expr(ir.NewZero(pos, r[0].Type))
+		retvals = []ir.Node{zero, err}
 	default:
 		base.FatalfAt(pos, "invalid use of ! — enclosing function must return error or (T, error)")
 	}
 	for i := range retvals {
-		retvals[i].SetTypecheck(1)
+		if retvals[i].Typecheck() != 1 {
+			retvals[i] = typecheck.Expr(retvals[i])
+		}
 	}
 	rs := ir.NewReturnStmt(pos, retvals)
 	rs.SetTypecheck(1)
@@ -1258,8 +1261,7 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		if len(r) != 2 {
 			base.FatalfAt(n.Pos(), "invalid use of ! — enclosing function must have results (T, error)")
 		}
-		zero := ir.NewZero(pos, r[0].Type)
-		zero.SetTypecheck(1)
+		zero := typecheck.Expr(ir.NewZero(pos, r[0].Type))
 		retvals := []ir.Node{zero, t1}
 		rs := ir.NewReturnStmt(pos, retvals)
 		rs.SetTypecheck(1)
