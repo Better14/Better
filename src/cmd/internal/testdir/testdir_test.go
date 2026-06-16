@@ -34,6 +34,10 @@ import (
 	"unicode"
 )
 
+// windowsExecMu serializes launching test binaries on Windows to avoid
+// "Access is denied" from antivirus locking freshly linked executables.
+var windowsExecMu sync.Mutex
+
 var (
 	allCodegen     = flag.Bool("all_codegen", defaultAllCodeGen(), "run all goos/goarch for codegen")
 	runSkips       = flag.Bool("run_skips", false, "run skipped tests (ignore skip and build tags)")
@@ -639,7 +643,13 @@ func (t test) run() error {
 			tim = *cmdTimeout
 		}
 		if tim != 0 {
-			err = cmd.Start()
+			if runtime.GOOS == "windows" {
+				windowsExecMu.Lock()
+				err = cmd.Start()
+				windowsExecMu.Unlock()
+			} else {
+				err = cmd.Start()
+			}
 			// This command-timeout code adapted from cmd/go/test.go
 			// Note: the Go command uses a more sophisticated timeout
 			// strategy, first sending SIGQUIT (if appropriate for the
@@ -667,7 +677,13 @@ func (t test) run() error {
 				tick.Stop()
 			}
 		} else {
-			err = cmd.Run()
+			if runtime.GOOS == "windows" {
+				windowsExecMu.Lock()
+				err = cmd.Run()
+				windowsExecMu.Unlock()
+			} else {
+				err = cmd.Run()
+			}
 		}
 		if err != nil && err != errTimeout {
 			err = fmt.Errorf("%s\n%s", err, buf.Bytes())
