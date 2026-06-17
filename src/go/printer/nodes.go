@@ -2167,6 +2167,40 @@ func (p *printer) enumDecl(d *ast.EnumDecl) {
 	p.print(token.RBRACE)
 }
 
+func (p *printer) structDecl(d *ast.StructDecl) {
+	if d.Doc != nil {
+		p.setPos(d.Doc.Pos())
+		p.print(d.Doc)
+	}
+	p.setPos(d.Struct)
+	p.print(token.STRUCT, blank)
+	p.print(d.Name)
+	if d.TypeParams != nil {
+		p.parameters(d.TypeParams, typeTParam)
+	}
+	p.print(blank)
+	p.fieldList(d.Fields, true, false)
+	p.setPos(d.Rbrace)
+	p.print(token.RBRACE)
+}
+
+func (p *printer) interfaceDecl(d *ast.InterfaceDecl) {
+	if d.Doc != nil {
+		p.setPos(d.Doc.Pos())
+		p.print(d.Doc)
+	}
+	p.setPos(d.Interface)
+	p.print(token.INTERFACE, blank)
+	p.print(d.Name)
+	if d.TypeParams != nil {
+		p.parameters(d.TypeParams, typeTParam)
+	}
+	p.print(blank)
+	p.fieldList(d.Methods, false, false)
+	p.setPos(d.Rbrace)
+	p.print(token.RBRACE)
+}
+
 func (p *printer) funcDecl(d *ast.FuncDecl) {
 	p.setComment(d.Doc)
 	p.setPos(d.Pos())
@@ -2195,6 +2229,10 @@ func (p *printer) decl(decl ast.Decl) {
 		p.funcDecl(d)
 	case *ast.EnumDecl:
 		p.enumDecl(d)
+	case *ast.StructDecl:
+		p.structDecl(d)
+	case *ast.InterfaceDecl:
+		p.interfaceDecl(d)
 	default:
 		panic("unreachable")
 	}
@@ -2212,6 +2250,10 @@ func declToken(decl ast.Decl) (tok token.Token) {
 		tok = token.FUNC
 	case *ast.EnumDecl:
 		tok = token.ENUM
+	case *ast.StructDecl:
+		tok = token.STRUCT
+	case *ast.InterfaceDecl:
+		tok = token.INTERFACE
 	}
 	return
 }

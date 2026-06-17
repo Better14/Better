@@ -53,6 +53,7 @@ These are implemented in **`go/parser`**, **`go/ast`**, and **`go/types`**. gopl
 | Default function arguments | `ast.Field.Default` | [default_arguments.md](default_arguments.md) |
 | Function and method overloading | `types.Info.FuncOverloads`, `MethodOverloads`, `CallOverloads` | [overloading.md](overloading.md) |
 | Enums `enum E { … }` | `ast.EnumDecl`, `types.Enum` | [enums.md](enums.md) |
+| Struct/interface shorthand | `ast.StructDecl`, `ast.InterfaceDecl` | [syntax.md](syntax.md) |
 | Nullable types `T?`, `?.`, `??` | `ast.NullableTypeExpr`, `ast.NullCondExpr`, `token.NULLCOALESCE` | [nullable_types.md](nullable_types.md) |
 | Extension methods | `types.Func.IsExtension`, extension call lowering | [extension_methods.md](extension_methods.md) |
 | Operator overloading | indexed overload resolution in `go/types` | [operator_overloading.md](operator_overloading.md) |
@@ -77,6 +78,7 @@ These are implemented in **`go/parser`**, **`go/ast`**, and **`go/types`**. gopl
 | Default args | yes | yes | yes |
 | Overloading | yes | yes | yes (+ signature help) |
 | `enum E { … }` | yes | yes | yes |
+| `struct T { … }` / `interface I { … }` | yes | yes | yes |
 | `T?`, `?.`, `??` | yes | yes | yes |
 | Extension methods | yes | yes | yes |
 | Operator overloading | yes | yes | yes |

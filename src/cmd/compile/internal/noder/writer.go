@@ -3227,6 +3227,36 @@ func (c *declCollector) Visit(n syntax.Node) syntax.Visitor {
 		pw.typDecls[obj] = d
 		return c.withTParams(obj)
 
+	case *syntax.StructDecl:
+		obj := pw.info.Defs[n.Name].(*types2.TypeName)
+		tdecl := n.AsTypeDecl()
+		d := typeDeclGen{TypeDecl: tdecl, implicits: c.implicits}
+
+		pw.checkPragmas(n.Pragma, 0, false)
+
+		if c.withinFunc {
+			*c.typegen++
+			d.gen = *c.typegen
+		}
+
+		pw.typDecls[obj] = d
+		return c.withTParams(obj)
+
+	case *syntax.InterfaceDecl:
+		obj := pw.info.Defs[n.Name].(*types2.TypeName)
+		tdecl := n.AsTypeDecl()
+		d := typeDeclGen{TypeDecl: tdecl, implicits: c.implicits}
+
+		pw.checkPragmas(n.Pragma, 0, false)
+
+		if c.withinFunc {
+			*c.typegen++
+			d.gen = *c.typegen
+		}
+
+		pw.typDecls[obj] = d
+		return c.withTParams(obj)
+
 	case *syntax.VarDecl:
 		pw.checkPragmas(n.Pragma, 0, true)
 
@@ -3401,6 +3431,30 @@ func (w *writer) pkgDecl(decl syntax.Decl) {
 			break
 		}
 		if decl.Name.Value == "_" {
+			break
+		}
+		w.Code(declOther)
+		w.pkgObjs(decl.Name)
+
+	case *syntax.StructDecl:
+		if len(decl.TParamList) != 0 {
+			break
+		}
+		if decl.Name.Value == "_" {
+			break
+		}
+		w.Code(declOther)
+		w.pkgObjs(decl.Name)
+
+	case *syntax.InterfaceDecl:
+		if len(decl.TParamList) != 0 {
+			break
+		}
+		if decl.Name.Value == "_" {
+			break
+		}
+		name := w.p.info.Defs[decl.Name].(*types2.TypeName)
+		if iface, ok := name.Type().Underlying().(*types2.Interface); ok && !iface.IsMethodSet() {
 			break
 		}
 		w.Code(declOther)

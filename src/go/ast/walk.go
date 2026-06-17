@@ -402,6 +402,30 @@ func Walk(v Visitor, node Node) {
 			}
 		}
 
+	case *StructDecl:
+		if n.Doc != nil {
+			Walk(v, n.Doc)
+		}
+		Walk(v, n.Name)
+		if n.TypeParams != nil {
+			Walk(v, n.TypeParams)
+		}
+		if n.Fields != nil {
+			Walk(v, n.Fields)
+		}
+
+	case *InterfaceDecl:
+		if n.Doc != nil {
+			Walk(v, n.Doc)
+		}
+		Walk(v, n.Name)
+		if n.TypeParams != nil {
+			Walk(v, n.TypeParams)
+		}
+		if n.Methods != nil {
+			Walk(v, n.Methods)
+		}
+
 	// Files and packages
 	case *File:
 		if n.Doc != nil {

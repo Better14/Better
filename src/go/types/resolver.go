@@ -449,6 +449,12 @@ func (check *Checker) collectObjects() {
 			case enumDecl:
 				obj := NewTypeName(d.decl.Name.Pos(), pkg, d.decl.Name.Name, nil)
 				check.declarePkgObj(d.decl.Name, obj, &declInfo{file: fileScope, version: check.version, edecl: d.decl})
+			case structDecl:
+				obj := NewTypeName(d.decl.Name.Pos(), pkg, d.decl.Name.Name, nil)
+				check.declarePkgObj(d.decl.Name, obj, &declInfo{file: fileScope, version: check.version, tdecl: d.decl.AsTypeSpec()})
+			case interfaceDecl:
+				obj := NewTypeName(d.decl.Name.Pos(), pkg, d.decl.Name.Name, nil)
+				check.declarePkgObj(d.decl.Name, obj, &declInfo{file: fileScope, version: check.version, tdecl: d.decl.AsTypeSpec()})
 			case funcDecl:
 				name := d.decl.Name.Name
 				obj := NewFunc(d.decl.Name.Pos(), pkg, name, nil) // signature set later

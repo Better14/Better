@@ -445,6 +445,14 @@ func (p *parser) fileOrNil() *File {
 			p.next()
 			f.DeclList = p.appendGroup(f.DeclList, p.enumDecl)
 
+		case _Struct:
+			p.next()
+			f.DeclList = p.appendGroup(f.DeclList, p.structTypeDecl)
+
+		case _Interface:
+			p.next()
+			f.DeclList = p.appendGroup(f.DeclList, p.interfaceTypeDecl)
+
 		case _Var:
 			p.next()
 			f.DeclList = p.appendGroup(f.DeclList, p.varDecl)
@@ -462,7 +470,7 @@ func (p *parser) fileOrNil() *File {
 			} else {
 				p.syntaxError("non-declaration statement outside function body")
 			}
-			p.advance(_Import, _Const, _Type, _Enum, _Var, _Func)
+			p.advance(_Import, _Const, _Type, _Enum, _Struct, _Interface, _Var, _Func)
 			continue
 		}
 
@@ -472,7 +480,7 @@ func (p *parser) fileOrNil() *File {
 
 		if p.tok != _EOF && !p.got(_Semi) {
 			p.syntaxError("after top level declaration")
-			p.advance(_Import, _Const, _Type, _Enum, _Var, _Func)
+			p.advance(_Import, _Const, _Type, _Enum, _Struct, _Interface, _Var, _Func)
 		}
 	}
 	// p.tok == _EOF
@@ -684,6 +692,93 @@ func (p *parser) typeDecl(group *Group) Decl {
 	return d
 }
 
+func (p *parser) parseDeclTypeParams() []*Field {
+	if p.tok != _Lbrack {
+		return nil
+	}
+	pos := p.pos()
+	p.next()
+	switch p.tok {
+	case _Name:
+		var x Expr = p.name()
+		if p.tok != _Lbrack {
+			p.xnest++
+			x = p.binaryExpr(p.pexpr(x, false), 0)
+			p.xnest--
+		}
+		if pname, ptype := extractName(x, p.tok == _Comma); pname != nil {
+			return p.paramList(pname, ptype, _Rbrack, true, false)
+		}
+		p.syntaxError("invalid type parameter list")
+		p.advance(_Semi, _Rparen)
+	case _Rbrack:
+		p.syntaxError("invalid type parameter list")
+		p.advance(_Semi, _Rparen)
+	default:
+		p.syntaxError("invalid type parameter list")
+		p.advance(_Semi, _Rparen)
+	}
+	_ = pos
+	return nil
+}
+
+// StructSpec = identifier [ TypeParams ] "{" { FieldDecl ";" } "}" .
+func (p *parser) structTypeDecl(group *Group) Decl {
+	if trace {
+		defer p.trace("structTypeDecl")()
+	}
+
+	d := new(StructDecl)
+	d.pos = p.pos()
+	d.Group = group
+	d.Pragma = p.takePragma()
+
+	d.Name = p.name()
+	d.TParamList = p.parseDeclTypeParams()
+
+	styp := new(StructType)
+	styp.pos = p.pos()
+	p.want(_Lbrace)
+	p.list("struct declaration", _Semi, _Rbrace, func() bool {
+		p.fieldDecl(styp)
+		return false
+	})
+	d.FieldList = styp.FieldList
+	d.TagList = styp.TagList
+
+	return d
+}
+
+// InterfaceSpec = identifier [ TypeParams ] "{" { ( MethodDecl | EmbeddedElem ) ";" } "}" .
+func (p *parser) interfaceTypeDecl(group *Group) Decl {
+	if trace {
+		defer p.trace("interfaceTypeDecl")()
+	}
+
+	d := new(InterfaceDecl)
+	d.pos = p.pos()
+	d.Group = group
+	d.Pragma = p.takePragma()
+
+	d.Name = p.name()
+	d.TParamList = p.parseDeclTypeParams()
+
+	p.want(_Lbrace)
+	p.list("interface declaration", _Semi, _Rbrace, func() bool {
+		var f *Field
+		if p.tok == _Name {
+			f = p.methodDecl()
+		}
+		if f == nil || f.Name == nil {
+			f = p.embeddedElem(f)
+		}
+		d.MethodList = append(d.MethodList, f)
+		return false
+	})
+
+	return d
+}
+
 // EnumSpec = identifier [ TypeParams ] "{" { EnumVariant ";" } "}" .
 func (p *parser) enumDecl(group *Group) Decl {
 	if trace {
@@ -696,31 +791,7 @@ func (p *parser) enumDecl(group *Group) Decl {
 	d.Pragma = p.takePragma()
 
 	d.Name = p.name()
-	if p.tok == _Lbrack {
-		pos := p.pos()
-		p.next()
-		switch p.tok {
-		case _Name:
-			var x Expr = p.name()
-			if p.tok != _Lbrack {
-				p.xnest++
-				x = p.binaryExpr(p.pexpr(x, false), 0)
-				p.xnest--
-			}
-			if pname, ptype := extractName(x, p.tok == _Comma); pname != nil {
-				d.TParamList = p.paramList(pname, ptype, _Rbrack, true, false)
-			} else {
-				p.syntaxError("invalid type parameter list in enum declaration")
-				p.advance(_Semi, _Rparen)
-				return d
-			}
-		default:
-			p.syntaxError("invalid type parameter list in enum declaration")
-			p.advance(_Semi, _Rparen)
-			return d
-		}
-		_ = pos
-	}
+	d.TParamList = p.parseDeclTypeParams()
 
 	p.want(_Lbrace)
 	p.list("enum declaration", _Semi, _Rbrace, func() bool {

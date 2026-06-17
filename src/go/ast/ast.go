@@ -1132,6 +1132,26 @@ type (
 		Rbrace     token.Pos // position of "}"
 	}
 
+	// A StructDecl node represents a struct type declaration using shorthand syntax.
+	StructDecl struct {
+		Doc        *CommentGroup // associated documentation; or nil
+		Struct     token.Pos     // position of "struct"
+		Name       *Ident
+		TypeParams *FieldList // type parameters; or nil
+		Fields     *FieldList // struct fields
+		Rbrace     token.Pos  // position of "}"
+	}
+
+	// An InterfaceDecl node represents an interface type declaration using shorthand syntax.
+	InterfaceDecl struct {
+		Doc        *CommentGroup // associated documentation; or nil
+		Interface  token.Pos     // position of "interface"
+		Name       *Ident
+		TypeParams *FieldList // type parameters; or nil
+		Methods    *FieldList // interface methods
+		Rbrace     token.Pos  // position of "}"
+	}
+
 	// An EnumVariantSpec describes one variant in an enum declaration.
 	EnumVariantSpec struct {
 		Name         *Ident
@@ -1152,6 +1172,18 @@ func (d *EnumDecl) Pos() token.Pos {
 	}
 	return d.Name.Pos()
 }
+func (d *StructDecl) Pos() token.Pos {
+	if d.Struct.IsValid() {
+		return d.Struct
+	}
+	return d.Name.Pos()
+}
+func (d *InterfaceDecl) Pos() token.Pos {
+	if d.Interface.IsValid() {
+		return d.Interface
+	}
+	return d.Name.Pos()
+}
 
 func (d *BadDecl) End() token.Pos { return d.To }
 func (d *GenDecl) End() token.Pos {
@@ -1167,6 +1199,18 @@ func (d *FuncDecl) End() token.Pos {
 	return d.Type.End()
 }
 func (d *EnumDecl) End() token.Pos { return d.Rbrace + 1 }
+func (d *StructDecl) End() token.Pos {
+	if d.Rbrace.IsValid() {
+		return d.Rbrace + 1
+	}
+	return d.Name.End()
+}
+func (d *InterfaceDecl) End() token.Pos {
+	if d.Rbrace.IsValid() {
+		return d.Rbrace + 1
+	}
+	return d.Name.End()
+}
 
 // declNode() ensures that only declaration nodes can be
 // assigned to a Decl.
@@ -1174,6 +1218,8 @@ func (*BadDecl) declNode()  {}
 func (*GenDecl) declNode()  {}
 func (*FuncDecl) declNode() {}
 func (*EnumDecl) declNode() {}
+func (*StructDecl) declNode() {}
+func (*InterfaceDecl) declNode() {}
 
 // ----------------------------------------------------------------------------
 // Files and packages

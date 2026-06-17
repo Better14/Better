@@ -454,11 +454,19 @@ func (check *Checker) collectObjects() {
 				obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
 				check.declarePkgObj(s.Name, obj, &declInfo{file: fileScope, version: check.version, tdecl: s})
 
-			case *syntax.EnumDecl:
-				obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
-				check.declarePkgObj(s.Name, obj, &declInfo{file: fileScope, version: check.version, edecl: s})
+		case *syntax.EnumDecl:
+			obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
+			check.declarePkgObj(s.Name, obj, &declInfo{file: fileScope, version: check.version, edecl: s})
 
-			case *syntax.FuncDecl:
+		case *syntax.StructDecl:
+			obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
+			check.declarePkgObj(s.Name, obj, &declInfo{file: fileScope, version: check.version, tdecl: s.AsTypeDecl()})
+
+		case *syntax.InterfaceDecl:
+			obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
+			check.declarePkgObj(s.Name, obj, &declInfo{file: fileScope, version: check.version, tdecl: s.AsTypeDecl()})
+
+		case *syntax.FuncDecl:
 				name := s.Name.Value
 				obj := NewFunc(s.Name.Pos(), pkg, name, nil) // signature set later
 				var tparam0 *syntax.Field

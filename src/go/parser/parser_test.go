@@ -1045,6 +1045,35 @@ enum Color {
 	checkEnumFields(t, f.Decls[1], []string{"r", "g", "b"})
 }
 
+func TestParseShorthandTypeDecls(t *testing.T) {
+	const src = `package p
+
+struct Person {
+	Name string
+}
+
+interface Stringer {
+	String() string
+}
+`
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+	if len(f.Decls) != 2 {
+		t.Fatalf("got %d decls, want 2", len(f.Decls))
+	}
+	sd, ok := f.Decls[0].(*ast.StructDecl)
+	if !ok || sd.Name.Name != "Person" || sd.Fields == nil || len(sd.Fields.List) != 1 {
+		t.Fatalf("struct decl: got %#v", f.Decls[0])
+	}
+	id, ok := f.Decls[1].(*ast.InterfaceDecl)
+	if !ok || id.Name.Name != "Stringer" || id.Methods == nil || len(id.Methods.List) != 1 {
+		t.Fatalf("interface decl: got %#v", f.Decls[1])
+	}
+}
+
 func TestParseEnumMultilineStructVariant(t *testing.T) {
 	const src = `package p
 

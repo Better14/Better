@@ -96,6 +96,27 @@ type (
 		decl
 	}
 
+	// struct Name [ TypeParams ] { FieldList }
+	StructDecl struct {
+		Group      *Group // nil means not part of a group
+		Pragma     Pragma
+		Name       *Name
+		TParamList []*Field // nil means no type parameters
+		FieldList  []*Field
+		TagList    []*BasicLit // i >= len(TagList) || TagList[i] == nil means no tag for field i
+		decl
+	}
+
+	// interface Name [ TypeParams ] { MethodList }
+	InterfaceDecl struct {
+		Group      *Group // nil means not part of a group
+		Pragma     Pragma
+		Name       *Name
+		TParamList []*Field // nil means no type parameters
+		MethodList []*Field
+		decl
+	}
+
 	// Name [ "=" Tag ] | Name ( Types ) | Name { Fields }
 	EnumVariant struct {
 		Name   *Name
