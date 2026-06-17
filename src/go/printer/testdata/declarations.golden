@@ -409,7 +409,7 @@ func _() {
 // use the formatted output rather than the input to decide when to align
 // (was issue 4505)
 const (
-	short		= 2 * (1 + 2)
+	short		= 2*(1 + 2)
 	aMuchLongerName	= 3
 )
 
@@ -439,7 +439,7 @@ func _() {
 // alignment of "=" in consecutive lines (extended example from issue 1414)
 const (
 	umax	uint	= ^uint(0)		// maximum value for a uint
-	bpu		= 1 << (5 + umax>>63)	// bits per uint
+	bpu		= 1<<(5 + umax>>63)	// bits per uint
 	foo
 	bar	= -1
 )

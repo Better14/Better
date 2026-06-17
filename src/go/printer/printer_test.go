@@ -862,3 +862,25 @@ func TestEmptyDecl(t *testing.T) { // issue 63566
 		}
 	}
 }
+
+func TestLambdaFormat(t *testing.T) {
+	const src = `package p
+
+var f = (a, b) => a + b
+var g = (x) => x
+var h = x => x
+`
+	got, err := format([]byte(src), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `package p
+
+var f = (a, b) => a + b
+var g = x => x
+var h = x => x
+`
+	if string(got) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
+}

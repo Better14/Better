@@ -36,6 +36,7 @@ type scanner struct {
 	line, col uint
 	blank     bool // line is blank up to col
 	tok       token
+	prevTok   token
 	lit       string   // valid if tok is _Name, _Literal, or _Semi ("semicolon", "newline", or "EOF"); may be malformed if bad is true
 	bad       bool     // valid if tok is _Literal, true if a syntax error occurred, lit may be malformed
 	kind      LitKind  // valid if tok is _Literal
@@ -68,6 +69,79 @@ func (s *scanner) setLit(kind LitKind, ok bool) {
 	s.kind = kind
 }
 
+func (s *scanner) saveState() scanner {
+	return *s
+}
+
+func (s *scanner) restoreState(st scanner) {
+	*s = st
+}
+
+func (s *scanner) skipLeadingDotPrefix() {
+	for {
+		for s.ch == ' ' || s.ch == '\t' || s.ch == '\r' || s.ch == '\n' {
+			s.nextch()
+		}
+		if s.ch != '/' {
+			return
+		}
+		s.nextch()
+		if s.ch == '/' {
+			s.nextch()
+			for s.ch >= 0 && s.ch != '\n' {
+				s.nextch()
+			}
+			continue
+		}
+		if s.ch == '*' {
+			s.nextch()
+			for s.ch >= 0 {
+				if s.ch == '*' {
+					s.nextch()
+					if s.ch == '/' {
+						s.nextch()
+						break
+					}
+				} else {
+					s.nextch()
+				}
+			}
+			continue
+		}
+		return
+	}
+}
+
+func (s *scanner) mayContinueLeadingDot() bool {
+	switch s.prevTok {
+	case _Name, _Rparen, _Rbrack:
+		return true
+	}
+	return false
+}
+
+// atLeadingDotSelector reports whether the next tokens begin a leading '.' selector
+// continuation, such as ".Method()" on a new line. If so, the scanner is advanced
+// to the '.'; otherwise state is restored.
+func (s *scanner) atLeadingDotSelector() bool {
+	st := s.saveState()
+	s.skipLeadingDotPrefix()
+	ok := false
+	if s.ch == '.' {
+		s.nextch()
+		if isLetter(s.ch) || s.ch == '_' || s.ch == '(' {
+			ok = true
+		}
+	}
+	if ok {
+		s.restoreState(st)
+		s.skipLeadingDotPrefix()
+		return true
+	}
+	s.restoreState(st)
+	return false
+}
+
 // next advances the scanner by reading the next token.
 //
 // If a read, source encoding, or lexical error occurs, next calls
@@ -86,6 +160,7 @@ func (s *scanner) setLit(kind LitKind, ok bool) {
 // flag, only comments containing a //line, /*line, or //go: directive
 // are reported, in the same way as regular comments.
 func (s *scanner) next() {
+	s.prevTok = s.tok
 	nlsemi := s.nlsemi
 	s.nlsemi = false
 
@@ -118,6 +193,9 @@ redo:
 
 	case '\n':
 		s.nextch()
+		if nlsemi && s.mayContinueLeadingDot() && s.atLeadingDotSelector() {
+			goto redo
+		}
 		s.lit = "newline"
 		s.tok = _Semi
 
@@ -240,6 +318,9 @@ redo:
 			if line, _ := s.pos(); line > s.line && nlsemi {
 				// A multi-line comment acts like a newline;
 				// it translates to a ';' if nlsemi is set.
+				if s.mayContinueLeadingDot() && s.atLeadingDotSelector() {
+					goto redo
+				}
 				s.lit = "newline"
 				s.tok = _Semi
 				break
