@@ -954,7 +954,7 @@ enum reportSection {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := "package p\n\nenum reportSection {\n\tTopPosts\n\n\tSubredditBreakdown\n\n\tCommentDepth\n}\n"
+		want := "package p\n\nenum reportSection {\n\tTopPosts\n\tSubredditBreakdown\n\tCommentDepth\n}\n"
 		if string(got) != want {
 			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 		}
@@ -973,7 +973,7 @@ enum Color {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := "package p\n\nenum Color {\n\tRed { r, g, b int }\n\tGreen\n\n\tBlue(int)\n}\n"
+		want := "package p\n\nenum Color {\n\tRed { r, g, b int }\n\tGreen\n\tBlue(int)\n}\n"
 		if string(got) != want {
 			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 		}
@@ -997,6 +997,36 @@ enum Message {
 			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 		}
 	})
+}
+
+func TestIfSwitchExprFormat(t *testing.T) {
+	const src = `package p
+
+func switchExpr(v Color) string {
+	return switch v{case Red:"red"case Green:"green"default:"other"}
+}
+
+func ifExpr(ok bool) int {
+	return if ok{1}else{0}
+}
+`
+	got, err := format([]byte(src), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `package p
+
+func switchExpr(v Color) string {
+	return switch v { case Red: "red" case Green: "green" default: "other" }
+}
+
+func ifExpr(ok bool) int {
+	return if ok { 1 } else { 0 }
+}
+`
+	if string(got) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
 }
 
 func TestLambdaFormat(t *testing.T) {
