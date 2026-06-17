@@ -209,7 +209,24 @@ func methodIndexInNamed(recv Type, fn *Func) int {
 	return -1
 }
 
+func (check *Checker) hasCallOverloads() bool {
+	for _, cands := range check.overloadFuncs {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	for _, cands := range check.overloadMeths {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	return false
+}
+
 func (check *Checker) overloadCandidatesForCall(call *ast.CallExpr) []*Func {
+	if !check.hasCallOverloads() {
+		return nil
+	}
 	switch fun := call.Fun.(type) {
 	case *ast.Ident:
 		return check.overloadFuncs[fun.Name]
