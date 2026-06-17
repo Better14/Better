@@ -38,6 +38,26 @@ func ResultStruct(pkg *Package, res *Result) *Struct {
 	}, nil)
 }
 
+// forceUnwrapTypes reports the value and error types that expr! would propagate,
+// for plain error, *Result, or an n-tuple with error as the last component.
+func forceUnwrapTypes(exprTyp Type) (valType, errType Type, ok bool) {
+	if Identical(exprTyp, universeError) {
+		return nil, universeError, true
+	}
+	if res, ok := AsResult(exprTyp); ok {
+		return res.elem, universeError, true
+	}
+	tup, ok := exprTyp.(*Tuple)
+	if !ok || tup.Len() < 2 {
+		return nil, nil, false
+	}
+	last := tup.At(tup.Len() - 1).Type()
+	if !Identical(last, universeError) {
+		return nil, nil, false
+	}
+	return tup.At(0).Type(), universeError, true
+}
+
 // canForceReturn reports whether ! may early-return an error from the current function.
 func (check *Checker) canForceReturn() bool {
 	if check.sig == nil {
@@ -58,7 +78,7 @@ func (check *Checker) canForceReturn() bool {
 }
 
 // checkForceReturn verifies the enclosing function can propagate errors for exprTyp,
-// which must be error or a 2-tuple (T, error).
+// which must be error, *Result, or an n-tuple ending in error.
 func (check *Checker) checkForceReturn(at poser, exprTyp Type) bool {
 	if check.canForceReturnFor(exprTyp) {
 		return true
@@ -76,6 +96,11 @@ func (check *Checker) canForceReturnFor(exprTyp Type) bool {
 		return false
 	}
 
+	valType, errType, ok := forceUnwrapTypes(exprTyp)
+	if !ok || !Identical(errType, universeError) {
+		return false
+	}
+
 	if Identical(exprTyp, universeError) {
 		switch res.Len() {
 		case 1:
@@ -87,16 +112,18 @@ func (check *Checker) canForceReturnFor(exprTyp Type) bool {
 		}
 	}
 
-	tup, ok := exprTyp.(*Tuple)
-	if !ok || tup.Len() != 2 || !Identical(tup.At(1).Type(), universeError) {
-		return false
-	}
 	switch res.Len() {
 	case 2:
 		return Identical(res.At(1).Type(), universeError)
 	case 1:
-		_, ok := res.At(0).Type().Underlying().(*Result)
-		return ok
+		rt := res.At(0).Type()
+		if Identical(rt, universeError) {
+			return true // (T, error)! in a function returning only error
+		}
+		if r, ok := rt.Underlying().(*Result); ok {
+			return Identical(valType, r.elem)
+		}
+		return false
 	default:
 		return false
 	}
@@ -112,8 +139,14 @@ func (check *Checker) forceReturnWant(exprTyp Type) string {
 		}
 		return "error"
 	}
-	if tup, ok := exprTyp.(*Tuple); ok && tup.Len() >= 1 {
-		return TypeString(NewResult(tup.At(0).Type()), nil)
+	if valType, _, ok := forceUnwrapTypes(exprTyp); ok && valType != nil {
+		if check.sig != nil {
+			res := check.sig.Results()
+			if res != nil && res.Len() == 1 && Identical(res.At(0).Type(), universeError) {
+				return "error"
+			}
+		}
+		return TypeString(NewResult(valType), nil)
 	}
 	return "error"
 }

@@ -1683,9 +1683,17 @@ func (p *parser) baseTypeOrNil() Expr {
 		p.want(_Lbrack)
 		t := new(MapType)
 		t.pos = pos
-		t.Key = p.type_()
+		t.Key = p.baseTypeOrNil()
+		if t.Key == nil {
+			t.Key = p.badExpr()
+			p.syntaxError("missing map key type")
+		}
 		p.want(_Rbrack)
-		t.Value = p.type_()
+		t.Value = p.baseTypeOrNil()
+		if t.Value == nil {
+			t.Value = p.badExpr()
+			p.syntaxError("missing map value type")
+		}
 		return t
 
 	case _Struct:
@@ -1790,7 +1798,11 @@ func (p *parser) arrayType(pos Pos, len Expr) Expr {
 	t := new(ArrayType)
 	t.pos = pos
 	t.Len = len
-	t.Elem = p.type_()
+	t.Elem = p.baseTypeOrNil()
+	if t.Elem == nil {
+		t.Elem = p.badExpr()
+		p.syntaxError("missing array element type")
+	}
 	return t
 }
 
@@ -1798,7 +1810,11 @@ func (p *parser) arrayType(pos Pos, len Expr) Expr {
 func (p *parser) sliceType(pos Pos) Expr {
 	t := new(SliceType)
 	t.pos = pos
-	t.Elem = p.type_()
+	t.Elem = p.baseTypeOrNil()
+	if t.Elem == nil {
+		t.Elem = p.badExpr()
+		p.syntaxError("missing slice element type")
+	}
 	return t
 }
 
