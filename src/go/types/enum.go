@@ -828,6 +828,31 @@ func (check *Checker) enumCasePattern(tag Type, enumTyp *Enum, pattern ast.Expr,
 			check.errorf(p.Variant, InvalidSyntaxTree, "%s is not a struct enum variant", p.Variant.Name)
 			return
 		}
+		if len(p.Fields) == 0 {
+			covered[v.name] = true
+			check.recordUse(p.Variant, obj)
+			return
+		}
+		if len(p.Fields) == len(v.fields) {
+			for i, f := range p.Fields {
+				if f == nil || fieldNameIdent(f) == nil {
+					continue
+				}
+				name := fieldName(f)
+				if name == "_" {
+					continue
+				}
+				if v.fields[i].name != name {
+					check.errorf(fieldNameIdent(f), InvalidSyntaxTree, "field %s does not match %s in %s", name, v.fields[i].name, v.name)
+					continue
+				}
+				vobj := newVar(LocalVar, fieldNameIdent(f).Pos(), check.pkg, name, v.fields[i].typ)
+				check.declare(check.scope, fieldNameIdent(f), vobj, fieldNameIdent(f).Pos())
+			}
+			covered[v.name] = true
+			check.recordUse(p.Variant, obj)
+			return
+		}
 		seen := make(map[string]bool)
 		for _, f := range p.Fields {
 			if f == nil || fieldNameIdent(f) == nil {
