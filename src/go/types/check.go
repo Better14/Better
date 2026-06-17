@@ -159,6 +159,7 @@ type Checker struct {
 	operatorExact        map[string]map[operatorTypeKey]*Func // binary operator overload by operand types
 	operatorUnaryExact   map[string]map[string]*Func          // unary operator overload by operand type
 	overloadBySig        map[string]*Func                     // overload funcs keyed by name·paramSuffix
+	inExtensionProbe     bool                                 // guard against recursive extension call probing
 
 	firstErr   error                 // first error encountered
 	methods    map[*TypeName][]*Func // maps package scope type names to associated non-blank (non-interface) methods
