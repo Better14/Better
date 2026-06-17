@@ -969,7 +969,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 	case *ast.EnumPatternExpr:
 		p.print(x.Variant)
 		p.setPos(x.Variant.End())
-		p.print(token.LBRACE)
+		p.print(blank, token.LBRACE, blank)
 		for i, f := range x.Fields {
 			if i > 0 {
 				p.print(token.COMMA, blank)
@@ -978,6 +978,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 				p.print(f.Names[0])
 			}
 		}
+		p.print(blank)
 		p.setPos(x.Rbrace)
 		p.print(token.RBRACE)
 

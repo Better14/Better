@@ -821,6 +821,29 @@ func (check *Checker) enumStructCasePattern(variant *syntax.Name, fieldNames []*
 		check.errorf(variant, InvalidSyntaxTree, "%s is not a struct enum variant", variant.Value)
 		return
 	}
+	if len(fieldNames) == 0 {
+		covered[v.name] = true
+		return
+	}
+	if len(fieldNames) == len(v.fields) {
+		for i, f := range fieldNames {
+			if f == nil {
+				continue
+			}
+			name := f.Value
+			if name == "_" {
+				continue
+			}
+			if v.fields[i].name != name {
+				check.errorf(f, InvalidSyntaxTree, "field %s does not match %s in %s", name, v.fields[i].name, v.name)
+				continue
+			}
+			vobj := newVar(LocalVar, f.Pos(), check.pkg, name, v.fields[i].typ)
+			check.declare(check.scope, f, vobj, f.Pos())
+		}
+		covered[v.name] = true
+		return
+	}
 	seen := make(map[string]bool)
 	for _, f := range fieldNames {
 		if f == nil {

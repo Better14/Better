@@ -960,6 +960,42 @@ func ifExpr(ok bool) int {
 	}
 }
 
+func TestEnumCasePatternFormat(t *testing.T) {
+	const src = `package p
+
+func f(v Color) string {
+	return switch v {
+	case Red{r,g,b}:
+		"red"
+	case Green:
+		"green"
+	default:
+		"other"
+	}
+}
+`
+	got, err := format([]byte(src), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `package p
+
+func f(v Color) string {
+	return switch v {
+	case Red { r, g, b }:
+		"red"
+	case Green:
+		"green"
+	default:
+		"other"
+	}
+}
+`
+	if string(got) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestLambdaFormat(t *testing.T) {
 	const src = `package p
 
