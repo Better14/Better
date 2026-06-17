@@ -410,6 +410,43 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 		}
 	}
 
+	// untyped nil assignable to nullable and nil-able types
+	if x.mode() == nilvalue && isNullish(T) {
+		return true, 0
+	}
+
+	// T or *T assignable to Optional(T)
+	if o, ok := Tu.(*Optional); ok && Vp == nil && Tp == nil {
+		if Identical(V, o.elem) || Identical(Vu, o.elem.Underlying()) {
+			return true, 0
+		}
+		if p, ok := Vu.(*Pointer); ok && Identical(p.base, o.elem) {
+			return true, 0
+		}
+	}
+
+	// T assignable to Result(T); error assignable to Result(T) (zero value + err);
+	// Result(T) assignable to Result(T)
+	if res, ok := Tu.(*Result); ok && Vp == nil && Tp == nil {
+		if Identical(V, res.elem) || Identical(Vu, res.elem.Underlying()) {
+			return true, 0
+		}
+		if Identical(V, universeError) || Identical(Vu, universeError) {
+			return true, 0
+		}
+		if check != nil {
+			var vx operand
+			vx.mode_ = value
+			vx.typ_ = V
+			if ok, _ := vx.assignableTo(check, universeError, nil); ok {
+				return true, 0
+			}
+		}
+		if vres, ok := Vu.(*Result); ok && Identical(res.elem, vres.elem) {
+			return true, 0
+		}
+	}
+
 	// optimization: if we don't have type parameters, we're done
 	if Vp == nil && Tp == nil {
 		return false, IncompatibleAssign
