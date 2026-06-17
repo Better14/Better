@@ -1619,8 +1619,14 @@ func (p *parser) parseOperand() ast.Expr {
 
 	switch p.tok {
 	case token.IDENT:
-		x := p.parseIdent()
-		return x
+		id := p.parseIdent()
+		if p.tok == token.FATARROW {
+			arrow := p.pos
+			p.next()
+			body := p.parseRhs()
+			return &ast.LambdaExpr{Lparen: id.Pos(), Params: []*ast.Ident{id}, Rparen: id.End(), Arrow: arrow, Body: body}
+		}
+		return id
 
 	case token.INT, token.FLOAT, token.IMAG, token.CHAR, token.STRING:
 		x := &ast.BasicLit{ValuePos: p.pos, ValueEnd: p.end(), Kind: p.tok, Value: p.lit}

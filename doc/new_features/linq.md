@@ -5,7 +5,7 @@ Go includes built-in LINQ-style query operations that mirror C# naming and seman
 - Same method names as C# (`Where`, `Select`, `OrderBy`, `GroupBy`, `First`, `ToList`, etc.)
 - Lazy evaluation where applicable (deferred iteration until materialization)
 - Minimal allocations; iterators and pipelines avoid unnecessary intermediate slices
-- Public API is unified on `iter.Seq[T]`; use `linq.From(slice)` or slice extension syntax to start a chain
+- Public API is unified on `iter.Seq[T]`; call LINQ methods directly on slices and other supported collections — no `linq.From` wrapper needed
 
 Step-by-step example:
 
@@ -68,7 +68,7 @@ Slice receivers on the first call in a chain use compiler specialization to call
 
 All **68** core `System.Linq.Enumerable` methods are implemented, including `FullJoin`.
 
-Go also provides generators not in `Enumerable`: `From`, `Empty`, `Range`, `Repeat`, `InfiniteSequence`, `Sequence`, and `SelectBy` (alias for `Select`). `ThenBy` / `ThenByDescending` live on `Ordered[T]` (the `IOrderedEnumerable` role).
+Go also provides sequence generators not in `Enumerable`: `Empty`, `Range`, `Repeat`, `InfiniteSequence`, `Sequence`, and `SelectBy` (alias for `Select`). `ThenBy` / `ThenByDescending` live on `Ordered[T]` (the `IOrderedEnumerable` role). Use `linq.From` only when you need an explicit `iter.Seq[T]` value (for example, to pass into a function parameter typed as `iter.Seq[T]`); slice chains do not require it.
 
 Go renames a few .NET names to match `iter.Seq[T]`: `AsSeq` (not `AsEnumerable`) and `TryGetSeqLen` (not `TryGetNonEnumeratedCount`).
 
