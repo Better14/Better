@@ -1324,12 +1324,20 @@ func (check *Checker) tryExpr(x *operand, e *ast.TryExpr) {
 	check.hasCallOrRecv = true
 }
 
-// forceExpr type-checks e.X! where e.X is a (value, error) pair or a plain error.
+// forceExpr type-checks e.X! where e.X is a (value, error) pair, T!, an n-tuple
+// ending in error, or a plain error.
 func (check *Checker) forceExpr(x *operand, e *ast.ForceExpr) {
 	var inner operand
 	check.rawExpr(nil, &inner, e.X, nil, false)
 	check.exclude(&inner, 1<<novalue|1<<builtin|1<<typexpr)
 	if !inner.isValid() {
+		x.invalidate()
+		return
+	}
+
+	valType, _, ok := forceUnwrapTypes(inner.typ())
+	if !ok {
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: ! requires expression of type (T, error) or error, got %s", inner.typ())
 		x.invalidate()
 		return
 	}
@@ -1346,23 +1354,12 @@ func (check *Checker) forceExpr(x *operand, e *ast.ForceExpr) {
 		return
 	}
 
-	tup, ok := inner.typ().(*Tuple)
-	if !ok || tup.Len() != 2 {
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: ! requires expression of type (T, error) or error, got %s", inner.typ())
-		x.invalidate()
-		return
-	}
-	if !Identical(tup.At(1).Type(), universeError) {
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: second return value must be error, got %s", tup.At(1).Type())
-		x.invalidate()
-		return
-	}
 	if !check.checkForceReturn(e, inner.typ()) {
 		x.invalidate()
 		return
 	}
 	x.mode_ = value
-	x.typ_ = tup.At(0).Type()
+	x.typ_ = valType
 	x.expr = e
 	check.record(x)
 	check.hasCallOrRecv = true

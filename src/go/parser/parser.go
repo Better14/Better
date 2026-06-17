@@ -603,7 +603,12 @@ func (p *parser) parseArrayType(lbrack token.Pos, len ast.Expr) *ast.ArrayType {
 		p.next()
 	}
 	p.expect(token.RBRACK)
-	elt := p.parseType()
+	elt := p.tryIdentOrType()
+	if elt == nil {
+		pos := p.pos
+		p.errorExpected(pos, "type")
+		elt = &ast.BadExpr{From: pos, To: pos}
+	}
 	return &ast.ArrayType{Lbrack: lbrack, Len: len, Elt: elt}
 }
 
@@ -633,7 +638,12 @@ func (p *parser) parseArrayFieldOrTypeInstance(x *ast.Ident) (*ast.Ident, ast.Ex
 
 	if len(args) == 0 {
 		// x []E
-		elt := p.parseType()
+		elt := p.tryIdentOrType()
+		if elt == nil {
+			pos := p.pos
+			p.errorExpected(pos, "type")
+			elt = &ast.BadExpr{From: pos, To: pos}
+		}
 		return x, &ast.ArrayType{Lbrack: lbrack, Elt: elt}
 	}
 
@@ -1339,9 +1349,19 @@ func (p *parser) parseMapType() *ast.MapType {
 
 	pos := p.expect(token.MAP)
 	p.expect(token.LBRACK)
-	key := p.parseType()
+	key := p.tryIdentOrType()
+	if key == nil {
+		pos := p.pos
+		p.errorExpected(pos, "type")
+		key = &ast.BadExpr{From: pos, To: pos}
+	}
 	p.expect(token.RBRACK)
-	value := p.parseType()
+	value := p.tryIdentOrType()
+	if value == nil {
+		pos := p.pos
+		p.errorExpected(pos, "type")
+		value = &ast.BadExpr{From: pos, To: pos}
+	}
 
 	return &ast.MapType{Map: pos, Key: key, Value: value}
 }

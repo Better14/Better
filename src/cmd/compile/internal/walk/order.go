@@ -1289,28 +1289,33 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 			return nil
 		}
 
-		// n.X must be a multi-valued call producing (T, error).
-		if xt == nil || xt.NumFields() != 2 {
-			base.FatalfAt(n.Pos(), "OFORCE operand is not a 2-tuple: %L", n.X)
+		// n.X must be a multi-valued call producing (V..., error).
+		if xt == nil || xt.NumFields() < 2 {
+			base.FatalfAt(n.Pos(), "OFORCE operand is not a multi-value expression with error: %L", n.X)
 		}
-		t0typ := xt.Field(0).Type
-		t1typ := xt.Field(1).Type
-		t0 := o.newTemp(t0typ, t0typ.HasPointers())
-		t1 := o.newTemp(t1typ, t1typ.HasPointers())
+		nfld := xt.NumFields()
+		if xt.Field(nfld-1).Type != types.ErrorType {
+			base.FatalfAt(n.Pos(), "OFORCE last result must be error: %L", n.X)
+		}
+		temps := make([]ir.Node, nfld)
+		for i := 0; i < nfld; i++ {
+			ftyp := xt.Field(i).Type
+			temps[i] = o.newTemp(ftyp, ftyp.HasPointers())
+		}
 		if ic, ok := n.X.(*ir.InlinedCallExpr); ok {
 			o.stmtList(ic.Body)
-			as := ir.NewAssignListStmt(pos, ir.OAS2, []ir.Node{t0, t1}, ic.ReturnVars)
+			as := ir.NewAssignListStmt(pos, ir.OAS2, temps, ic.ReturnVars)
 			as.SetTypecheck(1)
 			o.exprList(as.Rhs)
 			o.out = append(o.out, as)
 		} else {
 			o.call(n.X)
-			as := ir.NewAssignListStmt(pos, ir.OAS2FUNC, []ir.Node{t0, t1}, []ir.Node{n.X})
+			as := ir.NewAssignListStmt(pos, ir.OAS2FUNC, temps, []ir.Node{n.X})
 			as.SetTypecheck(1)
 			o.out = append(o.out, as)
 		}
-		o.forceReturnOnErr(pos, t1)
-		return t0
+		o.forceReturnOnErr(pos, temps[nfld-1])
+		return temps[0]
 
 	case ir.ONULLCOND:
 		n := n.(*ir.NullCondExpr)

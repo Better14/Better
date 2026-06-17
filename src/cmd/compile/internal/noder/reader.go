@@ -2232,7 +2232,7 @@ func (r *reader) expr() (res ir.Node) {
 	case exprZero:
 		pos := r.pos()
 		typ := r.typ()
-		return ir.NewZero(pos, typ)
+		return typecheck.Expr(ir.NewZero(pos, typ))
 
 	case exprCompLit:
 		return r.compLit()
