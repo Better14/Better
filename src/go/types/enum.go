@@ -298,12 +298,59 @@ func (check *Checker) enumStructVariant(v *EnumVariant, enumType Type, scope *Sc
 	return fn
 }
 
+// isEnumVariant reports whether obj is an enum variant in the current package.
+func isEnumVariant(obj Object) bool {
+	name := obj.Name()
+	var hint Type
+	switch obj := obj.(type) {
+	case *Const:
+		hint = obj.Type()
+	case *Func:
+		if obj.Signature().Recv() != nil || obj.Signature().Results().Len() != 1 {
+			return false
+		}
+		hint = obj.Signature().Results().At(0).Type()
+	default:
+		return false
+	}
+	e, ok := AsEnum(hint)
+	if !ok || e.Scope() == nil || e.Scope().Lookup(name) != obj {
+		return false
+	}
+	return true
+}
+
 func (check *Checker) lookupEnumVariant(hint Type, name string) Object {
 	enumTyp, ok := AsEnum(hint)
 	if !ok || enumTyp.scope == nil {
 		return nil
 	}
 	return enumTyp.scope.Lookup(name)
+}
+
+// lookupPkgEnumVariant resolves an unqualified enum variant name at package level.
+// It succeeds only when exactly one enum in the current package defines the variant.
+func (check *Checker) lookupPkgEnumVariant(name string) Object {
+	var found Object
+	for _, obj := range check.objList {
+		tn, ok := obj.(*TypeName)
+		if !ok {
+			continue
+		}
+		info := check.objMap[tn]
+		if info == nil || info.enumTyp == nil || info.enumTyp.scope == nil {
+			continue
+		}
+		v := info.enumTyp.scope.Lookup(name)
+		if v == nil {
+			continue
+		}
+		if found != nil {
+			return nil // ambiguous
+		}
+		found = v
+	}
+	return found
 }
 
 func (check *Checker) enumVariantOperand(x *operand, obj Object, e ast.Expr) {
