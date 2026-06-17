@@ -11,11 +11,11 @@ import (
 
 func (check *Checker) paramDefault(v *Var, expr ast.Expr) {
 	var x operand
-	check.expr(nil, &x, expr)
+	check.rawExpr(nil, &x, expr, v.typ, false)
 	if !x.isValid() {
 		return
 	}
-	if x.mode() != constant_ {
+	if x.mode() != constant_ && !check.isEnumUnitVariantDefault(&x, v.typ) {
 		check.errorf(expr, InvalidSyntaxTree, "default argument must be compile-time constant")
 		return
 	}
@@ -24,7 +24,11 @@ func (check *Checker) paramDefault(v *Var, expr ast.Expr) {
 		return
 	}
 	v.defExpr = expr
-	v.defVal = x.val
+	if x.mode() == constant_ {
+		v.defVal = x.val
+	} else {
+		v.defVal = nil
+	}
 }
 
 func (check *Checker) validateParamDefaults(params []*Var) {
@@ -68,10 +72,10 @@ func (check *Checker) appendDefaultArgs(call *ast.CallExpr, sig *Signature, args
 			break
 		}
 		var d operand
-		d.expr = v.defExpr
-		d.mode_ = constant_
-		d.typ_ = v.typ
-		d.val = v.defVal
+		check.rawExpr(nil, &d, v.defExpr, v.typ, false)
+		if !d.isValid() {
+			break
+		}
 		out = append(out, &d)
 		extras = append(extras, v.defExpr)
 	}
@@ -82,7 +86,7 @@ func (check *Checker) appendDefaultArgs(call *ast.CallExpr, sig *Signature, args
 	return args
 }
 
-func overloadArgOperand(args []*operand, nargs, i int, v *Var) (operand, bool) {
+func (check *Checker) overloadArgOperand(args []*operand, nargs, i int, v *Var) (operand, bool) {
 	if i < nargs {
 		return *args[i], true
 	}
@@ -90,9 +94,9 @@ func overloadArgOperand(args []*operand, nargs, i int, v *Var) (operand, bool) {
 		return operand{}, false
 	}
 	var d operand
-	d.expr = v.defExpr
-	d.mode_ = constant_
-	d.typ_ = v.typ
-	d.val = v.defVal
+	check.rawExpr(nil, &d, v.defExpr, v.typ, false)
+	if !d.isValid() {
+		return operand{}, false
+	}
 	return d, true
 }

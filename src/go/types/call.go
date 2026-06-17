@@ -474,7 +474,7 @@ func (check *Checker) selectOverloadSilent(call *ast.CallExpr, cands []*Func, ar
 			fixed = npars - 1
 		}
 		for i := 0; i < fixed; i++ {
-			arg, okArg := overloadArgOperand(args, nargs, i, sig.params.vars[i])
+			arg, okArg := check.overloadArgOperand(args, nargs, i, sig.params.vars[i])
 			if !okArg {
 				ok = false
 				break
@@ -566,7 +566,7 @@ func (check *Checker) selectOverload(call *ast.CallExpr, cands []*Func, args []*
 			fixed = npars - 1
 		}
 		for i := 0; i < fixed; i++ {
-			arg, okArg := overloadArgOperand(args, nargs, i, sig.params.vars[i])
+			arg, okArg := check.overloadArgOperand(args, nargs, i, sig.params.vars[i])
 			if !okArg {
 				ok = false
 				break
@@ -1228,7 +1228,7 @@ func (check *Checker) selector(x *operand, e *ast.SelectorExpr, wantType bool) {
 		return
 	}
 
-	if check.enumSelector(x, e, x.typ(), false) {
+	if check.enumSelector(x, e, x.typ(), x.mode() == typexpr) {
 		return
 	}
 

@@ -484,7 +484,7 @@ func (check *Checker) selectOverloadEx(call *syntax.CallExpr, cands []*Func, arg
 			fixed = npars - 1
 		}
 		for i := 0; i < fixed; i++ {
-			arg, okArg := overloadArgOperand(args, nargs, i, sig.params.vars[i])
+			arg, okArg := check.overloadArgOperand(args, nargs, i, sig.params.vars[i])
 			if !okArg {
 				ok = false
 				break

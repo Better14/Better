@@ -1877,7 +1877,30 @@ func (p *parser) funcResult() []*Field {
 	}
 
 	if p.got(_Lparen) {
-		return p.paramList(nil, nil, _Rparen, false, false)
+		list := p.paramList(nil, nil, _Rparen, false, false)
+		if len(list) == 1 && list[0] != nil {
+			typ := list[0].Type
+			for typ != nil && p.tok == _Operator && p.op == Not {
+				bang := p.pos()
+				p.next()
+				rt := new(ResultType)
+				rt.pos = typ.Pos()
+				rt.Bang = bang
+				rt.Elem = typ
+				typ = rt
+			}
+			for typ != nil && p.tok == _Question {
+				qpos := p.pos()
+				p.next()
+				nt := new(NullableType)
+				nt.pos = typ.Pos()
+				nt.QPos = qpos
+				nt.Elem = typ
+				typ = nt
+			}
+			list[0].Type = typ
+		}
+		return list
 	}
 
 	pos := p.pos()

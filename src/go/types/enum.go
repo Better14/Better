@@ -364,6 +364,39 @@ func (check *Checker) lookupPkgEnumVariant(name string) Object {
 	return found
 }
 
+// isEnumUnitVariantDefault reports whether x is a unit enum variant suitable
+// as a default argument for typ.
+func (check *Checker) isEnumUnitVariantDefault(x *operand, typ Type) bool {
+	if x.mode() != value {
+		return false
+	}
+	enumTyp, ok := AsEnum(typ)
+	if !ok {
+		return false
+	}
+	obj := check.enumVariantFromExpr(x.expr, enumTyp)
+	if obj == nil {
+		return false
+	}
+	c, ok := obj.(*Const)
+	return ok && isEnumVariant(c)
+}
+
+func (check *Checker) enumVariantFromExpr(e ast.Expr, enumTyp *Enum) Object {
+	switch e := e.(type) {
+	case *ast.Ident:
+		return check.lookupEnumVariant(enumTyp, e.Name)
+	case *ast.SelectorExpr:
+		t := check.enumTypeExpr(e.X)
+		et, ok := AsEnum(t)
+		if !ok || !Identical(et, enumTyp) {
+			return nil
+		}
+		return enumTyp.scope.Lookup(e.Sel.Name)
+	}
+	return nil
+}
+
 func (check *Checker) enumVariantOperand(x *operand, obj Object, e ast.Expr) {
 	switch obj := obj.(type) {
 	case *Const:
