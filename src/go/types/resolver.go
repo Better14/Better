@@ -212,6 +212,45 @@ func (check *Checker) importPackage(at positioner, path, dir string) *Package {
 	return nil
 }
 
+// ensureImported returns a PkgName for path, importing it if the source file
+// has not already imported it. Used for compiler-inserted dependencies such
+// as slices.Values for LINQ slice extension calls.
+func (check *Checker) ensureImported(pos token.Pos, path string) *PkgName {
+	for _, imp := range check.imports {
+		if imp.imported != nil && imp.imported.path == path {
+			check.usedPkgNames[imp] = true
+			return imp
+		}
+	}
+	fileDir := "."
+	if len(check.files) > 0 {
+		fileDir = dir(check.fset.Position(check.files[0].Name.Pos()).Filename)
+	}
+	imp := check.importPackage(atPos(pos), path, fileDir)
+	if imp == nil || imp.fake {
+		return nil
+	}
+	found := false
+	for _, p := range check.pkg.imports {
+		if p == imp {
+			found = true
+			break
+		}
+	}
+	if !found {
+		check.pkg.imports = append(check.pkg.imports, imp)
+	}
+	pkgName := NewPkgName(pos, check.pkg, imp.name, imp)
+	check.imports = append(check.imports, pkgName)
+	check.usedPkgNames[pkgName] = true
+	for _, file := range check.files {
+		if scope := check.Scopes[file]; scope != nil && scope.Lookup(pkgName.name) == nil {
+			check.declare(scope, nil, pkgName, nopos)
+		}
+	}
+	return pkgName
+}
+
 // collectObjects collects all file and package objects and inserts them
 // into their respective scopes. It also performs imports and associates
 // methods with receiver base type names.

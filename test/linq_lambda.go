@@ -20,25 +20,25 @@ func (seq iter.Seq[T]) ScaleBy[T ~int | ~float64](k T) iter.Seq[T] {
 
 // FirstMatch returns the first element satisfying pred.
 func FirstMatch[T any](s []T, pred func(T) bool) T {
-	return linq.From(s).Where(pred).First()
+	return s.Where(pred).First()
 }
 
 // EvensDouble filters evens and doubles (extension on []int).
 func EvensDouble(s []int) iter.Seq[int] {
-	return linq.From(s).Where(n => n%2 == 0).Select(n => n * 2)
+	return s.Where(n => n%2 == 0).Select(n => n * 2)
 }
 
 func main() {
 	nums := []int{1, 2, 3, 4, 5, 6, 7, 8}
 
 	// filter → map → first
-	first := linq.From(nums).Where(n => n%2 == 0).Select(n => n * 2).First()
+	first := nums.Where(n => n%2 == 0).Select(n => n * 2).First()
 	if first != 4 {
 		panic(first)
 	}
 
 	// filter → filter → take → list
-	out := linq.From(nums).Where(n => n > 1).Where(n => n%2 == 0).Take(3).ToList()
+	out := nums.Where(n => n > 1).Where(n => n%2 == 0).Take(3).ToList()
 	if len(out) != 3 || out[0] != 2 || out[2] != 6 {
 		panic(out)
 	}
@@ -49,20 +49,20 @@ func main() {
 	}
 
 	// custom ScaleBy extension mid-chain
-	got := linq.From(nums).Where(n => n%2 == 1).ScaleBy(10).Select(n => n + 1).First()
+	got := nums.Where(n => n%2 == 1).ScaleBy(10).Select(n => n + 1).First()
 	if got != 11 {
 		panic(got)
 	}
 
 	// any / all
-	if !linq.From(nums).Any(n => n > 7) {
+	if !nums.Any(n => n > 7) {
 		panic("Any")
 	}
-	if !linq.From(nums).All(n => n < 100) {
+	if !nums.All(n => n < 100) {
 		panic("All")
 	}
 
-	sum := linq.From(nums).Where(n => n%2 == 0).Select(n => n * n).Sum()
+	sum := nums.Where(n => n%2 == 0).Select(n => n * n).Sum()
 	if sum != 4+16+36+64 {
 		panic(sum)
 	}
@@ -72,11 +72,11 @@ func main() {
 	}
 
 	// distinct on lazy chain, group by on slice
-	dist := linq.From(nums).Select(n => n / 2).Distinct().ToList()
+	dist := nums.Select(n => n / 2).Distinct().ToList()
 	if len(dist) != 5 {
 		panic(dist)
 	}
-	groups := linq.From(nums).GroupBy(n => n%2).ToList()
+	groups := nums.GroupBy(n => n%2).ToList()
 	if len(groups) != 2 {
 		panic(groups)
 	}
