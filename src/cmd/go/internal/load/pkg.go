@@ -1988,6 +1988,14 @@ func (p *Package) load(ld *modload.Loader, ctx context.Context, opts PackageOpts
 				addImport(dep, false)
 			}
 		}
+
+		// LINQ slice extension calls may rewrite to slices.Values.
+		for _, imp := range p.Imports {
+			if imp == "linq" {
+				addImport("slices", true)
+				break
+			}
+		}
 	}
 
 	// Check for case-insensitive collisions of import paths.

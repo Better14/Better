@@ -510,7 +510,11 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 		recvExpr = &syntax.SliceExpr{X: sel.X}
 	}
 	funcName := m.fn.LinkName()
-	if m.linqFast != "" && (m.pkgName == nil || m.adapt) {
+	useLinqFast := m.linqFast != "" && (m.pkgName == nil || m.adapt)
+	if useLinqFast && m.pkgName != nil && m.pkgName.imported.scope.Lookup(m.linqFast) == nil {
+		useLinqFast = false
+	}
+	if useLinqFast {
 		funcName = m.linqFast
 	} else if m.adapt {
 		if !check.verifyVersionf(call, go1_27, "slices.Values") {
@@ -519,14 +523,9 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 			return statement, true
 		}
 		var slicesPkg *PkgName
-		for _, imp := range check.imports {
-			if imp.imported != nil && imp.imported.path == "slices" {
-				slicesPkg = imp
-				break
-			}
-		}
+		slicesPkg = check.ensureImported(call.Pos(), "slices")
 		if slicesPkg == nil {
-			check.errorf(call, UndeclaredName, "extension on slice requires import \"slices\"")
+			check.errorf(call, BrokenImport, "could not import slices")
 			x.invalidate()
 			x.expr = call
 			return statement, true
