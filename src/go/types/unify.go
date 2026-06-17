@@ -579,6 +579,18 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 	xorig, x := x, Unalias(x)
 	yorig, y := y, Unalias(y)
 
+	// Allow []T or [N]T to unify with iter.Seq[T] for LINQ extension type inference.
+	if srcSl, ok := y.Underlying().(*Slice); ok {
+		if seqElem := iterSeqElem(x); seqElem != nil {
+			return u.nify(seqElem, srcSl.elem, emode, p)
+		}
+	}
+	if srcArr, ok := y.Underlying().(*Array); ok {
+		if seqElem := iterSeqElem(x); seqElem != nil {
+			return u.nify(seqElem, srcArr.elem, emode, p)
+		}
+	}
+
 	switch x := x.(type) {
 	case *Basic:
 		// Basic types are singletons except for the rune and byte
@@ -588,19 +600,24 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 			return x.kind == y.kind
 		}
 
-	case *Array:
-		// Two array types unify if they have the same array length
-		// and their element types unify.
-		if y, ok := y.(*Array); ok {
-			// If one or both array lengths are unknown (< 0) due to some error,
-			// assume they are the same to avoid spurious follow-on errors.
-			return (x.len < 0 || y.len < 0 || x.len == y.len) && u.nify(x.elem, y.elem, emode, p)
-		}
-
 	case *Slice:
 		// Two slice types unify if their element types unify.
 		if y, ok := y.(*Slice); ok {
 			return u.nify(x.elem, y.elem, emode, p)
+		}
+		// Allow []T to unify with iter.Seq[T] for LINQ extension type inference.
+		if seqElem := iterSeqElem(y); seqElem != nil {
+			return u.nify(x.elem, seqElem, emode, p)
+		}
+
+	case *Array:
+		// Two array types unify if they have the same array length
+		// and their element types unify.
+		if y, ok := y.(*Array); ok {
+			return (x.len < 0 || y.len < 0 || x.len == y.len) && u.nify(x.elem, y.elem, emode, p)
+		}
+		if seqElem := iterSeqElem(y); seqElem != nil {
+			return u.nify(x.elem, seqElem, emode, p)
 		}
 
 	case *Struct:

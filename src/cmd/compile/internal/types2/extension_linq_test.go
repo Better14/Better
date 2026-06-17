@@ -40,6 +40,7 @@ func f() {
 	_ = linq.From(nums).Where(func(n int) bool { return n < 5 })
 	_ = linq.From(nums).Sum()
 	_ = linq.From(nums).Max()
+	_ = nums.Where(n => n < 5).Select(n => n + 1).ToList()
 	inner := linq.From([]int{2})
 	_ = linq.From(nums).Join(inner, func(int) int { return 0 }, func(int) int { return 0 }, func(int, int) int { return 0 })
 	_, _ = nums.TryGetSeqLen()
