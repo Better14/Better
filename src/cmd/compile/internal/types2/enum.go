@@ -305,6 +305,31 @@ func (check *Checker) lookupEnumVariant(hint Type, name string) Object {
 	return enumTyp.scope.Lookup(name)
 }
 
+// lookupPkgEnumVariant resolves an unqualified enum variant name at package level.
+// It succeeds only when exactly one enum in the current package defines the variant.
+func (check *Checker) lookupPkgEnumVariant(name string) Object {
+	var found Object
+	for _, obj := range check.objList {
+		tn, ok := obj.(*TypeName)
+		if !ok {
+			continue
+		}
+		info := check.objMap[tn]
+		if info == nil || info.enumTyp == nil || info.enumTyp.scope == nil {
+			continue
+		}
+		v := info.enumTyp.scope.Lookup(name)
+		if v == nil {
+			continue
+		}
+		if found != nil {
+			return nil // ambiguous
+		}
+		found = v
+	}
+	return found
+}
+
 // isEnumUnitVariantDefault reports whether x is a unit enum variant suitable
 // as a default argument for typ.
 func (check *Checker) isEnumUnitVariantDefault(x *operand, typ Type) bool {
