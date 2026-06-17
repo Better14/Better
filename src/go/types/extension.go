@@ -464,14 +464,7 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 	if m.slice {
 		recvExpr = &ast.SliceExpr{X: sel.X}
 	}
-	funcName := m.fn.LinkName()
-	useLinqFast := m.linqFast != "" && (m.pkgName == nil || m.adapt)
-	if useLinqFast && m.pkgName != nil && m.pkgName.imported.scope.Lookup(m.linqFast) == nil {
-		useLinqFast = false
-	}
-	if useLinqFast {
-		funcName = m.linqFast
-	} else if m.adapt {
+	if m.adapt {
 		if !check.verifyVersionf(call, go1_27, "slices.Values") {
 			x.invalidate()
 			x.expr = call
@@ -499,13 +492,15 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 	pkgIdent := m.pkgName
 	if pkgIdent == nil {
 		// same package: use an unqualified function name
-		call.Fun = astNewIdent(call.Pos(), funcName)
+		check.recordUse(sel.Sel, m.fn)
+		call.Fun = sel.Sel
 	} else {
 		call.Fun = &ast.SelectorExpr{
 			X:   astNewIdent(call.Pos(), pkgIdent.name),
-			Sel: astNewIdent(call.Pos(), funcName),
+			Sel: sel.Sel,
 		}
 		check.recordUse(call.Fun.(*ast.SelectorExpr).X.(*ast.Ident), pkgIdent)
+		check.recordSelection(call.Fun.(*ast.SelectorExpr), MethodVal, recv.typ(), m.fn, []int{0}, false)
 	}
 	if inst != nil {
 		switch e := inst.orig.(type) {
