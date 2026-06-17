@@ -1182,7 +1182,7 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 		x.typ_ = T
 
 	case *ast.CallExpr:
-		return check.callExpr(x, e)
+		return check.callExpr(x, e, hint)
 
 	case *ast.TryExpr:
 		check.tryExpr(x, e)

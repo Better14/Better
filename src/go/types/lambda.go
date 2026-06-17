@@ -10,6 +10,14 @@ import (
 )
 
 func (check *Checker) lambdaExpr(x *operand, e *ast.LambdaExpr, hint Type) {
+	if hint == nil && check.Types != nil {
+		if tv, ok := check.Types[e]; ok && tv.Type != nil {
+			x.mode_ = value
+			x.typ_ = tv.Type
+			x.expr = e
+			return
+		}
+	}
 	if hint == nil {
 		check.errorf(e, InvalidSyntaxTree, "lambda expression requires type context")
 		x.invalidate()
@@ -36,14 +44,41 @@ func (check *Checker) lambdaExpr(x *operand, e *ast.LambdaExpr, hint Type) {
 	for i, id := range e.Params {
 		params[i] = newVar(ParamVar, id.Pos(), check.pkg, id.Name, hintSig.params.At(i).typ)
 	}
+
+	check.openScope(e, "function")
+	sigScope := check.scope
+	sigScope.isFunc = true
+	check.recordScope(e, sigScope)
+	scopePos := e.Arrow
+	for i, id := range e.Params {
+		if id.Name != "" {
+			check.declare(sigScope, id, params[i], scopePos)
+		}
+	}
+
+	resultType := hintSig.results.At(0).typ
+	bodyChecked := false
+	if _, ok := resultType.(*TypeParam); ok {
+		var bodyVal operand
+		check.expr(nil, &bodyVal, e.Body)
+		if bodyVal.isValid() {
+			resultType = bodyVal.typ()
+			bodyChecked = true
+		}
+	}
+
 	var recvTP, typeTP []*TypeParam
-	if r := hintSig.RecvTypeParams(); r != nil {
-		recvTP = r.list()
+	if !bodyChecked {
+		if r := hintSig.RecvTypeParams(); r != nil {
+			recvTP = r.list()
+		}
+		if t := hintSig.TypeParams(); t != nil {
+			typeTP = t.list()
+		}
 	}
-	if t := hintSig.TypeParams(); t != nil {
-		typeTP = t.list()
-	}
-	sig := NewSignatureType(nil, recvTP, typeTP, NewTuple(params...), hintSig.results, hintSig.variadic)
+	results := NewTuple(newVar(ResultVar, nopos, check.pkg, "", resultType))
+	sig := NewSignatureType(nil, recvTP, typeTP, NewTuple(params...), results, hintSig.variadic)
+	sig.scope = sigScope
 
 	ret := new(ast.ReturnStmt)
 	ret.Return = e.Body.Pos()
@@ -52,17 +87,7 @@ func (check *Checker) lambdaExpr(x *operand, e *ast.LambdaExpr, hint Type) {
 	body.Lbrace = e.Lparen
 	body.List = []ast.Stmt{ret}
 
-	check.openScope(e, "function")
-	sig.scope = check.scope
-	check.scope.isFunc = true
-	check.recordScope(e, check.scope)
-	scopePos := e.Arrow
-	for i, id := range e.Params {
-		if id.Name != "" {
-			check.declare(check.scope, id, params[i], scopePos)
-		}
-	}
-	if !check.conf.IgnoreFuncBodies {
+	if !check.conf.IgnoreFuncBodies && !bodyChecked {
 		decl := check.decl
 		iota := check.iota
 		check.later(func() {

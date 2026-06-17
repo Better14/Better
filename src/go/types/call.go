@@ -169,8 +169,8 @@ func (check *Checker) instantiateSignature(pos token.Pos, expr ast.Expr, typ *Si
 	return inst
 }
 
-func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
-	if check.tryEnumVariantCall(x, call, nil) {
+func (check *Checker) callExpr(x *operand, call *ast.CallExpr, hint Type) exprKind {
+	if check.tryEnumVariantCall(x, call, hint) {
 		return expression
 	}
 
@@ -289,7 +289,11 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
 
 	// Overloaded call resolution picks a unique candidate by argument count and assignability.
 	if len(overloadCands) > 1 {
-		preloadArgs, preloadAtargs = check.genericExprList(call.Args)
+		if sig.params != nil {
+			preloadArgs, preloadAtargs = check.genericExprListHinted(call.Args, sig, sig.params, nil)
+		} else {
+			preloadArgs, preloadAtargs = check.genericExprList(call.Args)
+		}
 		sel := check.selectOverload(call, overloadCands, preloadArgs)
 		if sel == nil {
 			x.invalidate()
@@ -361,8 +365,33 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr) exprKind {
 
 	// evaluate arguments
 	args, atargs := preloadArgs, preloadAtargs
-	if args == nil && len(call.Args) != 0 {
-		args, atargs = check.genericExprList(call.Args)
+	if len(call.Args) != 0 {
+		if sig.params != nil {
+			var methodRecv *operand
+			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+				skipRecv := false
+				if check.Selections != nil {
+					if s := check.Selections[sel]; s != nil && s.Kind() == MethodExpr {
+						skipRecv = true
+					}
+				}
+				if name, ok := sel.X.(*ast.Ident); ok {
+					if _, isPkg := check.lookup(name.Name).(*PkgName); isPkg {
+						skipRecv = true
+					}
+				}
+				if !skipRecv {
+					var recv operand
+					check.expr(nil, &recv, sel.X)
+					if recv.isValid() {
+						methodRecv = &recv
+					}
+				}
+			}
+			args, atargs = check.genericExprListHinted(call.Args, sig, sig.params, methodRecv)
+		} else if args == nil {
+			args, atargs = check.genericExprList(call.Args)
+		}
 	}
 	sig = check.arguments(call, sig, targs, xlist, args, atargs)
 
@@ -706,6 +735,121 @@ func (check *Checker) genericExprList(elist []ast.Expr) (resList []*operand, tar
 	}
 
 	return
+}
+
+// genericExprListHinted is like genericExprList but passes parameter types as
+// expression hints so => lambdas in LINQ-style calls can infer parameter types.
+func (check *Checker) genericExprListHinted(elist []ast.Expr, sig *Signature, params *Tuple, methodRecv *operand) (resList []*operand, targsList [][]Type) {
+	infer := true
+	n := len(elist)
+	if n > 0 && check.allowVersion(go1_21) {
+		infer = false
+	}
+
+	hintRecv := func(i int) *operand {
+		if i > 0 && len(resList) > 0 && resList[0] != nil && resList[0].isValid() {
+			return resList[0]
+		}
+		if methodRecv != nil && methodRecv.isValid() {
+			return methodRecv
+		}
+		return nil
+	}
+
+	eval := func(i int, e ast.Expr) (operand, []Type) {
+		var hint Type
+		if params != nil && i < params.Len() {
+			hint = params.At(i).typ
+			if r := hintRecv(i); r != nil {
+				hint = check.substHintFromRecv(hint, sig, r)
+			}
+		}
+		var x operand
+		if ix := unpackIndexedExpr(e); ix != nil && check.indexExpr(&x, ix) {
+			targs := check.funcInst(nil, x.Pos(), &x, ix, infer)
+			if targs != nil {
+				x.expr = ix.orig
+				return x, targs
+			}
+			check.record(&x)
+			return x, nil
+		}
+		check.genericExpr(&x, e, hint)
+		return x, nil
+	}
+
+	if n == 1 {
+		e := elist[0]
+		var x operand
+		if ix := unpackIndexedExpr(e); ix != nil && check.indexExpr(&x, ix) {
+			targs := check.funcInst(nil, x.Pos(), &x, ix, infer)
+			if targs != nil {
+				x.expr = ix.orig
+				return []*operand{&x}, [][]Type{targs}
+			}
+			check.record(&x)
+			return []*operand{&x}, nil
+		}
+		if list, _ := check.multiExpr(e, false); len(list) > 1 {
+			return list, nil
+		}
+		var hint Type
+		if params != nil && params.Len() > 0 {
+			hint = params.At(0).typ
+			if r := hintRecv(0); r != nil {
+				hint = check.substHintFromRecv(hint, sig, r)
+			}
+		}
+		check.genericExpr(&x, e, hint)
+		return []*operand{&x}, nil
+	}
+
+	resList = make([]*operand, n)
+	targsList = make([][]Type, n)
+	for i, e := range elist {
+		x, targs := eval(i, e)
+		resList[i] = &x
+		targsList[i] = targs
+	}
+	return resList, targsList
+}
+
+func (check *Checker) recvElemType(recv *operand) Type {
+	if recv == nil || !recv.isValid() {
+		return nil
+	}
+	typ := recv.typ()
+	for typ != nil {
+		typ = Unalias(typ)
+		switch u := typ.Underlying().(type) {
+		case *Slice:
+			return u.elem
+		case *Array:
+			return u.elem
+		}
+		if n, ok := typ.(*Named); ok {
+			if targs := n.TypeArgs(); targs != nil && targs.Len() > 0 {
+				return targs.At(0)
+			}
+			typ = n.Underlying()
+			continue
+		}
+		break
+	}
+	return nil
+}
+
+func (check *Checker) substHintFromRecv(hint Type, sig *Signature, recv *operand) Type {
+	if hint == nil || sig == nil || recv == nil || !recv.isValid() || sig.TypeParams().Len() == 0 {
+		return hint
+	}
+	elem := check.recvElemType(recv)
+	if elem == nil {
+		return hint
+	}
+	pos := recv.Pos()
+	m := makeSubstMap([]*TypeParam{sig.TypeParams().At(0)}, []Type{elem})
+	return check.subst(pos, hint, m, nil, check.context())
 }
 
 // arguments type-checks arguments passed to a function call with the given signature.

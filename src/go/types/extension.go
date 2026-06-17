@@ -521,5 +521,5 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 	copy(argList[1:], call.Args)
 	call.Args = argList
 
-	return check.callExpr(x, call), true
+	return check.callExpr(x, call, nil), true
 }

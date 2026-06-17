@@ -373,6 +373,18 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 		return true, 0
 	}
 
+	// Allow slices and arrays to assign to iter.Seq[T] for LINQ extension type-checking.
+	if srcSl, ok := Vu.(*Slice); ok {
+		if seqElem := iterSeqElem(T); seqElem != nil && Identical(srcSl.elem, seqElem) {
+			return true, 0
+		}
+	}
+	if srcArr, ok := Vu.(*Array); ok {
+		if seqElem := iterSeqElem(T); seqElem != nil && Identical(srcArr.elem, seqElem) {
+			return true, 0
+		}
+	}
+
 	// T is an interface type, but not a type parameter, and V implements T.
 	// Also handle the case where T is a pointer to an interface so that we get
 	// the Checker.implements error cause.
