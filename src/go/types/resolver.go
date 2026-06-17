@@ -727,7 +727,8 @@ func (check *Checker) packageObjects() {
 		// phase 1: non-alias type declarations
 		for _, obj := range check.objList {
 			if tname, _ := obj.(*TypeName); tname != nil {
-				if check.objMap[tname].tdecl.Assign.IsValid() {
+				d := check.objMap[tname]
+				if d != nil && d.tdecl != nil && d.tdecl.Assign.IsValid() {
 					aliasList = append(aliasList, tname)
 				} else {
 					check.objDecl(obj)

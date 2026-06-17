@@ -474,6 +474,44 @@ func (p *parser) parseIdent() *ast.Ident {
 	return &ast.Ident{NamePos: pos, Name: name}
 }
 
+// parseFuncDeclName parses an identifier or operator name for func/method declarations.
+func (p *parser) parseFuncDeclName() *ast.Ident {
+	switch p.tok {
+	case token.IDENT:
+		return p.parseIdent()
+	case token.MUL:
+		pos := p.pos
+		p.next()
+		return &ast.Ident{NamePos: pos, Name: "*"}
+	case token.INC, token.DEC:
+		pos := p.pos
+		name := p.lit
+		p.next()
+		return &ast.Ident{NamePos: pos, Name: name}
+	case token.LBRACK:
+		pos := p.pos
+		p.next() // [
+		if p.tok != token.RBRACK {
+			return nil
+		}
+		p.next() // ]
+		name := "[]"
+		if p.tok == token.ASSIGN {
+			p.next()
+			name = "[]="
+		}
+		return &ast.Ident{NamePos: pos, Name: name}
+	default:
+		if p.tok.IsOperator() {
+			pos := p.pos
+			name := p.tok.String()
+			p.next()
+			return &ast.Ident{NamePos: pos, Name: name}
+		}
+		return nil
+	}
+}
+
 func (p *parser) parseIdentList() (list []*ast.Ident) {
 	if p.trace {
 		defer un(trace(p, "IdentList"))
@@ -3139,7 +3177,12 @@ func (p *parser) parseFuncDecl() *ast.FuncDecl {
 		recv = p.parseParameters(false)
 	}
 
-	ident := p.parseIdent()
+	ident := p.parseFuncDeclName()
+	if ident == nil {
+		ident = &ast.Ident{NamePos: p.pos, Name: "_"}
+		p.error(p.pos, "expected name")
+		p.advance(map[token.Token]bool{token.LBRACE: true, token.SEMICOLON: true})
+	}
 
 	var tparams *ast.FieldList
 	if p.tok == token.LBRACK {
