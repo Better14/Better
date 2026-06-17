@@ -1067,6 +1067,15 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 		goto Error // error was reported before
 
 	case *ast.Ident:
+		if hint != nil {
+			if obj := check.lookupEnumVariant(hint, e.Name); obj != nil {
+				check.recordUse(e, obj)
+				check.enumVariantOperand(x, obj, e)
+				if x.isValid() {
+					return expression
+				}
+			}
+		}
 		check.ident(x, e, false)
 
 	case *ast.Ellipsis:

@@ -171,7 +171,7 @@ func (o Option[int]) IsSome() bool {
 ### Notes
 
 - Enums are distinct from `int?` nullable types and from `iota` constant groups.
-- Variant names live in the enum’s namespace. Use unqualified names when the type is known (`var a SomeEnum = Value1`, `case Value2(s):`) or the qualified form (`SomeEnum.Value2`) anywhere.
+- Variant names live in the enum’s namespace. Use unqualified names when the type is known (`var a SomeEnum = Value1`, `case Value2(s):`, `mode Mode = Read`) or the qualified form (`SomeEnum.Value2`) anywhere.
 - Memory layout is implementation-defined; explicit discriminants (`Value4 = 3`) document ABI intent.
-- `enum` variants may appear in default arguments when the default is a compile-time constant variant (e.g. `mode Mode = Mode.Read`).
+- Unit `enum` variants may appear in default arguments when the default is a compile-time constant variant (e.g. `mode Mode = Read`). Tuple and struct variants are not valid defaults.
 - When new variants are added to an enum, every non-`default` `switch` on that type must be updated or the build fails (exhaustiveness checking).

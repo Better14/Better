@@ -150,7 +150,7 @@ func Connect(host string, port int = DefaultPort) {
 
 #### Enum and nil defaults
 
-Use an `enum` type for mode defaults (see [Enums](enums.md)). Pointer parameters use `nil` where a nullable default is intended.
+Use an `enum` type for mode defaults (see [Enums](enums.md)). When the parameter type is known, omit the enum name and write the unit variant alone (`mode Mode = Read`). The qualified form (`Mode.Read`) is also valid. Pointer parameters use `nil` where a nullable default is intended.
 
 ```go
 enum Mode {
@@ -159,7 +159,7 @@ enum Mode {
 	Both
 }
 
-func Open(path string, mode Mode = Mode.Read) {
+func Open(path string, mode Mode = Read) {
 	// ...
 }
 

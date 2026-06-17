@@ -114,6 +114,7 @@ var valids = []string{
 	`package p; type I1[T any] interface{}; type I2[T any] interface{ I1[T] }`,
 	`package p; type _ interface { N[T] }`,
 	`package p; type T[P any] = T0`,
+	`package p; import "database/sql"; func f() (*sql.DB)! { return nil, nil }`,
 }
 
 func TestValid(t *testing.T) {

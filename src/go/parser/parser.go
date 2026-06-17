@@ -1202,6 +1202,18 @@ func (p *parser) parseParameters(result bool) *ast.FieldList {
 			list = p.parseParameterList(nil, nil, token.RPAREN, !result)
 		}
 		rparen := p.expect(token.RPAREN)
+		if result && len(list) == 1 && list[0] != nil {
+			for p.tok == token.NOT {
+				b := p.pos
+				p.next()
+				list[0].Type = &ast.ResultTypeExpr{X: list[0].Type, Bang: b}
+			}
+			for p.tok == token.QUESTION {
+				q := p.pos
+				p.next()
+				list[0].Type = &ast.NullableTypeExpr{X: list[0].Type, QPos: q}
+			}
+		}
 		return &ast.FieldList{Opening: lparen, List: list, Closing: rparen}
 	}
 
