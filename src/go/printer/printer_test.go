@@ -1017,7 +1017,14 @@ func ifExpr(ok bool) int {
 	want := `package p
 
 func switchExpr(v Color) string {
-	return switch v { case Red: "red" case Green: "green" default: "other" }
+	return switch v {
+	case Red:
+		"red"
+	case Green:
+		"green"
+	default:
+		"other"
+	}
 }
 
 func ifExpr(ok bool) int {

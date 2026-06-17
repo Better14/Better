@@ -563,6 +563,43 @@ func (p *printer) enumVariantFieldList(fields *ast.FieldList) {
 	p.print(token.RBRACE)
 }
 
+func (p *printer) switchExprClause(c *ast.SwitchExprClause) {
+	if len(c.Cases) > 0 {
+		p.print(token.CASE, blank)
+		p.exprList(c.Cases[0].Pos(), c.Cases, 1, 0, c.Colon, false)
+	} else {
+		p.print(token.DEFAULT)
+	}
+	p.setPos(c.Colon)
+	p.print(token.COLON, indent, newline)
+	p.expr(c.Body)
+	p.print(unindent)
+}
+
+func (p *printer) switchExpr(x *ast.SwitchExpr) {
+	p.setPos(x.Switch)
+	p.print(token.SWITCH)
+	if x.Tag != nil {
+		p.print(blank)
+		p.expr(x.Tag)
+	}
+	p.print(blank, token.LBRACE)
+	if len(x.Body) > 0 {
+		p.print(formfeed)
+	}
+	for i, c := range x.Body {
+		if i > 0 {
+			p.print(newline)
+		}
+		p.switchExprClause(c)
+	}
+	if len(x.Body) > 0 {
+		p.linebreak(p.lineFor(x.Rbrace), 1, ignore, true)
+	}
+	p.setPos(x.Rbrace)
+	p.print(token.RBRACE)
+}
+
 func (p *printer) setLineComment(text string) {
 	p.setComment(&ast.CommentGroup{List: []*ast.Comment{{Slash: token.NoPos, Text: text}}})
 }
@@ -988,25 +1025,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.print(blank, token.RBRACE)
 
 	case *ast.SwitchExpr:
-		p.setPos(x.Switch)
-		p.print(token.SWITCH)
-		if x.Tag != nil {
-			p.print(blank)
-			p.expr(x.Tag)
-		}
-		p.print(blank, token.LBRACE)
-		for _, c := range x.Body {
-			if len(c.Cases) > 0 {
-				p.print(blank, token.CASE, blank)
-				p.exprList(c.Cases[0].Pos(), c.Cases, 1, 0, c.Colon, false)
-			} else {
-				p.print(blank, token.DEFAULT)
-			}
-			p.setPos(c.Colon)
-			p.print(token.COLON, blank)
-			p.expr(c.Body)
-		}
-		p.print(blank, token.RBRACE)
+		p.switchExpr(x)
 
 	case *ast.StarExpr:
 		const prec = token.UnaryPrec
