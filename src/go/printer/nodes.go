@@ -485,6 +485,84 @@ func (p *printer) isOneLineFieldList(list []*ast.Field) bool {
 	return namesSize+typeSize <= maxSize
 }
 
+func (p *printer) isOneLineEnumFieldList(list []*ast.Field) bool {
+	const maxSize = 40
+	size := 2 // braces
+	for i, f := range list {
+		if f.Tag != nil || f.Comment != nil || f.Doc != nil {
+			return false
+		}
+		if i > 0 {
+			size += 2 // ", "
+		}
+		namesSize := identListSize(f.Names, maxSize)
+		if namesSize > 0 {
+			namesSize++ // blank before type
+		}
+		size += namesSize + p.nodeSize(f.Type, maxSize)
+		if size > maxSize {
+			return false
+		}
+	}
+	return len(list) > 0
+}
+
+func (p *printer) printEnumVariantFields(list []*ast.Field) {
+	for i, f := range list {
+		if i > 0 {
+			p.print(token.COMMA, blank)
+		}
+		p.identList(f.Names, false)
+		if len(f.Names) > 0 {
+			p.print(blank)
+		}
+		p.expr(f.Type)
+	}
+}
+
+func (p *printer) enumVariantFieldList(fields *ast.FieldList) {
+	lbrace := fields.Opening
+	list := fields.List
+	rbrace := fields.Closing
+
+	srcIsOneLine := lbrace.IsValid() && rbrace.IsValid() && p.lineFor(lbrace) == p.lineFor(rbrace)
+
+	if srcIsOneLine && p.isOneLineEnumFieldList(list) {
+		p.setPos(lbrace)
+		p.print(token.LBRACE, blank)
+		p.printEnumVariantFields(list)
+		p.print(blank)
+		p.setPos(rbrace)
+		p.print(token.RBRACE)
+		return
+	}
+
+	p.setPos(lbrace)
+	p.print(token.LBRACE, indent)
+	if len(list) > 0 {
+		p.print(formfeed)
+	}
+	var line int
+	for i, f := range list {
+		if i > 0 {
+			p.linebreak(p.lineFor(f.Pos()), 1, ignore, p.linesFrom(line) > 0)
+		}
+		p.recordLine(&line)
+		p.setComment(f.Doc)
+		p.identList(f.Names, false)
+		if len(f.Names) > 0 {
+			p.print(blank)
+		}
+		p.expr(f.Type)
+		if i+1 < len(list) {
+			p.print(token.COMMA)
+		}
+	}
+	p.print(unindent, formfeed)
+	p.setPos(rbrace)
+	p.print(token.RBRACE)
+}
+
 func (p *printer) setLineComment(text string) {
 	p.setComment(&ast.CommentGroup{List: []*ast.Comment{{Slash: token.NoPos, Text: text}}})
 }
@@ -2079,11 +2157,15 @@ func (p *printer) enumDecl(d *ast.EnumDecl) {
 			}
 			p.print(token.RPAREN)
 		} else if v.StructFields != nil {
-			p.fieldList(v.StructFields, true, false)
+			p.print(blank)
+			p.enumVariantFieldList(v.StructFields)
 		}
 	}
+	if len(d.Variants) > 0 {
+		p.print(unindent, formfeed)
+	}
 	p.setPos(d.Rbrace)
-	p.print(unindent, token.RBRACE)
+	p.print(token.RBRACE)
 }
 
 func (p *printer) funcDecl(d *ast.FuncDecl) {

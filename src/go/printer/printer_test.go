@@ -943,30 +943,56 @@ func TestEnumFormat(t *testing.T) {
 	t.Run("plain variants", func(t *testing.T) {
 		const src = `package p
 
-enum reportSection{ TopPosts;
-SubredditBreakdown;
-CommentDepth}
+enum reportSection {
+	TopPosts
+
+	SubredditBreakdown
+
+	CommentDepth}
 `
 		got, err := format([]byte(src), 0)
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := "package p\n\nenum reportSection {\n\tTopPosts\n\tSubredditBreakdown\n\tCommentDepth\n}\n"
+		want := "package p\n\nenum reportSection {\n\tTopPosts\n\n\tSubredditBreakdown\n\n\tCommentDepth\n}\n"
 		if string(got) != want {
 			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 		}
 	})
 
-	t.Run("struct variants", func(t *testing.T) {
+	t.Run("struct and tuple variants", func(t *testing.T) {
 		const src = `package p
 
-enum Color{ Red { r, g, b int }; Green; Blue { x int } }
+enum Color {
+	Red{ r, g, b int }
+	Green
+
+	Blue(int)}
 `
 		got, err := format([]byte(src), 0)
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := "package p\n\nenum Color {\n\tRed { r, g, b int }\n\tGreen\n\tBlue { x int }\n}\n"
+		want := "package p\n\nenum Color {\n\tRed { r, g, b int }\n\tGreen\n\n\tBlue(int)\n}\n"
+		if string(got) != want {
+			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+		}
+	})
+
+	t.Run("multiline struct variant fields", func(t *testing.T) {
+		const src = `package p
+
+enum Message {
+	Write {
+		text  string,
+		bytes int
+	}}
+`
+		got, err := format([]byte(src), 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "package p\n\nenum Message {\n\tWrite {\n\t\ttext string,\n\t\tbytes int\n\t}\n}\n"
 		if string(got) != want {
 			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 		}
