@@ -244,7 +244,11 @@ func (check *Checker) ensureImported(pos token.Pos, path string) *PkgName {
 	check.imports = append(check.imports, pkgName)
 	check.usedPkgNames[pkgName] = true
 	for _, file := range check.files {
-		if scope := check.Scopes[file]; scope != nil && scope.Lookup(pkgName.name) == nil {
+		scope := check.fileScopes[file]
+		if scope == nil {
+			scope = check.Scopes[file]
+		}
+		if scope != nil && scope.Lookup(pkgName.name) == nil {
 			check.declare(scope, nil, pkgName, nopos)
 		}
 	}
@@ -276,6 +280,9 @@ func (check *Checker) collectObjects() {
 	var methods []methodInfo // collected methods with valid receivers and non-blank _ names
 
 	fileScopes := make([]*Scope, len(check.files)) // fileScopes[i] corresponds to check.files[i]
+	if check.fileScopes == nil {
+		check.fileScopes = make(map[*ast.File]*Scope, len(check.files))
+	}
 	for fileNo, file := range check.files {
 		check.version = asGoVersion(check.versions[file])
 
@@ -292,6 +299,7 @@ func (check *Checker) collectObjects() {
 		}
 		fileScope := NewScope(pkg.scope, pos, end, check.filename(fileNo))
 		fileScopes[fileNo] = fileScope
+		check.fileScopes[file] = fileScope
 		check.recordScope(file, fileScope)
 
 		// determine file directory, necessary to resolve imports
