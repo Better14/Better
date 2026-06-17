@@ -1072,6 +1072,38 @@ func f(v Color) string {
 	}
 }
 
+func TestEnumEmptyCasePatternFormat(t *testing.T) {
+	const src = `package p
+
+func f(v Color) string {
+	return switch v {
+	case Red {  }:
+		"red"
+	default:
+		"other"
+	}
+}
+`
+	got, err := format([]byte(src), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `package p
+
+func f(v Color) string {
+	return switch v {
+	case Red {}:
+		"red"
+	default:
+		"other"
+	}
+}
+`
+	if string(got) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestLambdaFormat(t *testing.T) {
 	const src = `package p
 

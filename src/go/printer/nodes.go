@@ -969,18 +969,22 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 	case *ast.EnumPatternExpr:
 		p.print(x.Variant)
 		p.setPos(x.Variant.End())
-		p.print(blank, token.LBRACE, blank)
-		for i, f := range x.Fields {
-			if i > 0 {
-				p.print(token.COMMA, blank)
+		if len(x.Fields) == 0 {
+			p.print(blank, token.LBRACE, token.RBRACE)
+		} else {
+			p.print(blank, token.LBRACE, blank)
+			for i, f := range x.Fields {
+				if i > 0 {
+					p.print(token.COMMA, blank)
+				}
+				if len(f.Names) > 0 {
+					p.print(f.Names[0])
+				}
 			}
-			if len(f.Names) > 0 {
-				p.print(f.Names[0])
-			}
+			p.print(blank)
+			p.setPos(x.Rbrace)
+			p.print(token.RBRACE)
 		}
-		p.print(blank)
-		p.setPos(x.Rbrace)
-		p.print(token.RBRACE)
 
 	case *ast.TryExpr:
 		p.expr1(x.X, token.HighestPrec, depth)
