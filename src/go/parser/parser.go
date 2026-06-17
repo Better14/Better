@@ -803,6 +803,10 @@ func (p *parser) parseEnumStructFields(lbrace token.Pos) *ast.FieldList {
 
 	var list []*ast.Field
 	for p.tok != token.RBRACE && p.tok != token.EOF {
+		if p.tok == token.SEMICOLON {
+			p.next()
+			continue
+		}
 		if p.tok != token.IDENT && p.tok != token.MUL && p.tok != token.LPAREN {
 			p.errorExpected(p.pos, "field name")
 			p.advance(declStart)
@@ -812,6 +816,9 @@ func (p *parser) parseEnumStructFields(lbrace token.Pos) *ast.FieldList {
 			continue
 		}
 		list = append(list, p.parseFieldDeclContents())
+		for p.tok == token.SEMICOLON {
+			p.next()
+		}
 		if p.tok == token.COMMA {
 			p.next()
 		} else if p.tok != token.RBRACE {

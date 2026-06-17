@@ -1044,3 +1044,19 @@ enum Color {
 	checkEnumFields(t, f.Decls[0], []string{"text", "bytes"})
 	checkEnumFields(t, f.Decls[1], []string{"r", "g", "b"})
 }
+
+func TestParseEnumMultilineStructVariant(t *testing.T) {
+	const src = `package p
+
+enum Message {
+	Write {
+		text  string,
+		bytes int
+	}}
+`
+	fset := token.NewFileSet()
+	_, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+}
