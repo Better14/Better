@@ -106,6 +106,16 @@ func (w walker) node(n Node) {
 			w.fieldList(v.Fields)
 		}
 
+	case *StructDecl:
+		w.node(n.Name)
+		w.fieldList(n.TParamList)
+		w.fieldList(n.FieldList)
+
+	case *InterfaceDecl:
+		w.node(n.Name)
+		w.fieldList(n.TParamList)
+		w.fieldList(n.MethodList)
+
 	case *VarDecl:
 		w.nameList(n.NameList)
 		if n.Type != nil {

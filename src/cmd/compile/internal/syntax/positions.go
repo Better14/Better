@@ -173,6 +173,18 @@ func EndPos(n Node) Pos {
 				}
 			}
 			return n.Pos()
+		case *StructDecl:
+			if l := len(n.FieldList); l > 0 {
+				m = n.FieldList[l-1]
+				continue
+			}
+			return n.Pos()
+		case *InterfaceDecl:
+			if l := len(n.MethodList); l > 0 {
+				m = n.MethodList[l-1]
+				continue
+			}
+			return n.Pos()
 		case *VarDecl:
 			if n.Values != nil {
 				m = n.Values

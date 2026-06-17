@@ -444,10 +444,12 @@ var stmtStart = map[token.Token]bool{
 }
 
 var declStart = map[token.Token]bool{
-	token.IMPORT: true,
-	token.CONST:  true,
-	token.TYPE:   true,
-	token.VAR:    true,
+	token.IMPORT:    true,
+	token.CONST:     true,
+	token.TYPE:      true,
+	token.VAR:       true,
+	token.STRUCT:    true,
+	token.INTERFACE: true,
 }
 
 var exprEnd = map[token.Token]bool{
@@ -3036,6 +3038,99 @@ func (p *parser) parseTypeSpec(doc *ast.CommentGroup, _ token.Token, _ int) ast.
 	return spec
 }
 
+func (p *parser) parseStructDecl() *ast.StructDecl {
+	if p.trace {
+		defer un(trace(p, "StructDecl"))
+	}
+
+	doc := p.leadComment
+	structPos := p.expect(token.STRUCT)
+	name := p.parseIdent()
+
+	var tparams *ast.FieldList
+	if p.tok == token.LBRACK {
+		tparams = p.parseTypeParameters()
+	}
+
+	lbrace := p.expect(token.LBRACE)
+	var list []*ast.Field
+	for p.tok == token.IDENT || p.tok == token.MUL || p.tok == token.LPAREN {
+		list = append(list, p.parseFieldDecl())
+	}
+	rbrace := p.expect(token.RBRACE)
+	p.expectSemi()
+
+	return &ast.StructDecl{
+		Doc:        doc,
+		Struct:     structPos,
+		Name:       name,
+		TypeParams: tparams,
+		Fields: &ast.FieldList{
+			Opening: lbrace,
+			List:    list,
+			Closing: rbrace,
+		},
+		Rbrace: rbrace,
+	}
+}
+
+func (p *parser) parseInterfaceDecl() *ast.InterfaceDecl {
+	if p.trace {
+		defer un(trace(p, "InterfaceDecl"))
+	}
+
+	doc := p.leadComment
+	ifacePos := p.expect(token.INTERFACE)
+	name := p.parseIdent()
+
+	var tparams *ast.FieldList
+	if p.tok == token.LBRACK {
+		tparams = p.parseTypeParameters()
+	}
+
+	lbrace := p.expect(token.LBRACE)
+	var list []*ast.Field
+parseElements:
+	for {
+		switch {
+		case p.tok == token.IDENT:
+			f := p.parseMethodSpec()
+			if f.Names == nil {
+				f.Type = p.embeddedElem(f.Type)
+			}
+			f.Comment = p.expectSemi()
+			list = append(list, f)
+		case p.tok == token.TILDE:
+			typ := p.embeddedElem(nil)
+			comment := p.expectSemi()
+			list = append(list, &ast.Field{Type: typ, Comment: comment})
+		default:
+			if t := p.tryIdentOrType(); t != nil {
+				typ := p.embeddedElem(t)
+				comment := p.expectSemi()
+				list = append(list, &ast.Field{Type: typ, Comment: comment})
+			} else {
+				break parseElements
+			}
+		}
+	}
+	rbrace := p.expect(token.RBRACE)
+	p.expectSemi()
+
+	return &ast.InterfaceDecl{
+		Doc:        doc,
+		Interface:  ifacePos,
+		Name:       name,
+		TypeParams: tparams,
+		Methods: &ast.FieldList{
+			Opening: lbrace,
+			List:    list,
+			Closing: rbrace,
+		},
+		Rbrace: rbrace,
+	}
+}
+
 // extractName splits the expression x into (name, expr) if syntactically
 // x can be written as name expr. The split only happens if expr is a type
 // element (per the isTypeElem predicate) or if force is set.
@@ -3284,6 +3379,12 @@ func (p *parser) parseDecl(sync map[token.Token]bool) ast.Decl {
 
 	case token.ENUM:
 		return p.parseEnumDecl()
+
+	case token.STRUCT:
+		return p.parseStructDecl()
+
+	case token.INTERFACE:
+		return p.parseInterfaceDecl()
 
 	case token.CONST, token.VAR:
 		f = p.parseValueSpec

@@ -872,6 +872,22 @@ func (check *Checker) declStmt(list []syntax.Decl) {
 			check.enumDecl(obj, s)
 			check.pop()
 
+		case *syntax.StructDecl:
+			obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
+			scopePos := s.Name.Pos()
+			check.declare(check.scope, s.Name, obj, scopePos)
+			check.push(obj)
+			check.typeDecl(obj, s.AsTypeDecl())
+			check.pop()
+
+		case *syntax.InterfaceDecl:
+			obj := NewTypeName(s.Name.Pos(), pkg, s.Name.Value, nil)
+			scopePos := s.Name.Pos()
+			check.declare(check.scope, s.Name, obj, scopePos)
+			check.push(obj)
+			check.typeDecl(obj, s.AsTypeDecl())
+			check.pop()
+
 		default:
 			check.errorf(s, InvalidSyntaxTree, "unknown syntax.Decl node %T", s)
 		}

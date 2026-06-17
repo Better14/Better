@@ -625,5 +625,23 @@ with a single call to
 	wg.Go(func(){ ... })
 
 which was added in Go 1.25.
+
+# Analyzer shorthandtypes
+
+shorthandtypes: rewrite type struct/interface declarations to shorthand syntax
+
+The shorthandtypes analyzer rewrites declarations of the form:
+
+	type Person struct { ... }
+	type Stringer interface { ... }
+
+to the shorthand syntax:
+
+	struct Person { ... }
+	interface Stringer { ... }
+
+Only standalone (non-parenthesized) type declarations without type
+parameters or type aliases are rewritten. Other type declarations are
+left unchanged.
 */
 package modernize

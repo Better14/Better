@@ -781,6 +781,49 @@ func (p *printer) printRawNode(n Node) {
 		}
 		p.print(_Rbrace)
 
+	case *StructDecl:
+		if n.Group == nil {
+			p.print(_Struct, blank)
+		}
+		p.print(n.Name)
+		if n.TParamList != nil {
+			p.printParameterList(n.TParamList, _Type)
+		}
+		if len(n.FieldList) > 0 && p.linebreaks {
+			p.print(blank)
+		}
+		p.print(_Lbrace)
+		if len(n.FieldList) > 0 {
+			if p.linebreaks {
+				p.print(newline, indent)
+				p.printFieldList(n.FieldList, n.TagList, _Semi)
+				p.print(outdent, newline)
+			} else {
+				p.printFieldList(n.FieldList, n.TagList, _Semi)
+			}
+		}
+		p.print(_Rbrace)
+
+	case *InterfaceDecl:
+		if n.Group == nil {
+			p.print(_Interface, blank)
+		}
+		p.print(n.Name)
+		if n.TParamList != nil {
+			p.printParameterList(n.TParamList, _Type)
+		}
+		if p.linebreaks && len(n.MethodList) > 1 {
+			p.print(blank)
+			p.print(_Lbrace)
+			p.print(newline, indent)
+			p.printMethodList(n.MethodList)
+			p.print(outdent, newline)
+		} else {
+			p.print(_Lbrace)
+			p.printMethodList(n.MethodList)
+		}
+		p.print(_Rbrace)
+
 	case *VarDecl:
 		if n.Group == nil {
 			p.print(_Var, blank)
@@ -929,6 +972,10 @@ func groupFor(d Decl) (token, *Group) {
 		return _Type, d.Group
 	case *EnumDecl:
 		return _Enum, d.Group
+	case *StructDecl:
+		return _Struct, d.Group
+	case *InterfaceDecl:
+		return _Interface, d.Group
 	case *VarDecl:
 		return _Var, d.Group
 	case *FuncDecl:

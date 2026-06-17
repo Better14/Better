@@ -1,8 +1,8 @@
 # Struct and interface declarations (proposed)
 
-**Proposed new syntax.** Community feedback wanted.
+**Implemented.** Community feedback still welcome.
 
-This document describes a proposed shorthand for declaring named struct and interface types. The syntax drops the leading `type` keyword and places the type name between the keyword and the body. It is not implemented yet; details may change based on feedback.
+This document describes a shorthand for declaring named struct and interface types. The syntax drops the leading `type` keyword and places the type name between the keyword and the body.
 
 ## Struct declarations
 
@@ -57,9 +57,9 @@ type MyInterface interface { /* … */ }
 
 Both forms would declare the same named types and be interchangeable at the language level. New code could use either style; mixed use in one package would be allowed.
 
-## gofix (proposed)
+## gofix
 
-If this syntax is adopted, [`gofix`](https://pkg.go.dev/golang.org/x/tools/cmd/gofix) would be updated to rewrite the old `type` form to the new shorthand:
+[`go fix`](https://pkg.go.dev/golang.org/x/tools/cmd/fix) includes the `shorthandtypes` modernizer, which rewrites the old `type` form to the new shorthand:
 
 ```go
 // before gofix

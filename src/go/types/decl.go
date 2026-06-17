@@ -328,16 +328,20 @@ type (
 		inherited bool
 	}
 	varDecl  struct{ spec *ast.ValueSpec }
-	typeDecl struct{ spec *ast.TypeSpec }
-	enumDecl struct{ decl *ast.EnumDecl }
-	funcDecl struct{ decl *ast.FuncDecl }
+	typeDecl       struct{ spec *ast.TypeSpec }
+	enumDecl       struct{ decl *ast.EnumDecl }
+	structDecl     struct{ decl *ast.StructDecl }
+	interfaceDecl  struct{ decl *ast.InterfaceDecl }
+	funcDecl       struct{ decl *ast.FuncDecl }
 )
 
 func (d importDecl) node() ast.Node { return d.spec }
 func (d constDecl) node() ast.Node  { return d.spec }
 func (d varDecl) node() ast.Node    { return d.spec }
 func (d typeDecl) node() ast.Node   { return d.spec }
-func (d enumDecl) node() ast.Node   { return d.decl }
+func (d enumDecl) node() ast.Node    { return d.decl }
+func (d structDecl) node() ast.Node  { return d.decl }
+func (d interfaceDecl) node() ast.Node { return d.decl }
 func (d funcDecl) node() ast.Node   { return d.decl }
 
 func (check *Checker) walkDecls(decls []ast.Decl, f func(decl)) {
@@ -387,6 +391,10 @@ func (check *Checker) walkDecl(d ast.Decl, f func(decl)) {
 		f(funcDecl{d})
 	case *ast.EnumDecl:
 		f(enumDecl{d})
+	case *ast.StructDecl:
+		f(structDecl{d})
+	case *ast.InterfaceDecl:
+		f(interfaceDecl{d})
 	default:
 		check.errorf(d, InvalidSyntaxTree, "unknown ast.Decl node %T", d)
 	}
@@ -920,6 +928,22 @@ func (check *Checker) declStmt(d ast.Decl) {
 			check.declare(check.scope, d.decl.Name, obj, scopePos)
 			check.push(obj)
 			check.enumDecl(obj, d.decl)
+			check.pop()
+
+		case structDecl:
+			obj := NewTypeName(d.decl.Name.Pos(), pkg, d.decl.Name.Name, nil)
+			scopePos := d.decl.Name.Pos()
+			check.declare(check.scope, d.decl.Name, obj, scopePos)
+			check.push(obj)
+			check.typeDecl(obj, d.decl.AsTypeSpec())
+			check.pop()
+
+		case interfaceDecl:
+			obj := NewTypeName(d.decl.Name.Pos(), pkg, d.decl.Name.Name, nil)
+			scopePos := d.decl.Name.Pos()
+			check.declare(check.scope, d.decl.Name, obj, scopePos)
+			check.push(obj)
+			check.typeDecl(obj, d.decl.AsTypeSpec())
 			check.pop()
 
 		default:
