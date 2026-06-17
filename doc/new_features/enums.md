@@ -35,6 +35,7 @@ When the expected type is known, **omit the enum name** and use the variant alon
 var a SomeEnum = Value1
 var b SomeEnum = Value2("hello")
 c := Value3(42)              // type inferred from context
+func open(mode Mode = Read)  // default argument
 ```
 
 The qualified form is always valid:

@@ -22,6 +22,12 @@ func (check *Checker) ident(x *operand, e *syntax.Name, wantType bool) {
 	x.expr = e
 
 	scope, obj := check.lookupScope(e.Value)
+	if obj == nil && !wantType {
+		obj = check.lookupPkgEnumVariant(e.Value)
+		if obj != nil {
+			scope = obj.Parent()
+		}
+	}
 	switch obj {
 	case nil:
 		if e.Value == "_" {
@@ -88,6 +94,10 @@ func (check *Checker) ident(x *operand, e *syntax.Name, wantType bool) {
 		check.addDeclDep(obj)
 		if !isValid(typ) {
 			return
+		}
+		if IsEnumVariant(obj) {
+			x.mode_ = value
+			break
 		}
 		if obj == universeIota {
 			if check.iota == nil {
