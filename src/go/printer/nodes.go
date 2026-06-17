@@ -976,42 +976,37 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 
 	case *ast.IfExpr:
 		p.setPos(x.If)
-		p.print(token.IF)
+		p.print(token.IF, blank)
 		p.expr(x.Cond)
-		p.setPos(x.Lbrace)
-		p.print(token.LBRACE)
+		p.print(blank, token.LBRACE, blank)
 		p.expr(x.Then)
-		p.setPos(x.Rbrace)
-		p.print(token.RBRACE)
+		p.print(blank, token.RBRACE, blank)
 		p.setPos(x.Else)
-		p.print(token.ELSE)
-		p.setPos(x.Lbrace2)
-		p.print(token.LBRACE)
+		p.print(token.ELSE, blank)
+		p.print(token.LBRACE, blank)
 		p.expr(x.ElseBody)
-		p.setPos(x.Rbrace2)
-		p.print(token.RBRACE)
+		p.print(blank, token.RBRACE)
 
 	case *ast.SwitchExpr:
 		p.setPos(x.Switch)
 		p.print(token.SWITCH)
 		if x.Tag != nil {
+			p.print(blank)
 			p.expr(x.Tag)
 		}
-		p.setPos(x.Lbrace)
-		p.print(token.LBRACE)
+		p.print(blank, token.LBRACE)
 		for _, c := range x.Body {
 			if len(c.Cases) > 0 {
-				p.print(token.CASE, blank)
+				p.print(blank, token.CASE, blank)
 				p.exprList(c.Cases[0].Pos(), c.Cases, 1, 0, c.Colon, false)
 			} else {
-				p.print(token.DEFAULT)
+				p.print(blank, token.DEFAULT)
 			}
 			p.setPos(c.Colon)
-			p.print(token.COLON)
+			p.print(token.COLON, blank)
 			p.expr(c.Body)
 		}
-		p.setPos(x.Rbrace)
-		p.print(token.RBRACE)
+		p.print(blank, token.RBRACE)
 
 	case *ast.StarExpr:
 		const prec = token.UnaryPrec
@@ -2118,12 +2113,10 @@ func (p *printer) enumDecl(d *ast.EnumDecl) {
 	if len(d.Variants) > 0 {
 		p.print(formfeed)
 	}
-	var line int
 	for i, v := range d.Variants {
 		if i > 0 {
-			p.linebreak(p.lineFor(v.Name.Pos()), 1, ignore, p.linesFrom(line) > 0)
+			p.print(newline)
 		}
-		p.recordLine(&line)
 		p.print(vtab)
 		p.print(v.Name)
 		if v.Tag != nil {
