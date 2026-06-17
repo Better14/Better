@@ -51,6 +51,22 @@ func TestTokens(t *testing.T) {
 	}
 }
 
+func TestLeadingDotContinuation(t *testing.T) {
+	const src = "package p\nfunc _() {\n\t_ = new(T)\n\t\t.foo(1)\n\t\t.foo(2) // inline\n\t\t.foo(3)\n\tfor _, x := range posts\n\t\t.Take(5) {}\n}\n"
+	var first error
+	_, err := Parse(NewFileBase("leading_dot.go"), strings.NewReader(src), func(e error) {
+		if first == nil {
+			first = e
+		}
+	}, nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first != nil {
+		t.Fatal(first)
+	}
+}
+
 func TestScanner(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")

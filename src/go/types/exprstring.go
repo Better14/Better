@@ -161,9 +161,14 @@ func WriteExpr(buf *bytes.Buffer, x ast.Expr) {
 		buf.WriteString(" { … }")
 
 	case *ast.LambdaExpr:
-		buf.WriteByte('(')
-		writeIdentList(buf, x.Params)
-		buf.WriteString(") => ")
+		if len(x.Params) == 1 {
+			WriteExpr(buf, x.Params[0])
+		} else {
+			buf.WriteByte('(')
+			writeIdentList(buf, x.Params)
+			buf.WriteByte(')')
+		}
+		buf.WriteString(" => ")
 		WriteExpr(buf, x.Body)
 
 	case *ast.EnumPatternExpr:

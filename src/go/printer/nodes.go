@@ -877,16 +877,21 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.print(token.NOT)
 
 	case *ast.LambdaExpr:
-		p.setPos(x.Lparen)
-		p.print(token.LPAREN)
-		for i, id := range x.Params {
-			if i > 0 {
-				p.print(token.COMMA, blank)
+		if len(x.Params) == 1 {
+			p.setPos(x.Params[0].Pos())
+			p.print(x.Params[0], blank)
+		} else {
+			p.setPos(x.Lparen)
+			p.print(token.LPAREN)
+			for i, id := range x.Params {
+				if i > 0 {
+					p.print(token.COMMA, blank)
+				}
+				p.print(id)
 			}
-			p.print(id)
+			p.setPos(x.Rparen)
+			p.print(token.RPAREN, blank)
 		}
-		p.setPos(x.Rparen)
-		p.print(token.RPAREN, blank)
 		p.setPos(x.Arrow)
 		p.print(token.FATARROW, blank)
 		p.expr(x.Body)
@@ -1252,20 +1257,22 @@ func (p *printer) possibleSelectorExpr(expr ast.Expr, prec1, depth int) bool {
 // selectorExpr handles an *ast.SelectorExpr node and reports whether x spans
 // multiple lines.
 func (p *printer) selectorExpr(x *ast.SelectorExpr, depth int, isMethod bool) bool {
-	if _, ok := x.X.(*ast.NullCondExpr); ok {
-		p.expr1(x.X, token.HighestPrec, depth)
-	} else {
-		p.expr1(x.X, token.HighestPrec, depth)
-		p.print(token.PERIOD)
-	}
+	_, isNullCond := x.X.(*ast.NullCondExpr)
+	p.expr1(x.X, token.HighestPrec, depth)
 	if line := p.lineFor(x.Sel.Pos()); p.pos.IsValid() && p.pos.Line < line {
 		p.print(indent, newline)
 		p.setPos(x.Sel.Pos())
+		if !isNullCond {
+			p.print(token.PERIOD)
+		}
 		p.print(x.Sel)
 		if !isMethod {
 			p.print(unindent)
 		}
 		return true
+	}
+	if !isNullCond {
+		p.print(token.PERIOD)
 	}
 	p.setPos(x.Sel.Pos())
 	p.print(x.Sel)

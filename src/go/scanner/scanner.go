@@ -41,6 +41,7 @@ type Scanner struct {
 	lineOffset int       // current line offset
 	insertSemi bool      // insert a semicolon before next newline
 	nlPos      token.Pos // position of newline in preceding comment
+	prevTok    token.Token // last token returned by Scan
 
 	endPosValid bool
 	endPos      token.Pos // overrides the offset as the default end position
@@ -730,6 +731,87 @@ func (s *Scanner) skipWhitespace() {
 	}
 }
 
+type scannerState struct {
+	ch                              rune
+	offset, rdOffset, lineOffset    int
+	insertSemi                      bool
+	nlPos                           token.Pos
+	endPosValid                     bool
+	endPos                          token.Pos
+}
+
+func (s *Scanner) saveState() scannerState {
+	return scannerState{
+		ch: s.ch, offset: s.offset, rdOffset: s.rdOffset, lineOffset: s.lineOffset,
+		insertSemi: s.insertSemi, nlPos: s.nlPos, endPosValid: s.endPosValid, endPos: s.endPos,
+	}
+}
+
+func (s *Scanner) restoreState(st scannerState) {
+	s.ch = st.ch
+	s.offset = st.offset
+	s.rdOffset = st.rdOffset
+	s.lineOffset = st.lineOffset
+	s.insertSemi = st.insertSemi
+	s.nlPos = st.nlPos
+	s.endPosValid = st.endPosValid
+	s.endPos = st.endPos
+}
+
+// atLeadingDotSelector reports whether the next tokens begin a leading '.' selector
+// continuation, such as ".Method()" on a new line. If so, the scanner is advanced
+// to the '.'; otherwise state is restored.
+func (s *Scanner) atLeadingDotSelector() bool {
+	st := s.saveState()
+	for {
+		for s.ch == ' ' || s.ch == '\t' || s.ch == '\r' || s.ch == '\n' {
+			s.next()
+		}
+		if s.ch == '/' {
+			s.next()
+			if s.ch == '/' {
+				s.next()
+				for s.ch >= 0 && s.ch != '\n' {
+					s.next()
+				}
+				continue
+			}
+			if s.ch == '*' {
+				s.next()
+				for s.ch >= 0 {
+					if s.ch == '*' {
+						s.next()
+						if s.ch == '/' {
+							s.next()
+							break
+						}
+					} else {
+						s.next()
+					}
+				}
+				continue
+			}
+			break
+		}
+		break
+	}
+	if s.ch == '.' {
+		if p := s.peek(); isLetter(rune(p)) || p == '_' || p == '(' {
+			return true
+		}
+	}
+	s.restoreState(st)
+	return false
+}
+
+func (s *Scanner) mayContinueLeadingDot() bool {
+	switch s.prevTok {
+	case token.COMMENT, token.IDENT, token.RPAREN, token.RBRACK:
+		return true
+	}
+	return false
+}
+
 // Helper functions for scanning multi-byte tokens such as >> += >>= .
 // Different routines recognize different length tok_i based on matches
 // of ch_i. If a token ends in '=', the result is tok1 or tok3
@@ -820,6 +902,7 @@ func (s *Scanner) End() token.Pos {
 // set with Init. Token positions are relative to that file
 // and thus relative to the file set.
 func (s *Scanner) Scan() (pos token.Pos, tok token.Token, lit string) {
+	defer func() { s.prevTok = tok }()
 scanAgain:
 	s.endPosValid = false
 	if s.nlPos.IsValid() {
@@ -870,6 +953,9 @@ scanAgain:
 			// set in the first place and exited early
 			// from s.skipWhitespace()
 			s.insertSemi = false // newline consumed
+			if s.mayContinueLeadingDot() && s.atLeadingDotSelector() {
+				goto scanAgain
+			}
 			return pos, token.SEMICOLON, "\n"
 		case '"':
 			insertSemi = true
