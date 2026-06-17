@@ -519,9 +519,10 @@ func (pr *pkgReader) objDictIdx(idx pkgbits.Index) *readerDict {
 	{
 		r := pr.tempReader(pkgbits.SectionObjDict, idx, pkgbits.SyncObject1)
 
-		if implicits := r.Len(); implicits != 0 {
-			base.Fatalf("unexpected object with %v implicit type parameter(s)", implicits)
-		}
+		// Implicit type parameters may be present for generic methods on
+		// generic types (see noder/writer.go objDict). Only a count is
+		// recorded; bounds follow for receiver and method type params.
+		_ = r.Len()
 
 		nreceivers := 0
 		if r.Version().Has(pkgbits.GenericMethods) {
