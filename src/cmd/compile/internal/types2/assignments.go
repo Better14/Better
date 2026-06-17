@@ -25,8 +25,7 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 	case invalid:
 		return // error reported before
 	case nilvalue:
-		assert(isTypes2)
-		// ok
+		// ok (implicit nil error for result-type returns)
 	case constant_, variable, mapindex, value, commaok, commaerr:
 		// ok
 	default:
