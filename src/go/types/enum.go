@@ -196,11 +196,22 @@ func (check *Checker) buildEnum(named *Named, obj *TypeName, edecl *ast.EnumDecl
 
 		var fields []*Var
 		for _, f := range enumVariantFields(sv) {
-			if f == nil || fieldNameIdent(f) == nil {
+			if f == nil {
 				continue
 			}
 			ft := check.varType(f.Type)
-			fields = append(fields, NewField(f.Pos(), check.pkg, fieldName(f), ft, false))
+			if !isValid(ft) {
+				ft = Typ[Invalid]
+			}
+			if len(f.Names) == 0 {
+				continue
+			}
+			for _, n := range f.Names {
+				if n == nil || n.Name == "" || n.Name == "_" {
+					continue
+				}
+				fields = append(fields, NewField(n.Pos(), check.pkg, n.Name, ft, false))
+			}
 		}
 
 		payload := len(tuple)

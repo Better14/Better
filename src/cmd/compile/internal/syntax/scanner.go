@@ -78,37 +78,12 @@ func (s *scanner) restoreState(st scanner) {
 }
 
 func (s *scanner) skipLeadingDotPrefix() {
-	for {
-		for s.ch == ' ' || s.ch == '\t' || s.ch == '\r' || s.ch == '\n' {
-			s.nextch()
-		}
-		if s.ch != '/' {
-			return
-		}
+	// Only skip whitespace (including newlines). Do not skip comments:
+	// a leading '.' selector cannot start inside a comment, and
+	// consuming comment text here leaves the scanner past comments
+	// when the probe fails (see go.dev/issue/comment-only files).
+	for s.ch == ' ' || s.ch == '\t' || s.ch == '\r' || s.ch == '\n' {
 		s.nextch()
-		if s.ch == '/' {
-			s.nextch()
-			for s.ch >= 0 && s.ch != '\n' {
-				s.nextch()
-			}
-			continue
-		}
-		if s.ch == '*' {
-			s.nextch()
-			for s.ch >= 0 {
-				if s.ch == '*' {
-					s.nextch()
-					if s.ch == '/' {
-						s.nextch()
-						break
-					}
-				} else {
-					s.nextch()
-				}
-			}
-			continue
-		}
-		return
 	}
 }
 
@@ -122,23 +97,37 @@ func (s *scanner) mayContinueLeadingDot() bool {
 
 // atLeadingDotSelector reports whether the next tokens begin a leading '.' selector
 // continuation, such as ".Method()" on a new line. If so, the scanner is advanced
-// to the '.'; otherwise state is restored.
+// to the '.'; otherwise state is unchanged.
 func (s *scanner) atLeadingDotSelector() bool {
-	st := s.saveState()
-	s.skipLeadingDotPrefix()
-	ok := false
-	if s.ch == '.' {
-		s.nextch()
-		if isLetter(s.ch) || s.ch == '_' || s.ch == '(' {
-			ok = true
+	pos := s.r - s.chw
+	for pos < s.e {
+		switch s.buf[pos] {
+		case ' ', '\t', '\r', '\n':
+			pos++
+			continue
+		case '.':
+			pos++
+			if pos >= s.e {
+				return false
+			}
+			b := s.buf[pos]
+			if b < utf8.RuneSelf {
+				if isLetter(rune(b)) || b == '_' || b == '(' {
+					s.skipLeadingDotPrefix()
+					return true
+				}
+				return false
+			}
+			r, _ := utf8.DecodeRune(s.buf[pos:s.e])
+			if isLetter(r) || r == '_' || r == '(' {
+				s.skipLeadingDotPrefix()
+				return true
+			}
+			return false
+		default:
+			return false
 		}
 	}
-	if ok {
-		s.restoreState(st)
-		s.skipLeadingDotPrefix()
-		return true
-	}
-	s.restoreState(st)
 	return false
 }
 

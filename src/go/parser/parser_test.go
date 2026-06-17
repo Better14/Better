@@ -996,3 +996,51 @@ const _ = ` + stringlit + ` ;
 		t.Errorf("found %d BasicLit, want 3", count)
 	}
 }
+
+func TestParseEnumStructVariantFields(t *testing.T) {
+	const src = `package p
+
+enum Message {
+	Write { text string, bytes int }
+}
+
+enum Color {
+	Red { r, g, b int }
+}
+`
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+	if len(f.Decls) != 2 {
+		t.Fatalf("got %d decls, want 2", len(f.Decls))
+	}
+	checkEnumFields := func(t *testing.T, decl ast.Decl, wantFields []string) {
+		t.Helper()
+		ed, ok := decl.(*ast.EnumDecl)
+		if !ok || len(ed.Variants) != 1 {
+			t.Fatalf("expected enum with one variant, got %T", decl)
+		}
+		fl := ed.Variants[0].StructFields
+		if fl == nil {
+			t.Fatal("missing struct fields")
+		}
+		var got []string
+		for _, f := range fl.List {
+			for _, n := range f.Names {
+				got = append(got, n.Name)
+			}
+		}
+		if len(got) != len(wantFields) {
+			t.Fatalf("got fields %v, want %v", got, wantFields)
+		}
+		for i := range wantFields {
+			if got[i] != wantFields[i] {
+				t.Fatalf("field[%d] = %q, want %q (all: got %v)", i, got[i], wantFields[i], got)
+			}
+		}
+	}
+	checkEnumFields(t, f.Decls[0], []string{"text", "bytes"})
+	checkEnumFields(t, f.Decls[1], []string{"r", "g", "b"})
+}

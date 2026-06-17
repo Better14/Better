@@ -707,6 +707,12 @@ func (p *parser) parseFieldDecl() *ast.Field {
 		defer un(trace(p, "FieldDecl"))
 	}
 
+	field := p.parseFieldDeclContents()
+	field.Comment = p.expectSemi()
+	return field
+}
+
+func (p *parser) parseFieldDeclContents() *ast.Field {
 	doc := p.leadComment
 
 	var names []*ast.Ident
@@ -787,10 +793,34 @@ func (p *parser) parseFieldDecl() *ast.Field {
 		p.next()
 	}
 
-	comment := p.expectSemi()
+	return &ast.Field{Doc: doc, Names: names, Type: typ, Tag: tag}
+}
 
-	field := &ast.Field{Doc: doc, Names: names, Type: typ, Tag: tag, Comment: comment}
-	return field
+func (p *parser) parseEnumStructFields(lbrace token.Pos) *ast.FieldList {
+	if p.trace {
+		defer un(trace(p, "EnumStructFields"))
+	}
+
+	var list []*ast.Field
+	for p.tok != token.RBRACE && p.tok != token.EOF {
+		if p.tok != token.IDENT && p.tok != token.MUL && p.tok != token.LPAREN {
+			p.errorExpected(p.pos, "field name")
+			p.advance(declStart)
+			if p.tok == token.COMMA {
+				p.next()
+			}
+			continue
+		}
+		list = append(list, p.parseFieldDeclContents())
+		if p.tok == token.COMMA {
+			p.next()
+		} else if p.tok != token.RBRACE {
+			p.errorExpected(p.pos, "',' or '}'")
+			p.advance(declStart)
+		}
+	}
+	rbrace := p.expect(token.RBRACE)
+	return &ast.FieldList{Opening: lbrace, List: list, Closing: rbrace}
 }
 
 func (p *parser) parseStructType() *ast.StructType {
@@ -3157,14 +3187,8 @@ func (p *parser) parseEnumVariant() *ast.EnumVariantSpec {
 		}
 		p.expect(token.RPAREN)
 	case token.LBRACE:
-		p.next()
-		lbrace := p.pos
-		var list []*ast.Field
-		for p.tok == token.IDENT || p.tok == token.MUL || p.tok == token.LPAREN {
-			list = append(list, p.parseFieldDecl())
-		}
-		rbrace := p.expect(token.RBRACE)
-		spec.StructFields = &ast.FieldList{Opening: lbrace, List: list, Closing: rbrace}
+		lbrace := p.expect(token.LBRACE)
+		spec.StructFields = p.parseEnumStructFields(lbrace)
 	}
 
 	return spec
