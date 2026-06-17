@@ -95,6 +95,38 @@ case ChangeColor { r, g, b }:
 }
 ```
 
+**Ignoring struct variant fields** — when you do not need the payload, use an empty struct pattern or `_` for each field:
+
+```go
+enum Color {
+	Red { r, g, b uint8 }
+	Green
+	Blue(int)
+}
+
+// Ignore all fields (preferred when you only care about the variant):
+switch c {
+case Red {}:
+	fmt.Println("red")
+case Green:
+	fmt.Println("green")
+case Blue(_):
+	fmt.Println("blue")
+}
+
+// Same meaning, but list every field and ignore each one explicitly:
+switch c {
+case Red { _, _, _ }:
+	fmt.Println("red")
+case Green:
+	fmt.Println("green")
+case Blue(_):
+	fmt.Println("blue")
+}
+```
+
+When you list every field in a struct pattern, bindings are **positional**: names must match the variant field at that index, or use `_` to skip binding. Partial patterns still match by field name — for example, `Write { text }` binds only `text`, and `Red { _, g, _ }` binds only `g`.
+
 Invalid (compile error — missing `Value4` and no `default`):
 
 ```go
