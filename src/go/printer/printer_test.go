@@ -939,6 +939,40 @@ func _() (T, *T) {
 	}
 }
 
+func TestEnumFormat(t *testing.T) {
+	t.Run("plain variants", func(t *testing.T) {
+		const src = `package p
+
+enum reportSection{ TopPosts;
+SubredditBreakdown;
+CommentDepth}
+`
+		got, err := format([]byte(src), 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "package p\n\nenum reportSection {\n\tTopPosts\n\tSubredditBreakdown\n\tCommentDepth\n}\n"
+		if string(got) != want {
+			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+		}
+	})
+
+	t.Run("struct variants", func(t *testing.T) {
+		const src = `package p
+
+enum Color{ Red { r, g, b int }; Green; Blue { x int } }
+`
+		got, err := format([]byte(src), 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "package p\n\nenum Color {\n\tRed { r, g, b int }\n\tGreen\n\tBlue { x int }\n}\n"
+		if string(got) != want {
+			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+		}
+	})
+}
+
 func TestLambdaFormat(t *testing.T) {
 	const src = `package p
 

@@ -2053,14 +2053,18 @@ func (p *printer) enumDecl(d *ast.EnumDecl) {
 	p.print(d.Name)
 	if d.TypeParams != nil {
 		p.parameters(d.TypeParams, typeTParam)
-	} else {
-		p.setPos(d.Name.End())
 	}
-	p.print(token.LBRACE, vtab)
+	p.print(blank, token.LBRACE, indent)
+	if len(d.Variants) > 0 {
+		p.print(formfeed)
+	}
+	var line int
 	for i, v := range d.Variants {
 		if i > 0 {
-			p.print(token.SEMICOLON, newline)
+			p.linebreak(p.lineFor(v.Name.Pos()), 1, ignore, p.linesFrom(line) > 0)
 		}
+		p.recordLine(&line)
+		p.print(vtab)
 		p.print(v.Name)
 		if v.Tag != nil {
 			p.print(token.ASSIGN, blank)
@@ -2079,7 +2083,7 @@ func (p *printer) enumDecl(d *ast.EnumDecl) {
 		}
 	}
 	p.setPos(d.Rbrace)
-	p.print(token.RBRACE)
+	p.print(unindent, token.RBRACE)
 }
 
 func (p *printer) funcDecl(d *ast.FuncDecl) {
