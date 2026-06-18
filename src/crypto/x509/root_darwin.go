@@ -62,11 +62,11 @@ func (c *Certificate) systemVerify(opts *VerifyOptions) (chains [][]*Certificate
 	if ret, err := macos.SecTrustEvaluateWithError(trustObj); err != nil {
 		switch ret {
 		case macos.ErrSecCertificateExpired:
-			return nil, CertificateInvalidError{c, Expired, err.Error()}
+			return nil, newCertificateInvalidError(c, Expired, err.Error())
 		case macos.ErrSecHostNameMismatch:
-			return nil, HostnameError{c, opts.DNSName}
+			return nil, newHostnameError(c, opts.DNSName)
 		case macos.ErrSecNotTrusted:
-			return nil, UnknownAuthorityError{Cert: c}
+			return nil, newUnknownAuthorityError(c, nil, nil)
 		default:
 			return nil, fmt.Errorf("x509: %s", err)
 		}
@@ -111,7 +111,7 @@ func (c *Certificate) systemVerify(opts *VerifyOptions) (chains [][]*Certificate
 	}
 
 	if !checkChainForKeyUsage(chain[0], keyUsages) {
-		return nil, CertificateInvalidError{c, IncompatibleUsage, ""}
+		return nil, newCertificateInvalidError(c, IncompatibleUsage, "")
 	}
 
 	return chain, nil

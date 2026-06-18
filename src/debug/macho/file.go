@@ -22,6 +22,7 @@ import (
 	"compress/zlib"
 	"debug/dwarf"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"internal/saferio"
 	"io"
@@ -183,18 +184,28 @@ type Symbol struct {
 // FormatError is returned by some operations if the data does
 // not have the correct format for an object file.
 type FormatError struct {
+	errors.Error
 	off int64
 	msg string
 	val any
 }
 
-func (e *FormatError) Error() string {
-	msg := e.msg
-	if e.val != nil {
-		msg += fmt.Sprintf(" '%v'", e.val)
+func formatErrorMessage(off int64, msg string, val any) string {
+	if val != nil {
+		msg += fmt.Sprintf(" '%v'", val)
 	}
-	msg += fmt.Sprintf(" in record at byte %#x", e.off)
+	msg += fmt.Sprintf(" in record at byte %#x", off)
 	return msg
+}
+
+func newFormatError(off int64, msg string, val any) *FormatError {
+	e := &FormatError{off: off, msg: msg, val: val}
+	errors.InitCustom(&e.Error, "%s", formatErrorMessage(off, msg, val))
+	return e
+}
+
+func (e *FormatError) Error() string {
+	return formatErrorMessage(e.off, e.msg, e.val)
 }
 
 // Open opens the named file using [os.Open] and prepares it for use as a Mach-O binary.
@@ -246,7 +257,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 		f.ByteOrder = binary.LittleEndian
 		f.Magic = le
 	default:
-		return nil, &FormatError{0, "invalid magic number", nil}
+		return nil, newFormatError(0, "invalid magic number", nil)
 	}
 
 	// Read entire file header.
@@ -265,18 +276,18 @@ func NewFile(r io.ReaderAt) (*File, error) {
 	}
 	c := saferio.SliceCap[Load](uint64(f.Ncmd))
 	if c < 0 {
-		return nil, &FormatError{offset, "too many load commands", nil}
+		return nil, newFormatError(offset, "too many load commands", nil)
 	}
 	f.Loads = make([]Load, 0, c)
 	bo := f.ByteOrder
 	for i := uint32(0); i < f.Ncmd; i++ {
 		// Each load command begins with uint32 command and length.
 		if len(dat) < 8 {
-			return nil, &FormatError{offset, "command block too small", nil}
+			return nil, newFormatError(offset, "command block too small", nil)
 		}
 		cmd, siz := LoadCmd(bo.Uint32(dat[0:4])), bo.Uint32(dat[4:8])
 		if siz < 8 || siz > uint32(len(dat)) {
-			return nil, &FormatError{offset, "invalid command block size", nil}
+			return nil, newFormatError(offset, "invalid command block size", nil)
 		}
 		var cmddat []byte
 		cmddat, dat = dat[0:siz], dat[siz:]
@@ -294,7 +305,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 			}
 			l := new(Rpath)
 			if hdr.Path >= uint32(len(cmddat)) {
-				return nil, &FormatError{offset, "invalid path in rpath command", hdr.Path}
+				return nil, newFormatError(offset, "invalid path in rpath command", hdr.Path)
 			}
 			l.Path = cstring(cmddat[hdr.Path:])
 			l.LoadBytes = LoadBytes(cmddat)
@@ -308,7 +319,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 			}
 			l := new(Dylib)
 			if hdr.Name >= uint32(len(cmddat)) {
-				return nil, &FormatError{offset, "invalid name in dynamic library command", hdr.Name}
+				return nil, newFormatError(offset, "invalid name in dynamic library command", hdr.Name)
 			}
 			l.Name = cstring(cmddat[hdr.Name:])
 			l.Time = hdr.Time
@@ -351,13 +362,13 @@ func NewFile(r io.ReaderAt) (*File, error) {
 				return nil, err
 			}
 			if f.Symtab == nil {
-				return nil, &FormatError{offset, "dynamic symbol table seen before any ordinary symbol table", nil}
+				return nil, newFormatError(offset, "dynamic symbol table seen before any ordinary symbol table", nil)
 			} else if hdr.Iundefsym > uint32(len(f.Symtab.Syms)) {
-				return nil, &FormatError{offset, fmt.Sprintf(
+				return nil, newFormatError(offset, fmt.Sprintf(
 					"undefined symbols index in dynamic symbol table command is greater than symbol table length (%d > %d)",
 					hdr.Iundefsym, len(f.Symtab.Syms)), nil}
 			} else if hdr.Iundefsym+hdr.Nundefsym > uint32(len(f.Symtab.Syms)) {
-				return nil, &FormatError{offset, fmt.Sprintf(
+				return nil, newFormatError(offset, fmt.Sprintf(
 					"number of undefined symbols after index in dynamic symbol table command is greater than symbol table length (%d > %d)",
 					hdr.Iundefsym+hdr.Nundefsym, len(f.Symtab.Syms)), nil}
 			}
@@ -458,10 +469,10 @@ func NewFile(r io.ReaderAt) (*File, error) {
 		}
 		if s != nil {
 			if int64(s.Offset) < 0 {
-				return nil, &FormatError{offset, "invalid section offset", s.Offset}
+				return nil, newFormatError(offset, "invalid section offset", s.Offset)
 			}
 			if int64(s.Filesz) < 0 {
-				return nil, &FormatError{offset, "invalid section file size", s.Filesz}
+				return nil, newFormatError(offset, "invalid section file size", s.Filesz)
 			}
 			s.sr = io.NewSectionReader(r, int64(s.Offset), int64(s.Filesz))
 			s.ReaderAt = s.sr
@@ -474,7 +485,7 @@ func (f *File) parseSymtab(symdat, strtab, cmddat []byte, hdr *SymtabCmd, offset
 	bo := f.ByteOrder
 	c := saferio.SliceCap[Symbol](uint64(hdr.Nsyms))
 	if c < 0 {
-		return nil, &FormatError{offset, "too many symbols", nil}
+		return nil, newFormatError(offset, "too many symbols", nil)
 	}
 	symtab := make([]Symbol, 0, c)
 	b := bytes.NewReader(symdat)
@@ -496,7 +507,7 @@ func (f *File) parseSymtab(symdat, strtab, cmddat []byte, hdr *SymtabCmd, offset
 			n.Value = uint64(n32.Value)
 		}
 		if n.Name >= uint32(len(strtab)) {
-			return nil, &FormatError{offset, "invalid name in symbol table", n.Name}
+			return nil, newFormatError(offset, "invalid name in symbol table", n.Name)
 		}
 		// We add "_" to Go symbols. Strip it here. See issue 33808.
 		name := cstring(strtab[n.Name:])
@@ -720,7 +731,7 @@ func (f *File) DWARF() (*dwarf.Data, error) {
 // satisfied by other libraries at dynamic load time.
 func (f *File) ImportedSymbols() ([]string, error) {
 	if f.Symtab == nil {
-		return nil, &FormatError{0, "missing symbol table", nil}
+		return nil, newFormatError(0, "missing symbol table", nil)
 	}
 
 	st := f.Symtab

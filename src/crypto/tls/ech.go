@@ -486,11 +486,22 @@ func validDNSName(name string) bool {
 // The client may treat an ECHRejectionError with an empty set of RetryConfigs
 // as a secure signal from the server.
 type ECHRejectionError struct {
+	errors.Error
 	RetryConfigList []byte
 }
 
-func (e *ECHRejectionError) Error() string {
+func echRejectionErrorMessage() string {
 	return "tls: server rejected ECH"
+}
+
+func newECHRejectionError(retryConfigList []byte) *ECHRejectionError {
+	e := &ECHRejectionError{RetryConfigList: retryConfigList}
+	errors.InitCustom(&e.Error, "%s", echRejectionErrorMessage())
+	return e
+}
+
+func (e *ECHRejectionError) Error() string {
+	return echRejectionErrorMessage()
 }
 
 var errMalformedECHExt = errors.New("tls: malformed encrypted_client_hello extension")

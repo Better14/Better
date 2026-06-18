@@ -86,18 +86,28 @@ type Sym struct {
 // formatError is returned by some operations if the data does
 // not have the correct format for an object file.
 type formatError struct {
+	errors.Error
 	off int
 	msg string
 	val any
 }
 
-func (e *formatError) Error() string {
-	msg := e.msg
-	if e.val != nil {
-		msg += fmt.Sprintf(" '%v'", e.val)
+func formatErrorMessage(off int, msg string, val any) string {
+	if val != nil {
+		msg += fmt.Sprintf(" '%v'", val)
 	}
-	msg += fmt.Sprintf(" in record at byte %#x", e.off)
+	msg += fmt.Sprintf(" in record at byte %#x", off)
 	return msg
+}
+
+func newFormatError(off int, msg string, val any) *formatError {
+	e := &formatError{off: off, msg: msg, val: val}
+	errors.InitCustom(&e.Error, "%s", formatErrorMessage(off, msg, val))
+	return e
+}
+
+func (e *formatError) Error() string {
+	return formatErrorMessage(e.off, e.msg, e.val)
 }
 
 // Open opens the named file using [os.Open] and prepares it for use as a Plan 9 a.out binary.
@@ -133,7 +143,7 @@ func parseMagic(magic []byte) (uint32, error) {
 	case Magic386, MagicAMD64, MagicARM:
 		return m, nil
 	}
-	return 0, &formatError{0, "bad magic number", magic}
+	return 0, newFormatError(0, "bad magic number", magic)
 }
 
 // NewFile creates a new [File] for accessing a Plan 9 binary in an underlying reader.
@@ -211,7 +221,7 @@ func walksymtab(data []byte, ptrsz int, fn func(sym) error) error {
 	for len(p) >= 4 {
 		// Symbol type, value.
 		if len(p) < ptrsz {
-			return &formatError{len(data), "unexpected EOF", nil}
+			return newFormatError(len(data), "unexpected EOF", nil)
 		}
 		// fixed-width value
 		if ptrsz == 8 {
@@ -223,7 +233,7 @@ func walksymtab(data []byte, ptrsz int, fn func(sym) error) error {
 		}
 
 		if len(p) < 1 {
-			return &formatError{len(data), "unexpected EOF", nil}
+			return newFormatError(len(data), "unexpected EOF", nil)
 		}
 		typ := p[0] & 0x7F
 		s.typ = typ
@@ -249,7 +259,7 @@ func walksymtab(data []byte, ptrsz int, fn func(sym) error) error {
 			}
 		}
 		if len(p) < i+nnul {
-			return &formatError{len(data), "unexpected EOF", nil}
+			return newFormatError(len(data), "unexpected EOF", nil)
 		}
 		s.name = p[0:i]
 		i += nnul
@@ -288,7 +298,7 @@ func newTable(symtab []byte, ptrsz int) ([]Sym, error) {
 				eltIdx := binary.BigEndian.Uint16(s.name[i : i+2])
 				elt, ok := fname[eltIdx]
 				if !ok {
-					return &formatError{-1, "bad filename code", eltIdx}
+					return newFormatError(-1, "bad filename code", eltIdx)
 				}
 				if n := len(ts.Name); n > 0 && ts.Name[n-1] != '/' {
 					ts.Name += "/"

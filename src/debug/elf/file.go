@@ -150,8 +150,8 @@ func (s *Section) Open() io.ReadSeeker {
 		zrd = zlib.NewReader
 
 	} else if s.Flags&SHF_ALLOC != 0 {
-		return errorReader{&FormatError{int64(s.Offset),
-			"SHF_COMPRESSED applies only to non-allocable sections", s.compressionType}}
+		return errorReader{newFormatError(int64(s.Offset),
+			"SHF_COMPRESSED applies only to non-allocable sections", s.compressionType)}
 	}
 
 	switch s.compressionType {
@@ -164,7 +164,7 @@ func (s *Section) Open() io.ReadSeeker {
 	}
 
 	if zrd == nil {
-		return errorReader{&FormatError{int64(s.Offset), "unknown compression type", s.compressionType}}
+		return errorReader{newFormatError(int64(s.Offset), "unknown compression type", s.compressionType)}
 	}
 
 	return &readSeekerFromReader{
@@ -231,18 +231,28 @@ type Symbol struct {
  */
 
 type FormatError struct {
+	errors.Error
 	off int64
 	msg string
 	val any
 }
 
-func (e *FormatError) Error() string {
-	msg := e.msg
-	if e.val != nil {
-		msg += fmt.Sprintf(" '%v' ", e.val)
+func formatErrorMessage(off int64, msg string, val any) string {
+	if val != nil {
+		msg += fmt.Sprintf(" '%v' ", val)
 	}
-	msg += fmt.Sprintf("in record at byte %#x", e.off)
+	msg += fmt.Sprintf("in record at byte %#x", off)
 	return msg
+}
+
+func newFormatError(off int64, msg string, val any) *FormatError {
+	e := &FormatError{off: off, msg: msg, val: val}
+	errors.InitCustom(&e.Error, "%s", formatErrorMessage(off, msg, val))
+	return e
+}
+
+func (e *FormatError) Error() string {
+	return formatErrorMessage(e.off, e.msg, e.val)
 }
 
 // Open opens the named file using [os.Open] and prepares it for use as an ELF binary.
@@ -290,10 +300,10 @@ func NewFile(r io.ReaderAt) (*File, error) {
 	// Read and decode ELF identifier
 	var ident [16]uint8
 	if _, err := r.ReadAt(ident[0:], 0); err != nil {
-		return nil, &FormatError{0, "cannot read ELF identifier", err}
+		return nil, newFormatError(0, "cannot read ELF identifier", err)
 	}
 	if ident[0] != '\x7f' || ident[1] != 'E' || ident[2] != 'L' || ident[3] != 'F' {
-		return nil, &FormatError{0, "bad magic number", ident[0:4]}
+		return nil, newFormatError(0, "bad magic number", ident[0:4])
 	}
 
 	f := new(File)
@@ -303,7 +313,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 	case ELFCLASS64:
 		// ok
 	default:
-		return nil, &FormatError{0, "unknown ELF class", f.Class}
+		return nil, newFormatError(0, "unknown ELF class", f.Class)
 	}
 
 	f.Data = Data(ident[EI_DATA])
@@ -314,13 +324,13 @@ func NewFile(r io.ReaderAt) (*File, error) {
 	case ELFDATA2MSB:
 		bo = binary.BigEndian
 	default:
-		return nil, &FormatError{0, "unknown ELF data encoding", f.Data}
+		return nil, newFormatError(0, "unknown ELF data encoding", f.Data)
 	}
 	f.ByteOrder = bo
 
 	f.Version = Version(ident[EI_VERSION])
 	if f.Version != EV_CURRENT {
-		return nil, &FormatError{0, "unknown ELF version", f.Version}
+		return nil, newFormatError(0, "unknown ELF version", f.Version)
 	}
 
 	f.OSABI = OSABI(ident[EI_OSABI])
@@ -342,7 +352,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 		f.Machine = Machine(bo.Uint16(data[unsafe.Offsetof(hdr.Machine):]))
 		f.Entry = uint64(bo.Uint32(data[unsafe.Offsetof(hdr.Entry):]))
 		if v := Version(bo.Uint32(data[unsafe.Offsetof(hdr.Version):])); v != f.Version {
-			return nil, &FormatError{0, "mismatched ELF version", v}
+			return nil, newFormatError(0, "mismatched ELF version", v)
 		}
 		phoff = int64(bo.Uint32(data[unsafe.Offsetof(hdr.Phoff):]))
 		phentsize = int(bo.Uint16(data[unsafe.Offsetof(hdr.Phentsize):]))
@@ -361,7 +371,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 		f.Machine = Machine(bo.Uint16(data[unsafe.Offsetof(hdr.Machine):]))
 		f.Entry = bo.Uint64(data[unsafe.Offsetof(hdr.Entry):])
 		if v := Version(bo.Uint32(data[unsafe.Offsetof(hdr.Version):])); v != f.Version {
-			return nil, &FormatError{0, "mismatched ELF version", v}
+			return nil, newFormatError(0, "mismatched ELF version", v)
 		}
 		phoff = int64(bo.Uint64(data[unsafe.Offsetof(hdr.Phoff):]))
 		phentsize = int(bo.Uint16(data[unsafe.Offsetof(hdr.Phentsize):]))
@@ -373,18 +383,18 @@ func NewFile(r io.ReaderAt) (*File, error) {
 	}
 
 	if shoff < 0 {
-		return nil, &FormatError{0, "invalid shoff", shoff}
+		return nil, newFormatError(0, "invalid shoff", shoff)
 	}
 	if phoff < 0 {
-		return nil, &FormatError{0, "invalid phoff", phoff}
+		return nil, newFormatError(0, "invalid phoff", phoff)
 	}
 
 	if shoff == 0 && shnum != 0 {
-		return nil, &FormatError{0, "invalid ELF shnum for shoff=0", shnum}
+		return nil, newFormatError(0, "invalid ELF shnum for shoff=0", shnum)
 	}
 
 	if shnum > 0 && shstrndx >= shnum {
-		return nil, &FormatError{0, "invalid ELF shstrndx", shstrndx}
+		return nil, newFormatError(0, "invalid ELF shstrndx", shstrndx)
 	}
 
 	var wantPhentsize, wantShentsize int
@@ -397,7 +407,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 		wantShentsize = 4*4 + 6*8
 	}
 	if phnum > 0 && phentsize < wantPhentsize {
-		return nil, &FormatError{0, "invalid ELF phentsize", phentsize}
+		return nil, newFormatError(0, "invalid ELF phentsize", phentsize)
 	}
 
 	// If the number of sections is greater than or equal to SHN_LORESERVE
@@ -436,19 +446,19 @@ func NewFile(r io.ReaderAt) (*File, error) {
 		}
 
 		if SectionType(typ) != SHT_NULL {
-			return nil, &FormatError{shoff, "invalid type of the initial section", SectionType(typ)}
+			return nil, newFormatError(shoff, "invalid type of the initial section", SectionType(typ))
 		}
 
 		if shnum == 0 {
 			if size < uint64(SHN_LORESERVE) {
-				return nil, &FormatError{shoff, "invalid ELF shnum contained in sh_size", shnum}
+				return nil, newFormatError(shoff, "invalid ELF shnum contained in sh_size", shnum)
 			}
 			shnum = int(size)
 		}
 
 		if phnum == pnXnum {
 			if info < 0xffff {
-				return nil, &FormatError{shoff, "invalid ELF phnum contained in sh_info", info}
+				return nil, newFormatError(shoff, "invalid ELF phnum contained in sh_info", info)
 			}
 			phnum = int(info)
 		}
@@ -461,7 +471,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 		if shstrndx == int(SHN_XINDEX) {
 			shstrndx = int(link)
 			if shstrndx < int(SHN_LORESERVE) {
-				return nil, &FormatError{shoff, "invalid ELF shstrndx contained in sh_link", shstrndx}
+				return nil, newFormatError(shoff, "invalid ELF shstrndx contained in sh_link", shstrndx)
 			}
 		}
 	}
@@ -469,10 +479,10 @@ func NewFile(r io.ReaderAt) (*File, error) {
 	// Read program headers
 	c := saferio.SliceCap[*Prog](uint64(phnum))
 	if c < 0 {
-		return nil, &FormatError{0, "too many segments", phnum}
+		return nil, newFormatError(0, "too many segments", phnum)
 	}
 	if phnum > 0 && ((1<<64)-1)/uint64(phnum) < uint64(phentsize) {
-		return nil, &FormatError{0, "segment header overflow", phnum}
+		return nil, newFormatError(0, "segment header overflow", phnum)
 	}
 	f.Progs = make([]*Prog, 0, c)
 	phdata, err := saferio.ReadDataAt(sr, uint64(phnum)*uint64(phentsize), phoff)
@@ -509,10 +519,10 @@ func NewFile(r io.ReaderAt) (*File, error) {
 			}
 		}
 		if int64(p.Off) < 0 {
-			return nil, &FormatError{phoff + int64(off), "invalid program header offset", p.Off}
+			return nil, newFormatError(phoff + int64(off), "invalid program header offset", p.Off)
 		}
 		if int64(p.Filesz) < 0 {
-			return nil, &FormatError{phoff + int64(off), "invalid program header file size", p.Filesz}
+			return nil, newFormatError(phoff + int64(off), "invalid program header file size", p.Filesz)
 		}
 		p.sr = io.NewSectionReader(r, int64(p.Off), int64(p.Filesz))
 		p.ReaderAt = p.sr
@@ -520,16 +530,16 @@ func NewFile(r io.ReaderAt) (*File, error) {
 	}
 
 	if shnum > 0 && shentsize < wantShentsize {
-		return nil, &FormatError{0, "invalid ELF shentsize", shentsize}
+		return nil, newFormatError(0, "invalid ELF shentsize", shentsize)
 	}
 
 	// Read section headers
 	c = saferio.SliceCap[Section](uint64(shnum))
 	if c < 0 {
-		return nil, &FormatError{0, "too many sections", shnum}
+		return nil, newFormatError(0, "too many sections", shnum)
 	}
 	if shnum > 0 && ((1<<64)-1)/uint64(shnum) < uint64(shentsize) {
-		return nil, &FormatError{0, "section header overflow", shnum}
+		return nil, newFormatError(0, "section header overflow", shnum)
 	}
 	f.Sections = make([]*Section, 0, c)
 	names := make([]uint32, 0, c)
@@ -571,10 +581,10 @@ func NewFile(r io.ReaderAt) (*File, error) {
 			}
 		}
 		if int64(s.Offset) < 0 {
-			return nil, &FormatError{shoff + int64(off), "invalid section offset", int64(s.Offset)}
+			return nil, newFormatError(shoff + int64(off), "invalid section offset", int64(s.Offset))
 		}
 		if int64(s.FileSize) < 0 {
-			return nil, &FormatError{shoff + int64(off), "invalid section size", int64(s.FileSize)}
+			return nil, newFormatError(shoff + int64(off), "invalid section size", int64(s.FileSize))
 		}
 		s.sr = io.NewSectionReader(r, int64(s.Offset), int64(s.FileSize))
 
@@ -622,7 +632,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 	}
 	shstr := f.Sections[shstrndx]
 	if shstr.Type != SHT_STRTAB {
-		return nil, &FormatError{shoff + int64(shstrndx*shentsize), "invalid ELF section name string table type", shstr.Type}
+		return nil, newFormatError(shoff + int64(shstrndx*shentsize), "invalid ELF section name string table type", shstr.Type)
 	}
 	shstrtab, err := shstr.Data()
 	if err != nil {
@@ -632,7 +642,7 @@ func NewFile(r io.ReaderAt) (*File, error) {
 		var ok bool
 		s.Name, ok = getString(shstrtab, int(names[i]))
 		if !ok {
-			return nil, &FormatError{shoff + int64(i*shentsize), "bad section name index", names[i]}
+			return nil, newFormatError(shoff + int64(i*shentsize), "bad section name index", names[i])
 		}
 	}
 
@@ -1522,7 +1532,7 @@ func (f *File) dynamicVersions(str []byte) error {
 		}
 		version := f.ByteOrder.Uint16(d[i : i+2])
 		if version != 1 {
-			return &FormatError{int64(vd.Offset + uint64(i)), "unexpected dynamic version", version}
+			return newFormatError(int64(vd.Offset + uint64(i)), "unexpected dynamic version", version)
 		}
 		flags := DynamicVersionFlag(f.ByteOrder.Uint16(d[i+2 : i+4]))
 		ndx := f.ByteOrder.Uint16(d[i+4 : i+6])
@@ -1531,7 +1541,7 @@ func (f *File) dynamicVersions(str []byte) error {
 		next := f.ByteOrder.Uint32(d[i+16 : i+20])
 
 		if cnt == 0 {
-			return &FormatError{int64(vd.Offset + uint64(i)), "dynamic version has no name", nil}
+			return newFormatError(int64(vd.Offset + uint64(i)), "dynamic version has no name", nil)
 		}
 
 		var name string
@@ -1614,7 +1624,7 @@ func (f *File) dynamicVersionNeeds(str []byte) error {
 		}
 		vers := f.ByteOrder.Uint16(d[i : i+2])
 		if vers != 1 {
-			return &FormatError{int64(vn.Offset + uint64(i)), "unexpected dynamic need version", vers}
+			return newFormatError(int64(vn.Offset + uint64(i)), "unexpected dynamic need version", vers)
 		}
 		cnt := f.ByteOrder.Uint16(d[i+2 : i+4])
 		fileoff := f.ByteOrder.Uint32(d[i+4 : i+8])

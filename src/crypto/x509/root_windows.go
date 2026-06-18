@@ -96,12 +96,12 @@ func checkChainTrustStatus(c *Certificate, chainCtx *syscall.CertChainContext) e
 		status := chainCtx.TrustStatus.ErrorStatus
 		switch status {
 		case syscall.CERT_TRUST_IS_NOT_TIME_VALID:
-			return CertificateInvalidError{c, Expired, ""}
+			return newCertificateInvalidError(c, Expired, "")
 		case syscall.CERT_TRUST_IS_NOT_VALID_FOR_USAGE:
-			return CertificateInvalidError{c, IncompatibleUsage, ""}
+			return newCertificateInvalidError(c, IncompatibleUsage, "")
 		// TODO(filippo): surface more error statuses.
 		default:
-			return UnknownAuthorityError{c, nil, nil}
+			return newUnknownAuthorityError(c, nil, nil)
 		}
 	}
 	return nil
@@ -137,13 +137,13 @@ func checkChainSSLServerPolicy(c *Certificate, chainCtx *syscall.CertChainContex
 	if status.Error != 0 {
 		switch status.Error {
 		case syscall.CERT_E_EXPIRED:
-			return CertificateInvalidError{c, Expired, ""}
+			return newCertificateInvalidError(c, Expired, "")
 		case syscall.CERT_E_CN_NO_MATCH:
-			return HostnameError{c, opts.DNSName}
+			return newHostnameError(c, opts.DNSName)
 		case syscall.CERT_E_UNTRUSTEDROOT:
-			return UnknownAuthorityError{c, nil, nil}
+			return newUnknownAuthorityError(c, nil, nil)
 		default:
-			return UnknownAuthorityError{c, nil, nil}
+			return newUnknownAuthorityError(c, nil, nil)
 		}
 	}
 

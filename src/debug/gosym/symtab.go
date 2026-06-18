@@ -10,6 +10,7 @@ package gosym
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -212,11 +213,11 @@ func walksymtab(data []byte, fn func(sym) error) error {
 	var ptrsz int
 	if newTable {
 		if len(data) < 8 {
-			return &DecodingError{len(data), "unexpected EOF", nil}
+			return newDecodingError(len(data), "unexpected EOF", nil)
 		}
 		ptrsz = int(data[7])
 		if ptrsz != 4 && ptrsz != 8 {
-			return &DecodingError{7, "invalid pointer size", ptrsz}
+			return newDecodingError(7, "invalid pointer size", ptrsz)
 		}
 		data = data[8:]
 	}
@@ -238,7 +239,7 @@ func walksymtab(data []byte, fn func(sym) error) error {
 			p = p[1:]
 			if wideValue {
 				if len(p) < ptrsz {
-					return &DecodingError{len(data), "unexpected EOF", nil}
+					return newDecodingError(len(data), "unexpected EOF", nil)
 				}
 				// fixed-width value
 				if ptrsz == 8 {
@@ -258,14 +259,14 @@ func walksymtab(data []byte, fn func(sym) error) error {
 					p = p[1:]
 				}
 				if len(p) == 0 {
-					return &DecodingError{len(data), "unexpected EOF", nil}
+					return newDecodingError(len(data), "unexpected EOF", nil)
 				}
 				s.value |= uint64(p[0]) << shift
 				p = p[1:]
 			}
 			if goType {
 				if len(p) < ptrsz {
-					return &DecodingError{len(data), "unexpected EOF", nil}
+					return newDecodingError(len(data), "unexpected EOF", nil)
 				}
 				// fixed-width go type
 				if ptrsz == 8 {
@@ -280,11 +281,11 @@ func walksymtab(data []byte, fn func(sym) error) error {
 			// Value, symbol type.
 			s.value = uint64(order.Uint32(p[0:4]))
 			if len(p) < 5 {
-				return &DecodingError{len(data), "unexpected EOF", nil}
+				return newDecodingError(len(data), "unexpected EOF", nil)
 			}
 			typ = p[4]
 			if typ&0x80 == 0 {
-				return &DecodingError{len(data) - len(p) + 4, "bad symbol type", typ}
+				return newDecodingError(len(data) - len(p) + 4, "bad symbol type", typ)
 			}
 			typ &^= 0x80
 			s.typ = typ
@@ -311,7 +312,7 @@ func walksymtab(data []byte, fn func(sym) error) error {
 			}
 		}
 		if len(p) < i+nnul {
-			return &DecodingError{len(data), "unexpected EOF", nil}
+			return newDecodingError(len(data), "unexpected EOF", nil)
 		}
 		s.name = p[0:i]
 		i += nnul
@@ -319,7 +320,7 @@ func walksymtab(data []byte, fn func(sym) error) error {
 
 		if !newTable {
 			if len(p) < 4 {
-				return &DecodingError{len(data), "unexpected EOF", nil}
+				return newDecodingError(len(data), "unexpected EOF", nil)
 			}
 			// Go type.
 			s.gotype = uint64(order.Uint32(p[:4]))
@@ -383,7 +384,7 @@ func NewTable(symtab []byte, pcln *LineTable) (*Table, error) {
 				eltIdx := binary.BigEndian.Uint16(s.name[i : i+2])
 				elt, ok := fname[eltIdx]
 				if !ok {
-					return &DecodingError{-1, "bad filename code", eltIdx}
+					return newDecodingError(-1, "bad filename code", eltIdx)
 				}
 				if n := len(ts.Name); n > 0 && ts.Name[n-1] != '/' {
 					ts.Name += "/"
@@ -760,16 +761,26 @@ func (e *UnknownLineError) Error() string {
 // DecodingError represents an error during the decoding of
 // the symbol table.
 type DecodingError struct {
+	errors.Error
 	off int
 	msg string
 	val any
 }
 
-func (e *DecodingError) Error() string {
-	msg := e.msg
-	if e.val != nil {
-		msg += fmt.Sprintf(" '%v'", e.val)
+func decodingErrorMessage(off int, msg string, val any) string {
+	if val != nil {
+		msg += fmt.Sprintf(" '%v'", val)
 	}
-	msg += fmt.Sprintf(" at byte %#x", e.off)
+	msg += fmt.Sprintf(" at byte %#x", off)
 	return msg
+}
+
+func newDecodingError(off int, msg string, val any) *DecodingError {
+	e := &DecodingError{off: off, msg: msg, val: val}
+	errors.InitCustom(&e.Error, "%s", decodingErrorMessage(off, msg, val))
+	return e
+}
+
+func (e *DecodingError) Error() string {
+	return decodingErrorMessage(e.off, e.msg, e.val)
 }
