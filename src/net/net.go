@@ -195,7 +195,7 @@ func (c *conn) Read(b []byte) (int, error) {
 	}
 	n, err := c.fd.Read(b)
 	if err != nil && err != io.EOF {
-		err = &OpError{Op: "read", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("read", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return n, err
 }
@@ -207,7 +207,7 @@ func (c *conn) Write(b []byte) (int, error) {
 	}
 	n, err := c.fd.Write(b)
 	if err != nil {
-		err = &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("write", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return n, err
 }
@@ -219,7 +219,7 @@ func (c *conn) Close() error {
 	}
 	err := c.fd.Close()
 	if err != nil {
-		err = &OpError{Op: "close", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("close", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return err
 }
@@ -250,7 +250,7 @@ func (c *conn) SetDeadline(t time.Time) error {
 		return syscall.EINVAL
 	}
 	if err := c.fd.SetDeadline(t); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: nil, Addr: c.fd.laddr, Err: err}
+		return NewOpError("set", c.fd.net, nil, c.fd.laddr, err)
 	}
 	return nil
 }
@@ -261,7 +261,7 @@ func (c *conn) SetReadDeadline(t time.Time) error {
 		return syscall.EINVAL
 	}
 	if err := c.fd.SetReadDeadline(t); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: nil, Addr: c.fd.laddr, Err: err}
+		return NewOpError("set", c.fd.net, nil, c.fd.laddr, err)
 	}
 	return nil
 }
@@ -272,7 +272,7 @@ func (c *conn) SetWriteDeadline(t time.Time) error {
 		return syscall.EINVAL
 	}
 	if err := c.fd.SetWriteDeadline(t); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: nil, Addr: c.fd.laddr, Err: err}
+		return NewOpError("set", c.fd.net, nil, c.fd.laddr, err)
 	}
 	return nil
 }
@@ -284,7 +284,7 @@ func (c *conn) SetReadBuffer(bytes int) error {
 		return syscall.EINVAL
 	}
 	if err := setReadBuffer(c.fd, bytes); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: nil, Addr: c.fd.laddr, Err: err}
+		return NewOpError("set", c.fd.net, nil, c.fd.laddr, err)
 	}
 	return nil
 }
@@ -296,7 +296,7 @@ func (c *conn) SetWriteBuffer(bytes int) error {
 		return syscall.EINVAL
 	}
 	if err := setWriteBuffer(c.fd, bytes); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: nil, Addr: c.fd.laddr, Err: err}
+		return NewOpError("set", c.fd.net, nil, c.fd.laddr, err)
 	}
 	return nil
 }
@@ -314,7 +314,7 @@ func (c *conn) SetWriteBuffer(bytes int) error {
 func (c *conn) File() (f *os.File, err error) {
 	f, err = c.fd.dup()
 	if err != nil {
-		err = &OpError{Op: "file", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("file", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return
 }
@@ -470,6 +470,7 @@ func mapErr(err error) error {
 // package. It describes the operation, network type, and address of
 // an error.
 type OpError struct {
+	errors.Error
 	// Op is the operation which caused the error, such as
 	// "read" or "write".
 	Op string
@@ -496,29 +497,40 @@ type OpError struct {
 	Err error
 }
 
+func opErrorMessage(op, net string, source, addr Addr, err error) string {
+	s := op
+	if net != "" {
+		s += " " + net
+	}
+	if source != nil {
+		s += " " + source.String()
+	}
+	if addr != nil {
+		if source != nil {
+			s += "->"
+		} else {
+			s += " "
+		}
+		s += addr.String()
+	}
+	s += ": " + err.Error()
+	return s
+}
+
+// NewOpError returns an OpError with a stack trace captured at the call site.
+func NewOpError(op, net string, source, addr Addr, err error) *OpError {
+	e := &OpError{Op: op, Net: net, Source: source, Addr: addr, Err: err}
+	errors.InitCustom(&e.Error, "%s", opErrorMessage(op, net, source, addr, err))
+	return e
+}
+
 func (e *OpError) Unwrap() error { return e.Err }
 
 func (e *OpError) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
-	s := e.Op
-	if e.Net != "" {
-		s += " " + e.Net
-	}
-	if e.Source != nil {
-		s += " " + e.Source.String()
-	}
-	if e.Addr != nil {
-		if e.Source != nil {
-			s += "->"
-		} else {
-			s += " "
-		}
-		s += e.Addr.String()
-	}
-	s += ": " + e.Err.Error()
-	return s
+	return opErrorMessage(e.Op, e.Net, e.Source, e.Addr, e.Err)
 }
 
 var (
@@ -566,6 +578,7 @@ func (e *OpError) Temporary() bool {
 
 // A ParseError is the error type of literal network address parsers.
 type ParseError struct {
+	errors.Error
 	// Type is the type of string that was expected, such as
 	// "IP address", "CIDR address".
 	Type string
@@ -574,25 +587,47 @@ type ParseError struct {
 	Text string
 }
 
-func (e *ParseError) Error() string { return "invalid " + e.Type + ": " + e.Text }
+func parseErrorMessage(typ, text string) string {
+	return "invalid " + typ + ": " + text
+}
+
+// NewParseError returns a ParseError with a stack trace captured at the call site.
+func NewParseError(typ, text string) *ParseError {
+	e := &ParseError{Type: typ, Text: text}
+	errors.InitCustom(&e.Error, "%s", parseErrorMessage(typ, text))
+	return e
+}
+
+func (e *ParseError) Error() string { return parseErrorMessage(e.Type, e.Text) }
 
 func (e *ParseError) Timeout() bool   { return false }
 func (e *ParseError) Temporary() bool { return false }
 
 type AddrError struct {
+	errors.Error
 	Err  string
 	Addr string
+}
+
+func addrErrorMessage(err, addr string) string {
+	if addr == "" {
+		return err
+	}
+	return "address " + addr + ": " + err
+}
+
+// NewAddrError returns an AddrError with a stack trace captured at the call site.
+func NewAddrError(err, addr string) *AddrError {
+	e := &AddrError{Err: err, Addr: addr}
+	errors.InitCustom(&e.Error, "%s", addrErrorMessage(err, addr))
+	return e
 }
 
 func (e *AddrError) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
-	s := e.Err
-	if e.Addr != "" {
-		s = "address " + e.Addr + ": " + s
-	}
-	return s
+	return addrErrorMessage(e.Err, e.Addr)
 }
 
 func (e *AddrError) Timeout() bool   { return false }
@@ -636,11 +671,19 @@ func (e *timeoutError) Is(err error) bool {
 // DNSConfigError represents an error reading the machine's DNS configuration.
 // (No longer used; kept for compatibility.)
 type DNSConfigError struct {
+	errors.Error
 	Err error
 }
 
-func (e *DNSConfigError) Unwrap() error   { return e.Err }
-func (e *DNSConfigError) Error() string   { return "error reading DNS config: " + e.Err.Error() }
+func dnsConfigErrorMessage(err error) string {
+	if err == nil {
+		return "error reading DNS config: <nil>"
+	}
+	return "error reading DNS config: " + err.Error()
+}
+
+func (e *DNSConfigError) Unwrap() error { return e.Err }
+func (e *DNSConfigError) Error() string { return dnsConfigErrorMessage(e.Err) }
 func (e *DNSConfigError) Timeout() bool   { return false }
 func (e *DNSConfigError) Temporary() bool { return false }
 
@@ -666,6 +709,7 @@ func (e *temporaryError) Timeout() bool   { return false }
 
 // DNSError represents a DNS lookup error.
 type DNSError struct {
+	errors.Error
 	UnwrapErr   error  // error returned by the [DNSError.Unwrap] method, might be nil
 	Err         string // description of the error
 	Name        string // name looked for
@@ -700,7 +744,7 @@ func newDNSError(err error, name, server string) *DNSError {
 	}
 
 	_, isNotFound := err.(*notFoundError)
-	return &DNSError{
+	de := &DNSError{
 		UnwrapErr:   unwrapErr,
 		Err:         err.Error(),
 		Name:        name,
@@ -709,6 +753,8 @@ func newDNSError(err error, name, server string) *DNSError {
 		IsTemporary: isTemporary,
 		IsNotFound:  isNotFound,
 	}
+	errors.InitCustom(&de.Error, "%s", dnsErrorMessage(de))
+	return de
 }
 
 // Unwrap returns e.UnwrapErr.
@@ -718,12 +764,29 @@ func (e *DNSError) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
+	return dnsErrorMessage(e)
+}
+
+func dnsErrorMessage(e *DNSError) string {
 	s := "lookup " + e.Name
 	if e.Server != "" {
 		s += " on " + e.Server
 	}
 	s += ": " + e.Err
 	return s
+}
+
+// dnsError returns a DNSError with a stack trace captured at the call site.
+func dnsError(errMsg, name string) *DNSError {
+	e := &DNSError{Err: errMsg, Name: name}
+	errors.InitCustom(&e.Error, "%s", dnsErrorMessage(e))
+	return e
+}
+
+func dnsErrorWithServer(errMsg, name, server string) *DNSError {
+	e := &DNSError{Err: errMsg, Name: name, Server: server}
+	errors.InitCustom(&e.Error, "%s", dnsErrorMessage(e))
+	return e
 }
 
 // Timeout reports whether the DNS lookup is known to have timed out.

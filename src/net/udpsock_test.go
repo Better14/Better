@@ -86,9 +86,9 @@ var resolveUDPAddrTests = []resolveUDPAddrTest{
 	{"udp4", "[::ffff:127.0.0.1]:domain", &UDPAddr{IP: ParseIP("127.0.0.1"), Port: 53}, nil},
 	{"udp6", "[2001:db8::1]:domain", &UDPAddr{IP: ParseIP("2001:db8::1"), Port: 53}, nil},
 
-	{"udp4", "[2001:db8::1]:domain", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "2001:db8::1"}},
-	{"udp6", "127.0.0.1:domain", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "127.0.0.1"}},
-	{"udp6", "[::ffff:127.0.0.1]:domain", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "::ffff:127.0.0.1"}},
+	{"udp4", "[2001:db8::1]:domain", nil, NewAddrError(errNoSuitableAddress.Error(), "2001:db8::1")},
+	{"udp6", "127.0.0.1:domain", nil, NewAddrError(errNoSuitableAddress.Error(), "127.0.0.1")},
+	{"udp6", "[::ffff:127.0.0.1]:domain", nil, NewAddrError(errNoSuitableAddress.Error(), "::ffff:127.0.0.1")},
 }
 
 func TestResolveUDPAddr(t *testing.T) {

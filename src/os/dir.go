@@ -180,11 +180,11 @@ func CopyFS(dir string, fsys fs.FS) error {
 
 			if _, err := io.Copy(w, r); err != nil {
 				w.Close()
-				return &PathError{Op: "Copy", Path: newPath, Err: err}
+				return fs.NewPathError("Copy", newPath, err)
 			}
 			return w.Close()
 		default:
-			return &PathError{Op: "CopyFS", Path: path, Err: ErrInvalid}
+			return fs.NewPathError("CopyFS", path, ErrInvalid)
 		}
 	})
 }

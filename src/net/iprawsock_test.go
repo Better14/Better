@@ -45,12 +45,12 @@ var resolveIPAddrTests = []resolveIPAddrTest{
 	{"l2tp:gre", "127.0.0.1", nil, UnknownNetworkError("l2tp:gre")},
 	{"tcp", "1.2.3.4:123", nil, UnknownNetworkError("tcp")},
 
-	{"ip4", "2001:db8::1", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "2001:db8::1"}},
-	{"ip4:icmp", "2001:db8::1", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "2001:db8::1"}},
-	{"ip6", "127.0.0.1", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "127.0.0.1"}},
-	{"ip6", "::ffff:127.0.0.1", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "::ffff:127.0.0.1"}},
-	{"ip6:ipv6-icmp", "127.0.0.1", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "127.0.0.1"}},
-	{"ip6:ipv6-icmp", "::ffff:127.0.0.1", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "::ffff:127.0.0.1"}},
+	{"ip4", "2001:db8::1", nil, NewAddrError(errNoSuitableAddress.Error(), "2001:db8::1")},
+	{"ip4:icmp", "2001:db8::1", nil, NewAddrError(errNoSuitableAddress.Error(), "2001:db8::1")},
+	{"ip6", "127.0.0.1", nil, NewAddrError(errNoSuitableAddress.Error(), "127.0.0.1")},
+	{"ip6", "::ffff:127.0.0.1", nil, NewAddrError(errNoSuitableAddress.Error(), "::ffff:127.0.0.1")},
+	{"ip6:ipv6-icmp", "127.0.0.1", nil, NewAddrError(errNoSuitableAddress.Error(), "127.0.0.1")},
+	{"ip6:ipv6-icmp", "::ffff:127.0.0.1", nil, NewAddrError(errNoSuitableAddress.Error(), "::ffff:127.0.0.1")},
 }
 
 func TestResolveIPAddr(t *testing.T) {

@@ -26,7 +26,7 @@ type ReadLinkFS interface {
 func ReadLink(fsys FS, name string) (string, error) {
 	sym, ok := fsys.(ReadLinkFS)
 	if !ok {
-		return "", &PathError{Op: "readlink", Path: name, Err: ErrInvalid}
+		return "", NewPathError("readlink", name, ErrInvalid)
 	}
 	return sym.ReadLink(name)
 }

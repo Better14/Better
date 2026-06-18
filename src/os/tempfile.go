@@ -39,7 +39,7 @@ func CreateTemp(dir, pattern string) (*File, error) {
 
 	prefix, suffix, err := prefixAndSuffix(pattern)
 	if err != nil {
-		return nil, &PathError{Op: "createtemp", Path: pattern, Err: err}
+		return nil, fs.NewPathError("createtemp", pattern, err)
 	}
 	prefix = joinPath(dir, prefix)
 
@@ -51,7 +51,7 @@ func CreateTemp(dir, pattern string) (*File, error) {
 			if try++; try < 10000 {
 				continue
 			}
-			return nil, &PathError{Op: "createtemp", Path: prefix + "*" + suffix, Err: ErrExist}
+			return nil, fs.NewPathError("createtemp", prefix + "*" + suffix, ErrExist)
 		}
 		return f, err
 	}
@@ -90,7 +90,7 @@ func MkdirTemp(dir, pattern string) (string, error) {
 
 	prefix, suffix, err := prefixAndSuffix(pattern)
 	if err != nil {
-		return "", &PathError{Op: "mkdirtemp", Path: pattern, Err: err}
+		return "", fs.NewPathError("mkdirtemp", pattern, err)
 	}
 	prefix = joinPath(dir, prefix)
 
@@ -105,7 +105,7 @@ func MkdirTemp(dir, pattern string) (string, error) {
 			if try++; try < 10000 {
 				continue
 			}
-			return "", &PathError{Op: "mkdirtemp", Path: prefix + "*" + suffix, Err: ErrExist}
+			return "", fs.NewPathError("mkdirtemp", prefix + "*" + suffix, ErrExist)
 		}
 		if IsNotExist(err) {
 			if _, err := Stat(dir); IsNotExist(err) {

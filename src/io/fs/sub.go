@@ -36,7 +36,7 @@ type SubFS interface {
 // Use [os.Root] to constrain access to particular directory trees.
 func Sub(fsys FS, dir string) (FS, error) {
 	if !ValidPath(dir) {
-		return nil, &PathError{Op: "sub", Path: dir, Err: ErrInvalid}
+		return nil, NewPathError("sub", dir, ErrInvalid)
 	}
 	if dir == "." {
 		return fsys, nil
@@ -61,7 +61,7 @@ type subFS struct {
 // fullName maps name to the fully-qualified name dir/name.
 func (f *subFS) fullName(op string, name string) (string, error) {
 	if !ValidPath(name) {
-		return "", &PathError{Op: op, Path: name, Err: ErrInvalid}
+		return "", NewPathError(op, name, ErrInvalid)
 	}
 	return path.Join(f.dir, name), nil
 }

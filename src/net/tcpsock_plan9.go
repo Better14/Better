@@ -33,7 +33,7 @@ func (sd *sysDialer) doDialTCP(ctx context.Context, laddr, raddr *TCPAddr) (*TCP
 	case "tcp4":
 		// Plan 9 doesn't complain about [::]:0->127.0.0.1, so it's up to us.
 		if laddr != nil && len(laddr.IP) != 0 && laddr.IP.To4() == nil {
-			return nil, &AddrError{Err: "non-IPv4 local address", Addr: laddr.String()}
+			return nil, NewAddrError("non-IPv4 local address", laddr.String())
 		}
 	case "tcp", "tcp6":
 	default:

@@ -47,7 +47,7 @@ func newFileStatFromGetFileInformationByHandle(path string, h syscall.Handle) (f
 	var d syscall.ByHandleFileInformation
 	err = syscall.GetFileInformationByHandle(h, &d)
 	if err != nil {
-		return nil, &PathError{Op: "GetFileInformationByHandle", Path: path, Err: err}
+		return nil, fs.NewPathError("GetFileInformationByHandle", path, err)
 	}
 
 	var reparseTag uint32
@@ -55,7 +55,7 @@ func newFileStatFromGetFileInformationByHandle(path string, h syscall.Handle) (f
 		var ti windows.FILE_ATTRIBUTE_TAG_INFO
 		err = windows.GetFileInformationByHandleEx(h, windows.FileAttributeTagInfo, (*byte)(unsafe.Pointer(&ti)), uint32(unsafe.Sizeof(ti)))
 		if err != nil {
-			return nil, &PathError{Op: "GetFileInformationByHandleEx", Path: path, Err: err}
+			return nil, fs.NewPathError("GetFileInformationByHandleEx", path, err)
 		}
 		reparseTag = ti.ReparseTag
 	}
@@ -343,7 +343,7 @@ func (fs *fileStat) saveInfoFromPath(path string) error {
 		var err error
 		fs.path, err = syscall.FullPath(fs.path)
 		if err != nil {
-			return &PathError{Op: "FullPath", Path: path, Err: err}
+			return fs.NewPathError("FullPath", path, err)
 		}
 	}
 	fs.name = filepathlite.Base(path)

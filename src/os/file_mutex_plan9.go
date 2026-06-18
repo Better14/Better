@@ -17,7 +17,7 @@ func (f *File) incref(op string) (err error) {
 	if !f.fdmu.Incref() {
 		err = ErrClosed
 		if op != "" {
-			err = &PathError{Op: op, Path: f.name, Err: err}
+			err = fs.NewPathError(op, f.name, err)
 		}
 	}
 	return err

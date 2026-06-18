@@ -56,15 +56,15 @@ func parsePlan9Addr(s string) (ip IP, iport int, err error) {
 	if i >= 0 {
 		addr = ParseIP(s[:i])
 		if addr == nil {
-			return nil, 0, &ParseError{Type: "IP address", Text: s}
+			return nil, 0, NewParseError("IP address", s)
 		}
 	}
 	p, plen, ok := dtoi(s[i+1:])
 	if !ok {
-		return nil, 0, &ParseError{Type: "port", Text: s}
+		return nil, 0, NewParseError("port", s)
 	}
 	if p < 0 || p > 0xFFFF {
-		return nil, 0, &AddrError{Err: "invalid port", Addr: s[i+1 : i+1+plen]}
+		return nil, 0, NewAddrError("invalid port", s[i+1 : i+1+plen])
 	}
 	return addr, p, nil
 }
@@ -239,7 +239,7 @@ func listenPlan9(ctx context.Context, net string, laddr Addr) (fd *netFD, err er
 	_, err = f.WriteString("announce " + dest)
 	if err != nil {
 		f.Close()
-		return nil, &OpError{Op: "announce", Net: net, Source: laddr, Addr: nil, Err: err}
+		return nil, NewOpError("announce", net, laddr, nil, err)
 	}
 	laddr, err = readPlan9Addr(net, netdir+"/"+proto+"/"+name+"/local")
 	if err != nil {

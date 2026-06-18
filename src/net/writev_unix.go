@@ -17,7 +17,7 @@ func (c *conn) writeBuffers(v *Buffers) (int64, error) {
 	}
 	n, err := c.fd.writeBuffers(v)
 	if err != nil {
-		return n, &OpError{Op: "writev", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return n, NewOpError("writev", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return n, nil
 }

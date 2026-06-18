@@ -152,12 +152,12 @@ const DevNull = "NUL"
 // openFileNolog is the Windows implementation of OpenFile.
 func openFileNolog(name string, flag int, perm FileMode) (*File, error) {
 	if name == "" {
-		return nil, &PathError{Op: "open", Path: name, Err: syscall.ENOENT}
+		return nil, fs.NewPathError("open", name, syscall.ENOENT)
 	}
 	path := fixLongPath(name)
 	r, err := syscall.Open(path, flag|syscall.O_CLOEXEC, syscallMode(perm))
 	if err != nil {
-		return nil, &PathError{Op: "open", Path: name, Err: err}
+		return nil, fs.NewPathError("open", name, err)
 	}
 	nonblocking := flag&windows.O_FILE_FLAG_OVERLAPPED != 0
 	return newFile(r, name, kindOpenFile, nonblocking), nil
@@ -179,7 +179,7 @@ func (file *file) close() error {
 		if e == poll.ErrFileClosing {
 			e = ErrClosed
 		}
-		err = &PathError{Op: "close", Path: file.name, Err: e}
+		err = fs.NewPathError("close", file.name, e)
 	}
 
 	// no need for a finalizer anymore
@@ -222,7 +222,7 @@ func Truncate(name string, size int64) error {
 func Remove(name string) error {
 	p, e := syscall.UTF16PtrFromString(fixLongPath(name))
 	if e != nil {
-		return &PathError{Op: "remove", Path: name, Err: e}
+		return fs.NewPathError("remove", name, e)
 	}
 
 	// Go file interface forces us to know whether
@@ -253,13 +253,13 @@ func Remove(name string) error {
 			}
 		}
 	}
-	return &PathError{Op: "remove", Path: name, Err: e}
+	return fs.NewPathError("remove", name, e)
 }
 
 func rename(oldname, newname string) error {
 	e := windows.Rename(fixLongPath(oldname), fixLongPath(newname))
 	if e != nil {
-		return &LinkError{"rename", oldname, newname, e}
+		return NewLinkError("rename", oldname, newname, e)
 	}
 	return nil
 }
@@ -308,15 +308,15 @@ func tempDir() string {
 func Link(oldname, newname string) error {
 	n, err := syscall.UTF16PtrFromString(fixLongPath(newname))
 	if err != nil {
-		return &LinkError{"link", oldname, newname, err}
+		return NewLinkError("link", oldname, newname, err)
 	}
 	o, err := syscall.UTF16PtrFromString(fixLongPath(oldname))
 	if err != nil {
-		return &LinkError{"link", oldname, newname, err}
+		return NewLinkError("link", oldname, newname, err)
 	}
 	err = syscall.CreateHardLink(n, o, 0)
 	if err != nil {
-		return &LinkError{"link", oldname, newname, err}
+		return NewLinkError("link", oldname, newname, err)
 	}
 	return nil
 }
@@ -350,7 +350,7 @@ func Symlink(oldname, newname string) error {
 
 	n, err := syscall.UTF16PtrFromString(fixLongPath(newname))
 	if err != nil {
-		return &LinkError{"symlink", oldname, newname, err}
+		return NewLinkError("symlink", oldname, newname, err)
 	}
 	var o *uint16
 	if filepathlite.IsAbs(oldname) {
@@ -365,7 +365,7 @@ func Symlink(oldname, newname string) error {
 		o, err = syscall.UTF16PtrFromString(oldname)
 	}
 	if err != nil {
-		return &LinkError{"symlink", oldname, newname, err}
+		return NewLinkError("symlink", oldname, newname, err)
 	}
 
 	var flags uint32 = windows.SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
@@ -379,7 +379,7 @@ func Symlink(oldname, newname string) error {
 		flags &^= windows.SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
 		err = syscall.CreateSymbolicLink(n, o, flags)
 		if err != nil {
-			return &LinkError{"symlink", oldname, newname, err}
+			return NewLinkError("symlink", oldname, newname, err)
 		}
 	}
 	return nil
@@ -501,7 +501,7 @@ func readReparseLinkHandle(h syscall.Handle) (string, error) {
 func readlink(name string) (string, error) {
 	s, err := readReparseLink(fixLongPath(name))
 	if err != nil {
-		return "", &PathError{Op: "readlink", Path: name, Err: err}
+		return "", fs.NewPathError("readlink", name, err)
 	}
 	return s, nil
 }

@@ -164,7 +164,7 @@ func (c *TCPConn) ReadFrom(r io.Reader) (int64, error) {
 	}
 	n, err := c.readFrom(r)
 	if err != nil && err != io.EOF {
-		err = &OpError{Op: "readfrom", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("readfrom", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return n, err
 }
@@ -176,7 +176,7 @@ func (c *TCPConn) WriteTo(w io.Writer) (int64, error) {
 	}
 	n, err := c.writeTo(w)
 	if err != nil && err != io.EOF {
-		err = &OpError{Op: "writeto", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("writeto", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return n, err
 }
@@ -188,7 +188,7 @@ func (c *TCPConn) CloseRead() error {
 		return syscall.EINVAL
 	}
 	if err := c.fd.closeRead(); err != nil {
-		return &OpError{Op: "close", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("close", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return nil
 }
@@ -200,7 +200,7 @@ func (c *TCPConn) CloseWrite() error {
 		return syscall.EINVAL
 	}
 	if err := c.fd.closeWrite(); err != nil {
-		return &OpError{Op: "close", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("close", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return nil
 }
@@ -224,7 +224,7 @@ func (c *TCPConn) SetLinger(sec int) error {
 		return syscall.EINVAL
 	}
 	if err := setLinger(c.fd, sec); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("set", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return nil
 }
@@ -236,7 +236,7 @@ func (c *TCPConn) SetKeepAlive(keepalive bool) error {
 		return syscall.EINVAL
 	}
 	if err := setKeepAlive(c.fd, keepalive); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("set", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return nil
 }
@@ -251,7 +251,7 @@ func (c *TCPConn) SetKeepAlivePeriod(d time.Duration) error {
 		return syscall.EINVAL
 	}
 	if err := setKeepAliveIdle(c.fd, d); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("set", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return nil
 }
@@ -265,7 +265,7 @@ func (c *TCPConn) SetNoDelay(noDelay bool) error {
 		return syscall.EINVAL
 	}
 	if err := setNoDelay(c.fd, noDelay); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("set", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return nil
 }
@@ -322,10 +322,10 @@ func dialTCP(ctx context.Context, dialer *Dialer, network string, laddr, raddr *
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 	default:
-		return nil, &OpError{Op: "dial", Net: network, Source: laddr.opAddr(), Addr: raddr.opAddr(), Err: UnknownNetworkError(network)}
+		return nil, NewOpError("dial", network, laddr.opAddr(), raddr.opAddr(), UnknownNetworkError(network))
 	}
 	if raddr == nil {
-		return nil, &OpError{Op: "dial", Net: network, Source: laddr.opAddr(), Addr: nil, Err: errMissingAddress}
+		return nil, NewOpError("dial", network, laddr.opAddr(), nil, errMissingAddress)
 	}
 	sd := &sysDialer{network: network, address: raddr.String()}
 	var (
@@ -341,7 +341,7 @@ func dialTCP(ctx context.Context, dialer *Dialer, network string, laddr, raddr *
 		c, err = sd.dialTCP(ctx, laddr, raddr)
 	}
 	if err != nil {
-		return nil, &OpError{Op: "dial", Net: network, Source: laddr.opAddr(), Addr: raddr.opAddr(), Err: err}
+		return nil, NewOpError("dial", network, laddr.opAddr(), raddr.opAddr(), err)
 	}
 	return c, nil
 }
@@ -373,7 +373,7 @@ func (l *TCPListener) AcceptTCP() (*TCPConn, error) {
 	}
 	c, err := l.accept()
 	if err != nil {
-		return nil, &OpError{Op: "accept", Net: l.fd.net, Source: nil, Addr: l.fd.laddr, Err: err}
+		return nil, NewOpError("accept", l.fd.net, nil, l.fd.laddr, err)
 	}
 	return c, nil
 }
@@ -386,7 +386,7 @@ func (l *TCPListener) Accept() (Conn, error) {
 	}
 	c, err := l.accept()
 	if err != nil {
-		return nil, &OpError{Op: "accept", Net: l.fd.net, Source: nil, Addr: l.fd.laddr, Err: err}
+		return nil, NewOpError("accept", l.fd.net, nil, l.fd.laddr, err)
 	}
 	return c, nil
 }
@@ -398,7 +398,7 @@ func (l *TCPListener) Close() error {
 		return syscall.EINVAL
 	}
 	if err := l.close(); err != nil {
-		return &OpError{Op: "close", Net: l.fd.net, Source: nil, Addr: l.fd.laddr, Err: err}
+		return NewOpError("close", l.fd.net, nil, l.fd.laddr, err)
 	}
 	return nil
 }
@@ -433,7 +433,7 @@ func (l *TCPListener) File() (f *os.File, err error) {
 	}
 	f, err = l.file()
 	if err != nil {
-		return nil, &OpError{Op: "file", Net: l.fd.net, Source: nil, Addr: l.fd.laddr, Err: err}
+		return nil, NewOpError("file", l.fd.net, nil, l.fd.laddr, err)
 	}
 	return
 }
@@ -451,7 +451,7 @@ func ListenTCP(network string, laddr *TCPAddr) (*TCPListener, error) {
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 	default:
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: laddr.opAddr(), Err: UnknownNetworkError(network)}
+		return nil, NewOpError("listen", network, nil, laddr.opAddr(), UnknownNetworkError(network))
 	}
 	if laddr == nil {
 		laddr = &TCPAddr{}
@@ -467,7 +467,7 @@ func ListenTCP(network string, laddr *TCPAddr) (*TCPListener, error) {
 		ln, err = sl.listenTCP(context.Background(), laddr)
 	}
 	if err != nil {
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: laddr.opAddr(), Err: err}
+		return nil, NewOpError("listen", network, nil, laddr.opAddr(), err)
 	}
 	return ln, nil
 }

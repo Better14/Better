@@ -24,6 +24,7 @@
 package fs
 
 import (
+	"errors"
 	"internal/oserror"
 	"time"
 	"unicode/utf8"
@@ -262,12 +263,27 @@ func (m FileMode) Type() FileMode {
 
 // PathError records an error and the operation and file path that caused it.
 type PathError struct {
+	errors.Error
 	Op   string
 	Path string
 	Err  error
 }
 
-func (e *PathError) Error() string { return e.Op + " " + e.Path + ": " + e.Err.Error() }
+func pathErrorMessage(op, path string, err error) string {
+	if err == nil {
+		return op + " " + path + ": <nil>"
+	}
+	return op + " " + path + ": " + err.Error()
+}
+
+// NewPathError returns a PathError with a stack trace captured at the call site.
+func NewPathError(op, path string, err error) *PathError {
+	pe := &PathError{Op: op, Path: path, Err: err}
+	errors.InitCustom(&pe.Error, "%s", pathErrorMessage(op, path, err))
+	return pe
+}
+
+func (e *PathError) Error() string { return pathErrorMessage(e.Op, e.Path, e.Err) }
 
 func (e *PathError) Unwrap() error { return e.Err }
 

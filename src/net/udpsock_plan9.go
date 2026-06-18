@@ -165,7 +165,7 @@ func (sl *sysListener) listenMulticastUDP(ctx context.Context, ifi *Interface, g
 		if ipnet, ok := addr.(*IPNet); ok && (ipnet.IP.To4() != nil) == have4 {
 			_, err = l.ctl.WriteString("addmulti " + ipnet.IP.String() + " " + gaddr.IP.String())
 			if err != nil {
-				return nil, &OpError{Op: "addmulti", Net: "", Source: nil, Addr: ipnet, Err: err}
+				return nil, NewOpError("addmulti", "", nil, ipnet, err)
 			}
 		}
 	}

@@ -1335,7 +1335,7 @@ func TestStrictErrorsLookupIP(t *testing.T) {
 			case resolveOK:
 				// Handle below.
 			case resolveOpError:
-				return dnsmessage.Message{}, &OpError{Op: "write", Err: fmt.Errorf("socket on fire")}
+				return dnsmessage.Message{}, NewOpError("write", \"\", nil, nil, fmt.Errorf("socket on fire"))
 			case resolveServfail:
 				return dnsmessage.Message{
 					Header: dnsmessage.Header{
@@ -2144,7 +2144,7 @@ func TestCVE202133195(t *testing.T) {
 		{
 			name: "CNAME",
 			f: func(t *testing.T) {
-				expectedErr := &DNSError{Err: errMalformedDNSRecordsDetail, Name: "golang.org"}
+				expectedErr := dnsError(errMalformedDNSRecordsDetail, "golang.org")
 				_, err := r.LookupCNAME(context.Background(), "golang.org")
 				if err.Error() != expectedErr.Error() {
 					t.Fatalf("unexpected error: %s", err)
@@ -2163,7 +2163,7 @@ func TestCVE202133195(t *testing.T) {
 						Target: "good.golang.org.",
 					},
 				}
-				expectedErr := &DNSError{Err: errMalformedDNSRecordsDetail, Name: "golang.org"}
+				expectedErr := dnsError(errMalformedDNSRecordsDetail, "golang.org")
 				_, records, err := r.LookupSRV(context.Background(), "target", "tcp", "golang.org")
 				if err.Error() != expectedErr.Error() {
 					t.Fatalf("unexpected error: %s", err)
@@ -2201,7 +2201,7 @@ func TestCVE202133195(t *testing.T) {
 					"2001:4860:0:2001::68.",
 					"good.golang.org.",
 				}
-				expectedErr := &DNSError{Err: errMalformedDNSRecordsDetail, Name: "golang.org"}
+				expectedErr := dnsError(errMalformedDNSRecordsDetail, "golang.org")
 				records, err := r.LookupMX(context.Background(), "golang.org")
 				if err.Error() != expectedErr.Error() {
 					t.Fatalf("unexpected error: %s", err)
@@ -2238,7 +2238,7 @@ func TestCVE202133195(t *testing.T) {
 						Host: "good.golang.org.",
 					},
 				}
-				expectedErr := &DNSError{Err: errMalformedDNSRecordsDetail, Name: "golang.org"}
+				expectedErr := dnsError(errMalformedDNSRecordsDetail, "golang.org")
 				records, err := r.LookupNS(context.Background(), "golang.org")
 				if err.Error() != expectedErr.Error() {
 					t.Fatalf("unexpected error: %s", err)
@@ -2259,7 +2259,7 @@ func TestCVE202133195(t *testing.T) {
 			name: "Addr",
 			f: func(t *testing.T) {
 				expected := []string{"good.golang.org."}
-				expectedErr := &DNSError{Err: errMalformedDNSRecordsDetail, Name: "192.0.2.42"}
+				expectedErr := dnsError(errMalformedDNSRecordsDetail, "192.0.2.42")
 				records, err := r.LookupAddr(context.Background(), "192.0.2.42")
 				if err.Error() != expectedErr.Error() {
 					t.Fatalf("unexpected error: %s", err)

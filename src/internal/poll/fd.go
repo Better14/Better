@@ -48,16 +48,23 @@ func errClosing(isFile bool) error {
 
 // ErrDeadlineExceeded is returned for an expired deadline.
 // This is exported by the os package as os.ErrDeadlineExceeded.
-var ErrDeadlineExceeded error = &DeadlineExceededError{}
+var ErrDeadlineExceeded error
+
+func init() {
+	var e DeadlineExceededError
+	errors.InitCustom(&e.Error, "i/o timeout")
+	ErrDeadlineExceeded = &e
+}
 
 // DeadlineExceededError is returned for an expired deadline.
-type DeadlineExceededError struct{}
+type DeadlineExceededError struct {
+	errors.Error
+}
 
 // Implement the net.Error interface.
 // The string is "i/o timeout" because that is what was returned
 // by earlier Go versions. Changing it may break programs that
 // match on error strings.
-func (e *DeadlineExceededError) Error() string   { return "i/o timeout" }
 func (e *DeadlineExceededError) Timeout() bool   { return true }
 func (e *DeadlineExceededError) Temporary() bool { return true }
 

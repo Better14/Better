@@ -322,9 +322,9 @@ var resolveTCPAddrTests = []resolveTCPAddrTest{
 	{"tcp4", "[::ffff:127.0.0.1]:http", &TCPAddr{IP: ParseIP("127.0.0.1"), Port: 80}, nil},
 	{"tcp6", "[2001:db8::1]:http", &TCPAddr{IP: ParseIP("2001:db8::1"), Port: 80}, nil},
 
-	{"tcp4", "[2001:db8::1]:http", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "2001:db8::1"}},
-	{"tcp6", "127.0.0.1:http", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "127.0.0.1"}},
-	{"tcp6", "[::ffff:127.0.0.1]:http", nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: "::ffff:127.0.0.1"}},
+	{"tcp4", "[2001:db8::1]:http", nil, NewAddrError(errNoSuitableAddress.Error(), "2001:db8::1")},
+	{"tcp6", "127.0.0.1:http", nil, NewAddrError(errNoSuitableAddress.Error(), "127.0.0.1")},
+	{"tcp6", "[::ffff:127.0.0.1]:http", nil, NewAddrError(errNoSuitableAddress.Error(), "::ffff:127.0.0.1")},
 }
 
 func TestResolveTCPAddr(t *testing.T) {

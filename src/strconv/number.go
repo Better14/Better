@@ -250,16 +250,27 @@ var ErrSyntax = errors.New("invalid syntax")
 
 // A NumError records a failed conversion.
 type NumError struct {
+	errors.Error
 	Func string // the failing function (ParseBool, ParseInt, ParseUint, ParseFloat, ParseComplex)
 	Num  string // the input
 	Err  error  // the reason the conversion failed (e.g. ErrRange, ErrSyntax, etc.)
 }
 
+func numErrorMessage(fn, num string, err error) string {
+	return "strconv." + fn + ": " + "parsing " + Quote(num) + ": " + err.Error()
+}
+
 func (e *NumError) Error() string {
-	return "strconv." + e.Func + ": " + "parsing " + Quote(e.Num) + ": " + e.Err.Error()
+	return numErrorMessage(e.Func, e.Num, e.Err)
 }
 
 func (e *NumError) Unwrap() error { return e.Err }
+
+func newNumError(fn, str string, err error) *NumError {
+	e := &NumError{Func: fn, Num: stringslite.Clone(str), Err: err}
+	errors.InitCustom(&e.Error, "%s", numErrorMessage(fn, e.Num, err))
+	return e
+}
 
 // All ParseXXX functions allow the input string to escape to the error value.
 // This hurts strconv.ParseXXX(string(b)) calls where b is []byte since
@@ -270,17 +281,17 @@ func (e *NumError) Unwrap() error { return e.Err }
 // conversions, since it can now prove that the string cannot escape Parse.
 
 func syntaxError(fn, str string) *NumError {
-	return &NumError{fn, stringslite.Clone(str), ErrSyntax}
+	return newNumError(fn, str, ErrSyntax)
 }
 
 func rangeError(fn, str string) *NumError {
-	return &NumError{fn, stringslite.Clone(str), ErrRange}
+	return newNumError(fn, str, ErrRange)
 }
 
 func baseError(fn, str string, base int) *NumError {
-	return &NumError{fn, stringslite.Clone(str), errors.New("invalid base " + Itoa(base))}
+	return newNumError(fn, str, errors.New("invalid base %d", base))
 }
 
 func bitSizeError(fn, str string, bitSize int) *NumError {
-	return &NumError{fn, stringslite.Clone(str), errors.New("invalid bit size " + Itoa(bitSize))}
+	return newNumError(fn, str, errors.New("invalid bit size %d", bitSize))
 }

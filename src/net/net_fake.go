@@ -79,17 +79,11 @@ func validateResolvedAddr(net string, family int, sa sockaddr) error {
 		switch family {
 		case syscall.AF_INET:
 			if len(ip) != 4 {
-				return &AddrError{
-					Err:  "non-IPv4 address",
-					Addr: ip.String(),
-				}
+				return NewAddrError("non-IPv4 address", ip.String())
 			}
 		case syscall.AF_INET6:
 			if len(ip) != 16 {
-				return &AddrError{
-					Err:  "non-IPv6 address",
-					Addr: ip.String(),
-				}
+				return NewAddrError("non-IPv6 address", ip.String())
 			}
 		default:
 			panic("net: unexpected address family in validateResolvedAddr")
@@ -101,48 +95,33 @@ func validateResolvedAddr(net string, family int, sa sockaddr) error {
 	case "tcp", "tcp4", "tcp6":
 		sa, ok := sa.(*TCPAddr)
 		if !ok {
-			return &AddrError{
-				Err:  "non-TCP address for " + net + " network",
-				Addr: sa.String(),
-			}
+			return NewAddrError("non-TCP address for " + net + " network", sa.String())
 		}
 		if err := validateIP(sa.IP); err != nil {
 			return err
 		}
 		if sa.Port <= 0 || sa.Port >= 1<<16 {
-			return &AddrError{
-				Err:  "port out of range",
-				Addr: sa.String(),
-			}
+			return NewAddrError("port out of range", sa.String())
 		}
 		return nil
 
 	case "udp", "udp4", "udp6":
 		sa, ok := sa.(*UDPAddr)
 		if !ok {
-			return &AddrError{
-				Err:  "non-UDP address for " + net + " network",
-				Addr: sa.String(),
-			}
+			return NewAddrError("non-UDP address for " + net + " network", sa.String())
 		}
 		if err := validateIP(sa.IP); err != nil {
 			return err
 		}
 		if sa.Port <= 0 || sa.Port >= 1<<16 {
-			return &AddrError{
-				Err:  "port out of range",
-				Addr: sa.String(),
-			}
+			return NewAddrError("port out of range", sa.String())
 		}
 		return nil
 
 	case "unix", "unixgram", "unixpacket":
 		sa, ok := sa.(*UnixAddr)
 		if !ok {
-			return &AddrError{
-				Err:  "non-Unix address for " + net + " network",
-				Addr: sa.String(),
-			}
+			return NewAddrError("non-Unix address for " + net + " network", sa.String())
 		}
 		if sa.Name != "" {
 			i := len(sa.Name) - 1
@@ -153,25 +132,16 @@ func validateResolvedAddr(net string, family int, sa sockaddr) error {
 				i--
 			}
 			if i <= 0 {
-				return &AddrError{
-					Err:  "unix socket name missing path component",
-					Addr: sa.Name,
-				}
+				return NewAddrError("unix socket name missing path component", sa.Name)
 			}
 			if _, err := os.Stat(sa.Name[:i+1]); err != nil {
-				return &AddrError{
-					Err:  err.Error(),
-					Addr: sa.Name,
-				}
+				return NewAddrError(err.Error(), sa.Name)
 			}
 		}
 		return nil
 
 	default:
-		return &AddrError{
-			Err:  syscall.EAFNOSUPPORT.Error(),
-			Addr: sa.String(),
-		}
+		return NewAddrError(syscall.EAFNOSUPPORT.Error(), sa.String())
 	}
 }
 
@@ -696,10 +666,7 @@ func fakeListen(fd *netFD, laddr sockaddr) (err error) {
 		}
 		if laddr != nil {
 			if _, ok := err.(*AddrError); !ok {
-				err = &AddrError{
-					Err:  err.Error(),
-					Addr: laddr.String(),
-				}
+				err = NewAddrError(err.Error(), laddr.String())
 			}
 		}
 		return err
@@ -754,10 +721,7 @@ func fakeConnect(ctx context.Context, fd *netFD, laddr, raddr sockaddr) error {
 			// that convey structured information, because AddrError reduces
 			// the wrapped Err to a flat string.)
 			if _, ok := err.(*AddrError); !ok {
-				err = &AddrError{
-					Err:  err.Error(),
-					Addr: raddr.String(),
-				}
+				err = NewAddrError(err.Error(), raddr.String())
 			}
 		}
 		return err
@@ -983,10 +947,7 @@ func (ffd *fakeNetFD) assignFakeAddr(addr sockaddr) error {
 	case "unix", "unixgram", "unixpacket":
 		uaddr, ok := addr.(*UnixAddr)
 		if !ok && addr != nil {
-			return &AddrError{
-				Err:  "non-Unix address for " + ffd.fd.net + " network",
-				Addr: addr.String(),
-			}
+			return NewAddrError("non-Unix address for " + ffd.fd.net + " network", addr.String())
 		}
 		if uaddr == nil {
 			return validate(&UnixAddr{Net: ffd.fd.net})
@@ -994,10 +955,7 @@ func (ffd *fakeNetFD) assignFakeAddr(addr sockaddr) error {
 		return validate(&UnixAddr{Net: ffd.fd.net, Name: uaddr.Name})
 
 	default:
-		return &AddrError{
-			Err:  syscall.EAFNOSUPPORT.Error(),
-			Addr: addr.String(),
-		}
+		return NewAddrError(syscall.EAFNOSUPPORT.Error(), addr.String())
 	}
 }
 

@@ -263,7 +263,7 @@ var ipStringTests = []*struct {
 		IP{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef},
 		"?0123456789abcdef",
 		nil,
-		&AddrError{Err: "invalid IP address", Addr: "0123456789abcdef"},
+		NewAddrError("invalid IP address", "0123456789abcdef"),
 	},
 }
 
@@ -422,17 +422,17 @@ var parseCIDRTests = []struct {
 	{"abcd:2345::/24", ParseIP("abcd:2345::"), &IPNet{IP: ParseIP("abcd:2300::"), Mask: IPMask(ParseIP("ffff:ff00::"))}, nil},
 	{"2001:DB8::/48", ParseIP("2001:DB8::"), &IPNet{IP: ParseIP("2001:DB8::"), Mask: IPMask(ParseIP("ffff:ffff:ffff::"))}, nil},
 	{"2001:DB8::1/48", ParseIP("2001:DB8::1"), &IPNet{IP: ParseIP("2001:DB8::"), Mask: IPMask(ParseIP("ffff:ffff:ffff::"))}, nil},
-	{"192.168.1.1/255.255.255.0", nil, nil, &ParseError{Type: "CIDR address", Text: "192.168.1.1/255.255.255.0"}},
-	{"192.168.1.1/35", nil, nil, &ParseError{Type: "CIDR address", Text: "192.168.1.1/35"}},
-	{"2001:db8::1/-1", nil, nil, &ParseError{Type: "CIDR address", Text: "2001:db8::1/-1"}},
-	{"2001:db8::1/-0", nil, nil, &ParseError{Type: "CIDR address", Text: "2001:db8::1/-0"}},
-	{"-0.0.0.0/32", nil, nil, &ParseError{Type: "CIDR address", Text: "-0.0.0.0/32"}},
-	{"0.-1.0.0/32", nil, nil, &ParseError{Type: "CIDR address", Text: "0.-1.0.0/32"}},
-	{"0.0.-2.0/32", nil, nil, &ParseError{Type: "CIDR address", Text: "0.0.-2.0/32"}},
-	{"0.0.0.-3/32", nil, nil, &ParseError{Type: "CIDR address", Text: "0.0.0.-3/32"}},
-	{"0.0.0.0/-0", nil, nil, &ParseError{Type: "CIDR address", Text: "0.0.0.0/-0"}},
-	{"127.000.000.001/32", nil, nil, &ParseError{Type: "CIDR address", Text: "127.000.000.001/32"}},
-	{"", nil, nil, &ParseError{Type: "CIDR address", Text: ""}},
+	{"192.168.1.1/255.255.255.0", nil, nil, NewParseError("CIDR address", "192.168.1.1/255.255.255.0")},
+	{"192.168.1.1/35", nil, nil, NewParseError("CIDR address", "192.168.1.1/35")},
+	{"2001:db8::1/-1", nil, nil, NewParseError("CIDR address", "2001:db8::1/-1")},
+	{"2001:db8::1/-0", nil, nil, NewParseError("CIDR address", "2001:db8::1/-0")},
+	{"-0.0.0.0/32", nil, nil, NewParseError("CIDR address", "-0.0.0.0/32")},
+	{"0.-1.0.0/32", nil, nil, NewParseError("CIDR address", "0.-1.0.0/32")},
+	{"0.0.-2.0/32", nil, nil, NewParseError("CIDR address", "0.0.-2.0/32")},
+	{"0.0.0.-3/32", nil, nil, NewParseError("CIDR address", "0.0.0.-3/32")},
+	{"0.0.0.0/-0", nil, nil, NewParseError("CIDR address", "0.0.0.0/-0")},
+	{"127.000.000.001/32", nil, nil, NewParseError("CIDR address", "127.000.000.001/32")},
+	{"", nil, nil, NewParseError("CIDR address", "")},
 }
 
 func TestParseCIDR(t *testing.T) {
