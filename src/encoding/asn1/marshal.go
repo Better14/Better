@@ -194,7 +194,7 @@ func appendBase128Int(dst []byte, n int64) []byte {
 
 func makeBigInt(n *big.Int) (encoder, error) {
 	if n == nil {
-		return nil, StructuralError{"empty integer"}
+		return nil, newStructuralError("empty integer")
 	}
 
 	if n.Sign() < 0 {
@@ -302,7 +302,7 @@ func (oid oidEncoder) Encode(dst []byte) {
 
 func makeObjectIdentifier(oid []int) (e encoder, err error) {
 	if len(oid) < 2 || oid[0] > 2 || (oid[0] < 2 && oid[1] >= 40) {
-		return nil, StructuralError{"invalid object identifier"}
+		return nil, newStructuralError("invalid object identifier")
 	}
 
 	return oidEncoder(oid), nil
@@ -317,7 +317,7 @@ func makePrintableString(s string) (e encoder, err error) {
 		// certificates, however when making new certificates
 		// it is rejected.
 		if !isPrintable(s[i], allowAsterisk, rejectAmpersand) {
-			return nil, StructuralError{"PrintableString contains invalid character"}
+			return nil, newStructuralError("PrintableString contains invalid character")
 		}
 	}
 
@@ -327,7 +327,7 @@ func makePrintableString(s string) (e encoder, err error) {
 func makeIA5String(s string) (e encoder, err error) {
 	for i := 0; i < len(s); i++ {
 		if s[i] > 127 {
-			return nil, StructuralError{"IA5String contains invalid character"}
+			return nil, newStructuralError("IA5String contains invalid character")
 		}
 	}
 
@@ -337,7 +337,7 @@ func makeIA5String(s string) (e encoder, err error) {
 func makeNumericString(s string) (e encoder, err error) {
 	for i := 0; i < len(s); i++ {
 		if !isNumeric(s[i]) {
-			return nil, StructuralError{"NumericString contains invalid character"}
+			return nil, newStructuralError("NumericString contains invalid character")
 		}
 	}
 
@@ -396,7 +396,7 @@ func appendUTCTime(dst []byte, t time.Time) (ret []byte, err error) {
 	case 2000 <= year && year < 2050:
 		dst = appendTwoDigits(dst, year-2000)
 	default:
-		return nil, StructuralError{"cannot represent time as UTCTime"}
+		return nil, newStructuralError("cannot represent time as UTCTime")
 	}
 
 	return appendTimeCommon(dst, t), nil
@@ -405,7 +405,7 @@ func appendUTCTime(dst []byte, t time.Time) (ret []byte, err error) {
 func appendGeneralizedTime(dst []byte, t time.Time) (ret []byte, err error) {
 	year := t.Year()
 	if year < 0 || year > 9999 {
-		return nil, StructuralError{"cannot represent time as GeneralizedTime"}
+		return nil, newStructuralError("cannot represent time as GeneralizedTime")
 	}
 
 	dst = appendFourDigits(dst, year)
@@ -489,7 +489,7 @@ func makeBody(value reflect.Value, params fieldParameters) (e encoder, err error
 
 		for i := 0; i < t.NumField(); i++ {
 			if !t.Field(i).IsExported() {
-				return nil, StructuralError{"struct contains unexported fields"}
+				return nil, newStructuralError("struct contains unexported fields")
 			}
 		}
 
@@ -573,7 +573,7 @@ func makeBody(value reflect.Value, params fieldParameters) (e encoder, err error
 		}
 	}
 
-	return nil, StructuralError{"unknown Go type"}
+	return nil, newStructuralError("unknown Go type")
 }
 
 func makeField(v reflect.Value, params fieldParameters) (e encoder, err error) {
@@ -623,15 +623,15 @@ func makeField(v reflect.Value, params fieldParameters) (e encoder, err error) {
 
 	matchAny, tag, isCompound, ok := getUniversalType(v.Type())
 	if !ok || matchAny {
-		return nil, StructuralError{fmt.Sprintf("unknown Go type: %v", v.Type())}
+		return nil, newStructuralError(fmt.Sprintf("unknown Go type: %v", v.Type()))
 	}
 
 	if params.timeType != 0 && tag != TagUTCTime {
-		return nil, StructuralError{"explicit time type given to non-time member"}
+		return nil, newStructuralError("explicit time type given to non-time member")
 	}
 
 	if params.stringType != 0 && tag != TagPrintableString {
-		return nil, StructuralError{"explicit string type given to non-string member"}
+		return nil, newStructuralError("explicit string type given to non-string member")
 	}
 
 	switch tag {
@@ -661,7 +661,7 @@ func makeField(v reflect.Value, params fieldParameters) (e encoder, err error) {
 
 	if params.set {
 		if tag != TagSequence {
-			return nil, StructuralError{"non sequence tagged as set"}
+			return nil, newStructuralError("non sequence tagged as set")
 		}
 		tag = TagSet
 	}

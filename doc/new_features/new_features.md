@@ -26,7 +26,7 @@ This directory documents language and library extensions planned or implemented 
 ## Standard library
 
 - [Library changes](library_changes.md) — stdlib API extensions (e.g. .NET `FormatCustom` date/time)
-- [Structured errors (`errors.Error`)](errors.md) — message, stack trace, and inner error chain
+- [Structured errors (`errors.Error`)](errors.md) — message, stack trace, inner error chain; **most stdlib custom error types migrated**
 - [Built-in LINQ](linq.md)
 - [Data structures](data_structures.md) — `list`, `set`, `queue`, `stack`, heaps, trees
 

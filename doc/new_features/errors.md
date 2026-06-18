@@ -589,6 +589,58 @@ If `err` is `*MyError`, `Wrap` adds an outer `*errors.Error` layer whose `InnerE
 
 Mechanical rewrites (e.g. `fmt.Errorf("… %w", err)` → `errors.Wrap(err, "…")`) may be provided as **`go fix`** analyzers in a later release. Manual migration following the patterns above is always sufficient.
 
+## Standard library integration
+
+Most **public custom error types** in the standard library now **embed `errors.Error`** and capture a **stack trace at construction** via package-local constructors (`NewPathError`, `newSyntaxError`, `errors.InitCustom`, and similar). This applies to errors returned from normal API use — not only to direct `errors.New` / `fmt.Errorf` call sites in application code.
+
+### What was migrated
+
+Custom error structs were updated package-by-package. Each type keeps its existing **`Error()`**, **`Unwrap()`**, **`Is()`**, and **`As()`** behavior; only construction sites were routed through helpers that call **`errors.InitCustom`** (or **`errors.New`** for sentinels that already used it).
+
+| Area | Packages / types (representative) |
+| ---- | --------------------------------- |
+| Core I/O | `io/fs.PathError`; `os.SyscallError`, `LinkError`; `internal/poll.DeadlineExceededError` |
+| Networking | `net.OpError`, `ParseError`, `AddrError`, `DNSError`; `net/netip` parse errors |
+| Parsing & encoding | `strconv.NumError`; `encoding/json` (v1, v2, `jsontext`); `encoding/xml`, `encoding/csv`; `encoding/asn1` (`StructuralError`, `SyntaxError`, `invalidUnmarshalError`); `encoding/gob` (`gobError`) |
+| HTTP | `net/http` request/response errors; `net/http/internal/http2` frame and stream errors |
+| Time & templates | `time.ParseError`, `time.LoadLocationError`; `text/template` execution errors |
+| Process & reflection | `os/exec` errors; `reflect` / `internal/reflectlite` value errors |
+| Crypto & debug | `crypto/x509` verification errors; `crypto/tls` alert and handshake errors; `debug/elf`, `debug/macho`, `debug/plan9obj`, `debug/gosym` (`DecodingError`, `UnknownLineError`) |
+| Archive | `archive/tar` (`headerError`) |
+| Syscall (public) | `syscall.DLLError`; `syscall/js` errors |
+
+Sentinels and helpers that already used **`errors.New`** or single-`%w` **`fmt.Errorf`** (for example many `io.EOF`-style values and `internal/oserror` sentinels) already carried stack traces from those APIs and were left as-is unless a named struct wrapper was added.
+
+### What was not migrated (by design)
+
+| Category | Reason |
+| -------- | ------ |
+| **`runtime/`** | Cannot import `errors`; panics already include runtime stacks |
+| **`vendor/`**, most **`internal/*`** | Not public API; low value vs churn (exceptions: `internal/poll`, `internal/reflectlite`) |
+| **`cmd/`** | Tooling, not library surface |
+| Package-init **sentinels** (`io.EOF`, etc.) | Stack captured at `init`, not at the failing call site |
+| **Multi-`%w` `fmt.Errorf`** | Still returns `fmt.wrapErrors` — no outer stack (see [Interoperability](#fmterrorf-and-w)) |
+| **Named scalar errors** (`net/url.EscapeError`, `CorruptInputError`, …) | Type shape unchanged; stacks add little for int/string error types |
+| **Deprecated / unused types** | e.g. `compress/flate.ReadError` / `WriteError` |
+| **`reflect` panics** | Runtime panic stack is usually sufficient |
+
+### Performance
+
+Stack capture runs **only when an error value is constructed**. Success paths are unchanged. Packages that can return errors frequently on failure but not on success (JSON decode, TLS handshake, ASN.1 parse, tar header validation, etc.) pay the capture cost **once per returned error**, which is acceptable for diagnostic value.
+
+### Inspecting traces from stdlib errors
+
+Use **`errors.As`** to reach the embedded layer, then read **`StackTrace`** or format with **`%+v`** / **`String()`**:
+
+```go
+var pe *fs.PathError
+if errors.As(err, &pe) {
+	log.Printf("%+v", &pe.Error) // message + stack at PathError construction site
+}
+```
+
+For types that embed `errors.Error` by value, take the address of the embedded field (as in the example) or use **`fmt` `%+v`** on a pointer to the outer type when it implements **`fmt.Formatter`** through promotion.
+
 ## Design notes
 
 - **One stack trace per layer** — wrapping adds a new `[]StackFrame` at the wrap site; inner errors retain their original traces.

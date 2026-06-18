@@ -580,7 +580,7 @@ func (t *Table) LineToPC(file string, line int) (pc uint64, fn *Func, err error)
 	if t.go12line != nil {
 		pc := t.go12line.go12LineToPC(file, line)
 		if pc == 0 {
-			return 0, nil, &UnknownLineError{file, line}
+			return 0, nil, newUnknownLineError(file, line)
 		}
 		return pc, t.PCToFunc(pc), nil
 	}
@@ -596,7 +596,7 @@ func (t *Table) LineToPC(file string, line int) (pc uint64, fn *Func, err error)
 			return pc, f, nil
 		}
 	}
-	return 0, nil, &UnknownLineError{file, line}
+	return 0, nil, newUnknownLineError(file, line)
 }
 
 // LookupSym returns the text, data, or bss symbol with the given name,
@@ -696,7 +696,7 @@ pathloop:
 
 func (o *Obj) alineFromLine(path string, line int) (int, error) {
 	if line < 1 {
-		return 0, &UnknownLineError{path, line}
+		return 0, newUnknownLineError(path, line)
 	}
 
 	for i, s := range o.Paths {
@@ -731,7 +731,7 @@ func (o *Obj) alineFromLine(path string, line int) (int, error) {
 				depth++
 			}
 		}
-		return 0, &UnknownLineError{path, line}
+		return 0, newUnknownLineError(path, line)
 	}
 	return 0, UnknownFileError(path)
 }
@@ -750,12 +750,23 @@ func (e UnknownFileError) Error() string { return "unknown file: " + string(e) }
 // counter, either because the line is beyond the bounds of the file
 // or because there is no code on the given line.
 type UnknownLineError struct {
+	errors.Error
 	File string
 	Line int
 }
 
+func unknownLineErrorMessage(file string, line int) string {
+	return "no code at " + file + ":" + strconv.Itoa(line)
+}
+
+func newUnknownLineError(file string, line int) *UnknownLineError {
+	e := &UnknownLineError{File: file, Line: line}
+	errors.InitCustom(&e.Error, "%s", unknownLineErrorMessage(file, line))
+	return e
+}
+
 func (e *UnknownLineError) Error() string {
-	return "no code at " + e.File + ":" + strconv.Itoa(e.Line)
+	return unknownLineErrorMessage(e.File, e.Line)
 }
 
 // DecodingError represents an error during the decoding of
