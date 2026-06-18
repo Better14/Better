@@ -779,9 +779,9 @@ func (p *printer) fieldList(fields *ast.FieldList, isStruct, isIncomplete bool) 
 
 func walkBinary(e *ast.BinaryExpr) (has4, has5 bool, maxProblem int) {
 	switch e.Op.Precedence() {
-	case 4:
-		has4 = true
 	case 5:
+		has4 = true
+	case 6:
 		has5 = true
 	}
 
@@ -812,15 +812,15 @@ func walkBinary(e *ast.BinaryExpr) (has4, has5 bool, maxProblem int) {
 
 	case *ast.StarExpr:
 		if e.Op == token.QUO { // `*/`
-			maxProblem = 5
+			maxProblem = 6
 		}
 
 	case *ast.UnaryExpr:
 		switch e.Op.String() + r.Op.String() {
 		case "/*", "&&", "&^":
-			maxProblem = 5
+			maxProblem = 6
 		case "++", "--":
-			maxProblem = max(maxProblem, 4)
+			maxProblem = max(maxProblem, 5)
 		}
 	}
 	return
@@ -833,14 +833,22 @@ func cutoff(e *ast.BinaryExpr, depth int) int {
 	}
 	if has4 && has5 {
 		if depth == 1 {
-			return 5
+			return 6
 		}
-		return 4
+		return 5
 	}
 	if depth == 1 {
-		return 6
+		return 7
 	}
-	return 4
+	return 5
+}
+
+func isComparison(op token.Token) bool {
+	switch op {
+	case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
+		return true
+	}
+	return false
 }
 
 func diffPrec(expr ast.Expr, prec int) int {
@@ -865,14 +873,15 @@ func reduceDepth(depth int) int {
 //
 // The precedences are:
 //
-//	5             *  /  %  <<  >>  &  &^
-//	4             +  -  |  ^
-//	3             ==  !=  <  <=  >  >=
-//	2             &&
-//	1             ||
+//	6             *  /  %  <<  >>  &  &^
+//	5             +  -  |  ^
+//	4             ==  !=  <  <=  >  >=
+//	3             &&
+//	2             ||
+//	1             ??
 //
-// The only decision is whether there will be spaces around levels 4 and 5.
-// There are never spaces at level 6 (unary), and always spaces at levels 3 and below.
+// The only decision is whether there will be spaces around levels 5 and 6.
+// There are never spaces at level 7 (unary), and always spaces at levels 4 and below.
 //
 // To choose the cutoff, look at the whole expression but excluding primary
 // expressions (function calls, parenthesized exprs), and apply these rules:
@@ -880,21 +889,21 @@ func reduceDepth(depth int) int {
 //  1. If there is a binary operator with a right side unary operand
 //     that would clash without a space, the cutoff must be (in order):
 //
-//     /*	6
-//     &&	6
-//     &^	6
-//     ++	5
-//     --	5
+//     /*	7
+//     &&	7
+//     &^	7
+//     ++	6
+//     --	6
 //
 //     (Comparison operators always have spaces around them.)
 //
-//  2. If there is a mix of level 5 and level 4 operators, then the cutoff
-//     is 5 (use spaces to distinguish precedence) in Normal mode
-//     and 4 (never use spaces) in Compact mode.
+//  2. If there is a mix of level 6 and level 5 operators, then the cutoff
+//     is 6 (use spaces to distinguish precedence) in Normal mode
+//     and 5 (never use spaces) in Compact mode.
 //
-//  3. If there are no level 4 operators or no level 5 operators, then the
-//     cutoff is 6 (always use spaces) in Normal mode
-//     and 4 (never use spaces) in Compact mode.
+//  3. If there are no level 5 operators or no level 6 operators, then the
+//     cutoff is 7 (always use spaces) in Normal mode
+//     and 5 (never use spaces) in Compact mode.
 func (p *printer) binaryExpr(x *ast.BinaryExpr, prec1, cutoff, depth int) {
 	prec := x.Op.Precedence()
 	if prec < prec1 {
@@ -908,6 +917,9 @@ func (p *printer) binaryExpr(x *ast.BinaryExpr, prec1, cutoff, depth int) {
 	}
 
 	printBlank := prec < cutoff
+	if isComparison(x.Op) {
+		printBlank = true
+	}
 
 	ws := indent
 	p.expr1(x.X, prec, depth+diffPrec(x.X, prec))
