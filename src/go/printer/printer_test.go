@@ -884,6 +884,24 @@ enum reportSection {
 		}
 	})
 
+	t.Run("tagged variant", func(t *testing.T) {
+		const src = `package p
+
+enum SomeEnum {
+	Value1
+	Value4= 3
+}
+`
+		got, err := format([]byte(src), 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "package p\n\nenum SomeEnum {\n\tValue1\n\tValue4 = 3\n}\n"
+		if string(got) != want {
+			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+		}
+	})
+
 	t.Run("struct and tuple variants", func(t *testing.T) {
 		const src = `package p
 
