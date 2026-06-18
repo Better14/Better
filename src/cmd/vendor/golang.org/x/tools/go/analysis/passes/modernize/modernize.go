@@ -7,11 +7,13 @@ package modernize
 import (
 	_ "embed"
 	"go/ast"
+	"go/build"
 	"go/constant"
 	"go/format"
 	"go/token"
 	"go/types"
 	"iter"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -120,6 +122,34 @@ func within(pass *analysis.Pass, pkgs ...string) bool {
 	path := pass.Pkg.Path()
 	return packagepath.IsStdPackage(path) &&
 		moreiters.Contains(stdlib.Dependencies(pkgs...), path)
+}
+
+// pkgInGOROOT reports whether pass is analyzing source files under
+// GOROOT/src. Rewriting those files (e.g. to shorthand struct syntax)
+// would break building and bootstrapping the Go toolchain itself.
+func pkgInGOROOT(pass *analysis.Pass) bool {
+	if len(pass.Files) == 0 {
+		return false
+	}
+	gorootSrc, err := filepath.Abs(filepath.Join(build.Default.GOROOT, "src"))
+	if err != nil {
+		return false
+	}
+	for _, f := range pass.Files {
+		tf := pass.Fset.File(f.Pos())
+		if tf == nil {
+			continue
+		}
+		path, err := filepath.Abs(tf.Name())
+		if err != nil {
+			continue
+		}
+		path = filepath.Clean(path)
+		if path == gorootSrc || strings.HasPrefix(path, gorootSrc+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }
 
 // unparenEnclosing removes enclosing parens from cur in
