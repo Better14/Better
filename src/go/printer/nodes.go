@@ -513,9 +513,19 @@ func (p *printer) isOneLineEnumFieldList(list []*ast.Field) bool {
 
 // isOneLineEnumVariantCompositeLit reports whether x is a single-line
 // enum variant struct literal such as Message.Write{ text: "hi", bytes: 5 }.
+// Package-qualified type literals such as models.User{ID: id} are excluded.
 func (p *printer) isOneLineEnumVariantCompositeLit(x *ast.CompositeLit) bool {
-	if _, ok := x.Type.(*ast.SelectorExpr); !ok {
-		return false // e.g. Message.Write
+	sel, ok := x.Type.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok || ident.Name == "" {
+		return false
+	}
+	r, _ := utf8.DecodeRuneInString(ident.Name)
+	if !unicode.IsUpper(r) {
+		return false // e.g. models.User
 	}
 	if !x.Lbrace.IsValid() || !x.Rbrace.IsValid() {
 		return false
