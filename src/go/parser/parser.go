@@ -2248,6 +2248,10 @@ func (p *parser) parseSimpleStmt(mode int) (ast.Stmt, bool) {
 
 	x := p.parseList(false)
 
+	return p.finishSimpleStmt(x, mode)
+}
+
+func (p *parser) finishSimpleStmt(x []ast.Expr, mode int) (ast.Stmt, bool) {
 	switch p.tok {
 	case
 		token.DEFINE, token.ASSIGN, token.ADD_ASSIGN,
@@ -2281,18 +2285,9 @@ func (p *parser) parseSimpleStmt(mode int) (ast.Stmt, bool) {
 		colon := p.pos
 		p.next()
 		if label, isIdent := x[0].(*ast.Ident); mode == labelOk && isIdent {
-			// Go spec: The scope of a label is the body of the function
-			// in which it is declared and excludes the body of any nested
-			// function.
 			stmt := &ast.LabeledStmt{Label: label, Colon: colon, Stmt: p.parseStmt()}
 			return stmt, false
 		}
-		// The label declaration typically starts at x[0].Pos(), but the label
-		// declaration may be erroneous due to a token after that position (and
-		// before the ':'). If SpuriousErrors is not set, the (only) error
-		// reported for the line is the illegal label error instead of the token
-		// before the ':' that caused the problem. Thus, use the (latest) colon
-		// position for error reporting.
 		p.error(colon, "illegal label declaration")
 		return &ast.BadStmt{From: x[0].Pos(), To: colon + 1}, false
 
@@ -2310,7 +2305,6 @@ func (p *parser) parseSimpleStmt(mode int) (ast.Stmt, bool) {
 		return s, false
 	}
 
-	// expression
 	return &ast.ExprStmt{X: x[0]}, false
 }
 
@@ -2808,10 +2802,17 @@ func (p *parser) parseStmt() (s ast.Stmt) {
 	switch p.tok {
 	case token.CONST, token.TYPE, token.VAR:
 		s = &ast.DeclStmt{Decl: p.parseDecl(stmtStart)}
+
+	case token.STRUCT:
+		s = p.parseStructStmt()
+
+	case token.INTERFACE:
+		s = p.parseInterfaceStmt()
+
 	case
 		// tokens that may start an expression
 		token.IDENT, token.INT, token.FLOAT, token.IMAG, token.CHAR, token.STRING, token.FUNC, token.LPAREN, // operands
-		token.LBRACK, token.STRUCT, token.MAP, token.CHAN, token.INTERFACE, // composite types
+		token.LBRACK, token.MAP, token.CHAN, // composite types
 		token.ADD, token.SUB, token.MUL, token.AND, token.XOR, token.ARROW, token.NOT: // unary operators
 		s, _ = p.parseSimpleStmt(labelOk)
 		// because of the required look-ahead, labeled statements are
@@ -3038,13 +3039,8 @@ func (p *parser) parseTypeSpec(doc *ast.CommentGroup, _ token.Token, _ int) ast.
 	return spec
 }
 
-func (p *parser) parseStructDecl() *ast.StructDecl {
-	if p.trace {
-		defer un(trace(p, "StructDecl"))
-	}
-
+func (p *parser) parseNamedStructDecl(structPos token.Pos) *ast.StructDecl {
 	doc := p.leadComment
-	structPos := p.expect(token.STRUCT)
 	name := p.parseIdent()
 
 	var tparams *ast.FieldList
@@ -3052,35 +3048,56 @@ func (p *parser) parseStructDecl() *ast.StructDecl {
 		tparams = p.parseTypeParameters()
 	}
 
+	fields := p.parseStructFields()
+	return &ast.StructDecl{
+		Doc:        doc,
+		Struct:     structPos,
+		Name:       name,
+		TypeParams: tparams,
+		Fields:     fields,
+		Rbrace:     fields.Closing,
+	}
+}
+
+func (p *parser) parseStructFields() *ast.FieldList {
 	lbrace := p.expect(token.LBRACE)
 	var list []*ast.Field
 	for p.tok == token.IDENT || p.tok == token.MUL || p.tok == token.LPAREN {
 		list = append(list, p.parseFieldDecl())
 	}
 	rbrace := p.expect(token.RBRACE)
-	p.expectSemi()
-
-	return &ast.StructDecl{
-		Doc:        doc,
-		Struct:     structPos,
-		Name:       name,
-		TypeParams: tparams,
-		Fields: &ast.FieldList{
-			Opening: lbrace,
-			List:    list,
-			Closing: rbrace,
-		},
-		Rbrace: rbrace,
+	return &ast.FieldList{
+		Opening: lbrace,
+		List:    list,
+		Closing: rbrace,
 	}
 }
 
-func (p *parser) parseInterfaceDecl() *ast.InterfaceDecl {
-	if p.trace {
-		defer un(trace(p, "InterfaceDecl"))
+func (p *parser) parseStructTypeAfterKeyword(structPos token.Pos) *ast.StructType {
+	return &ast.StructType{
+		Struct: structPos,
+		Fields: p.parseStructFields(),
 	}
+}
 
+func (p *parser) parseStructStmt() ast.Stmt {
+	structPos := p.pos
+	p.next()
+	if p.tok == token.IDENT {
+		stmt := &ast.DeclStmt{Decl: p.parseNamedStructDecl(structPos)}
+		p.expectSemi()
+		return stmt
+	}
+	typ := p.parseStructTypeAfterKeyword(structPos)
+	stmt, _ := p.finishSimpleStmt([]ast.Expr{typ}, labelOk)
+	if _, isLabeledStmt := stmt.(*ast.LabeledStmt); !isLabeledStmt {
+		p.expectSemi()
+	}
+	return stmt
+}
+
+func (p *parser) parseNamedInterfaceDecl(ifacePos token.Pos) *ast.InterfaceDecl {
 	doc := p.leadComment
-	ifacePos := p.expect(token.INTERFACE)
 	name := p.parseIdent()
 
 	var tparams *ast.FieldList
@@ -3088,6 +3105,18 @@ func (p *parser) parseInterfaceDecl() *ast.InterfaceDecl {
 		tparams = p.parseTypeParameters()
 	}
 
+	methods := p.parseInterfaceFields()
+	return &ast.InterfaceDecl{
+		Doc:        doc,
+		Interface:  ifacePos,
+		Name:       name,
+		TypeParams: tparams,
+		Methods:    methods,
+		Rbrace:     methods.Closing,
+	}
+}
+
+func (p *parser) parseInterfaceFields() *ast.FieldList {
 	lbrace := p.expect(token.LBRACE)
 	var list []*ast.Field
 parseElements:
@@ -3115,20 +3144,56 @@ parseElements:
 		}
 	}
 	rbrace := p.expect(token.RBRACE)
-	p.expectSemi()
-
-	return &ast.InterfaceDecl{
-		Doc:        doc,
-		Interface:  ifacePos,
-		Name:       name,
-		TypeParams: tparams,
-		Methods: &ast.FieldList{
-			Opening: lbrace,
-			List:    list,
-			Closing: rbrace,
-		},
-		Rbrace: rbrace,
+	return &ast.FieldList{
+		Opening: lbrace,
+		List:    list,
+		Closing: rbrace,
 	}
+}
+
+func (p *parser) parseInterfaceTypeAfterKeyword(ifacePos token.Pos) *ast.InterfaceType {
+	return &ast.InterfaceType{
+		Interface: ifacePos,
+		Methods:   p.parseInterfaceFields(),
+	}
+}
+
+func (p *parser) parseInterfaceStmt() ast.Stmt {
+	ifacePos := p.pos
+	p.next()
+	if p.tok == token.IDENT {
+		stmt := &ast.DeclStmt{Decl: p.parseNamedInterfaceDecl(ifacePos)}
+		p.expectSemi()
+		return stmt
+	}
+	typ := p.parseInterfaceTypeAfterKeyword(ifacePos)
+	stmt, _ := p.finishSimpleStmt([]ast.Expr{typ}, labelOk)
+	if _, isLabeledStmt := stmt.(*ast.LabeledStmt); !isLabeledStmt {
+		p.expectSemi()
+	}
+	return stmt
+}
+
+func (p *parser) parseStructDecl() *ast.StructDecl {
+	if p.trace {
+		defer un(trace(p, "StructDecl"))
+	}
+
+	structPos := p.expect(token.STRUCT)
+	decl := p.parseNamedStructDecl(structPos)
+	p.expectSemi()
+	return decl
+}
+
+func (p *parser) parseInterfaceDecl() *ast.InterfaceDecl {
+	if p.trace {
+		defer un(trace(p, "InterfaceDecl"))
+	}
+
+	ifacePos := p.expect(token.INTERFACE)
+	decl := p.parseNamedInterfaceDecl(ifacePos)
+	p.expectSemi()
+	return decl
 }
 
 // extractName splits the expression x into (name, expr) if syntactically

@@ -85,6 +85,19 @@ interface Stringer {
 
 Running gofix on a package or file would rewrite only struct and interface type declarations that match the old pattern. Other `type` declarations (aliases, defined non-struct/interface types, type parameters, and so on) would be left unchanged.
 
+The shorthand form is valid at package level and inside function bodies:
+
+```go
+func f() {
+	struct subRow {
+		ID string
+	}
+	var rows []subRow
+}
+```
+
+After fixes are applied, `go fix` runs gofmt on each file so multi-line method chains use leading dots on continuation lines (`.Select`, `.Where`, and so on).
+
 Packages under `GOROOT/src` (the Go toolchain and standard library tree) are never rewritten, so `go fix` can be run safely while developing the compiler itself.
 
 ## Feedback

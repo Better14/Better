@@ -1914,6 +1914,10 @@ func (p *parser) structType() *StructType {
 	typ.pos = p.pos()
 
 	p.want(_Struct)
+	return p.structTypeBody(typ)
+}
+
+func (p *parser) structTypeBody(typ *StructType) *StructType {
 	p.want(_Lbrace)
 	p.list("struct type", _Semi, _Rbrace, func() bool {
 		p.fieldDecl(typ)
@@ -1933,6 +1937,10 @@ func (p *parser) interfaceType() *InterfaceType {
 	typ.pos = p.pos()
 
 	p.want(_Interface)
+	return p.interfaceTypeBody(typ)
+}
+
+func (p *parser) interfaceTypeBody(typ *InterfaceType) *InterfaceType {
 	p.want(_Lbrace)
 	p.list("interface type", _Semi, _Rbrace, func() bool {
 		var f *Field
@@ -2727,6 +2735,36 @@ func (p *parser) declStmt(f func(*Group) Decl) *DeclStmt {
 	return s
 }
 
+func (p *parser) shorthandTypeDeclStmt(keyword token, f func(*Group) Decl) Stmt {
+	if trace {
+		defer p.trace("shorthandTypeDeclStmt")()
+	}
+
+	pos := p.pos()
+	p.next() // _Struct or _Interface
+	if p.tok == _Name {
+		s := new(DeclStmt)
+		s.pos = pos
+		s.DeclList = []Decl{f(nil)}
+		return s
+	}
+
+	var typ Expr
+	switch keyword {
+	case _Struct:
+		st := new(StructType)
+		st.pos = pos
+		typ = p.structTypeBody(st)
+	case _Interface:
+		it := new(InterfaceType)
+		it.pos = pos
+		typ = p.interfaceTypeBody(it)
+	default:
+		return nil
+	}
+	return p.simpleStmt(typ, 0)
+}
+
 func (p *parser) forStmt() Stmt {
 	if trace {
 		defer p.trace("forStmt")()
@@ -3162,6 +3200,12 @@ func (p *parser) stmtOrNil() Stmt {
 
 	case _Type:
 		return p.declStmt(p.typeDecl)
+
+	case _Struct:
+		return p.shorthandTypeDeclStmt(_Struct, p.structTypeDecl)
+
+	case _Interface:
+		return p.shorthandTypeDeclStmt(_Interface, p.interfaceTypeDecl)
 	}
 
 	p.clearPragma()
@@ -3177,7 +3221,7 @@ func (p *parser) stmtOrNil() Stmt {
 		}
 
 	case _Literal, _Func, _Lparen, // operands
-		_Lbrack, _Struct, _Map, _Chan, _Interface, // composite types
+		_Lbrack, _Map, _Chan, // composite types
 		_Arrow: // receive operator
 		return p.simpleStmt(nil, 0)
 

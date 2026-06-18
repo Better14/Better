@@ -1560,7 +1560,7 @@ func (w *writer) declStmt(decl syntax.Decl) {
 	default:
 		w.p.unexpected("declaration", decl)
 
-	case *syntax.ConstDecl, *syntax.TypeDecl:
+	case *syntax.ConstDecl, *syntax.TypeDecl, *syntax.StructDecl, *syntax.InterfaceDecl:
 
 	case *syntax.VarDecl:
 		w.assignStmt(decl, namesAsExpr(decl.NameList), decl.Values)
