@@ -1187,3 +1187,25 @@ var h = x => x
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestDefaultArgFormat(t *testing.T) {
+	const src = `package p
+
+func (s string) Truncate(n int = 40, suffix string = "...") string {
+	return s
+}
+`
+	got, err := format([]byte(src), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `package p
+
+func (s string) Truncate(n int = 40, suffix string = "...") string {
+	return s
+}
+`
+	if string(got) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
