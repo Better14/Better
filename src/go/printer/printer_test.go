@@ -1033,6 +1033,34 @@ func f() {
 			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 		}
 	})
+
+	t.Run("package-qualified struct literal", func(t *testing.T) {
+		const src = `package p
+
+import "models"
+
+func f(id, hash string) {
+	u := models.User{ID: id, Username: "seed1", Email: "a@b", PasswordHash: hash, IsAdmin: 0}
+	_ = models.Post{}
+}
+`
+		got, err := format([]byte(src), 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := `package p
+
+import "models"
+
+func f(id, hash string) {
+	u := models.User{ID: id, Username: "seed1", Email: "a@b", PasswordHash: hash, IsAdmin: 0}
+	_ = models.Post{}
+}
+`
+		if string(got) != want {
+			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+		}
+	})
 }
 
 func TestIfSwitchExprFormat(t *testing.T) {

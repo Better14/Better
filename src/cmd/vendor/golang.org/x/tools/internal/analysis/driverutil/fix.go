@@ -16,7 +16,6 @@ import (
 	"go/ast"
 	"go/format"
 	"go/parser"
-	"go/printer"
 	"go/token"
 	"go/types"
 	"log"
@@ -255,12 +254,15 @@ fixloop:
 			log.Fatalf("internal error in diff.ApplyBytes: %v", err)
 		}
 
-		// Attempt to format each file.
+		// Attempt to format each file with the same logic as gofmt.
 		if formatted, err := FormatSourceRemoveImports(filePkgs[file], final); err == nil {
 			final = formatted
 		} else if formatted, err := format.Source(final); err == nil {
 			// Fallback when import heuristics fail (e.g. local struct shorthand
 			// declarations). gofmt places continuation dots at line starts.
+			final = formatted
+		}
+		if formatted, err := format.Source(final); err == nil {
 			final = formatted
 		}
 
@@ -362,21 +364,8 @@ func FormatSourceRemoveImports(pkg *types.Package, src []byte) ([]byte, error) {
 
 	removeUnneededImports(fset, pkg, file)
 
-	// TODO(adonovan): to generate cleaner edits when adding an import,
-	// consider adding a call to imports.mergeImports; however, it does
-	// cause comments to migrate.
-
-	// printerNormalizeNumbers means to canonicalize number literal prefixes
-	// and exponents while printing. See https://golang.org/doc/go1.13#gofmt.
-	//
-	// This value is defined in go/printer specifically for go/format and cmd/gofmt.
-	const printerNormalizeNumbers = 1 << 30
-	cfg := &printer.Config{
-		Mode:     printer.UseSpaces | printer.TabIndent | printerNormalizeNumbers,
-		Tabwidth: 8,
-	}
 	var buf bytes.Buffer
-	if err := cfg.Fprint(&buf, fset, file); err != nil {
+	if err := format.Node(&buf, fset, file); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
