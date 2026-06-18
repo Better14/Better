@@ -2168,10 +2168,7 @@ func (p *printer) enumDecl(d *ast.EnumDecl) {
 }
 
 func (p *printer) structDecl(d *ast.StructDecl) {
-	if d.Doc != nil {
-		p.setPos(d.Doc.Pos())
-		p.print(d.Doc)
-	}
+	p.setComment(d.Doc)
 	p.setPos(d.Struct)
 	p.print(token.STRUCT, blank)
 	p.print(d.Name)
@@ -2182,10 +2179,7 @@ func (p *printer) structDecl(d *ast.StructDecl) {
 }
 
 func (p *printer) interfaceDecl(d *ast.InterfaceDecl) {
-	if d.Doc != nil {
-		p.setPos(d.Doc.Pos())
-		p.print(d.Doc)
-	}
+	p.setComment(d.Doc)
 	p.setPos(d.Interface)
 	p.print(token.INTERFACE, blank)
 	p.print(d.Name)
