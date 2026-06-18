@@ -975,10 +975,22 @@ func (e InsecureAlgorithmError) Error() string {
 // ConstraintViolationError results when a requested usage is not permitted by
 // a certificate. For example: checking a signature when the public key isn't a
 // certificate signing key.
-type ConstraintViolationError struct{}
+type ConstraintViolationError struct {
+	errors.Error
+}
+
+func constraintViolationErrorMessage() string {
+	return "x509: invalid signature: parent certificate cannot sign this kind of certificate"
+}
+
+func newConstraintViolationError() ConstraintViolationError {
+	e := ConstraintViolationError{}
+	errors.InitCustom(&e.Error, "%s", constraintViolationErrorMessage())
+	return e
+}
 
 func (ConstraintViolationError) Error() string {
-	return "x509: invalid signature: parent certificate cannot sign this kind of certificate"
+	return constraintViolationErrorMessage()
 }
 
 func (c *Certificate) Equal(other *Certificate) bool {
@@ -1004,11 +1016,11 @@ func (c *Certificate) CheckSignatureFrom(parent *Certificate) error {
 	// certificate signatures."
 	if parent.Version == 3 && !parent.BasicConstraintsValid ||
 		parent.BasicConstraintsValid && !parent.IsCA {
-		return ConstraintViolationError{}
+		return newConstraintViolationError()
 	}
 
 	if parent.KeyUsage != 0 && parent.KeyUsage&KeyUsageCertSign == 0 {
-		return ConstraintViolationError{}
+		return newConstraintViolationError()
 	}
 
 	if parent.PublicKeyAlgorithm == UnknownPublicKeyAlgorithm {
@@ -2706,11 +2718,11 @@ func CreateRevocationList(rand io.Reader, template *RevocationList, issuer *Cert
 func (rl *RevocationList) CheckSignatureFrom(parent *Certificate) error {
 	if parent.Version == 3 && !parent.BasicConstraintsValid ||
 		parent.BasicConstraintsValid && !parent.IsCA {
-		return ConstraintViolationError{}
+		return newConstraintViolationError()
 	}
 
 	if parent.KeyUsage != 0 && parent.KeyUsage&KeyUsageCRLSign == 0 {
-		return ConstraintViolationError{}
+		return newConstraintViolationError()
 	}
 
 	if parent.PublicKeyAlgorithm == UnknownPublicKeyAlgorithm {

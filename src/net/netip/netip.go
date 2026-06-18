@@ -312,7 +312,7 @@ func parseIPv6(in string) (Addr, error) {
 
 		// Otherwise must be followed by colon and more.
 		if s[0] != ':' {
-			return Addr{}, parseAddrError{in: in, msg: "unexpected character, want colon", at: s}
+			return Addr{}, newParseAddrError(in, "unexpected character, want colon", s)
 		} else if len(s) == 1 {
 			return Addr{}, newParseAddrError(in, "colon must be followed by more characters", s)
 		}

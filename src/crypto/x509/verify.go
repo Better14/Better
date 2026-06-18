@@ -65,12 +65,13 @@ const (
 // CertificateInvalidError results when an odd error occurs. Users of this
 // library probably want to handle all these errors uniformly.
 type CertificateInvalidError struct {
+	errors.Error
 	Cert   *Certificate
 	Reason InvalidReason
 	Detail string
 }
 
-func (e CertificateInvalidError) Error() string {
+func certificateInvalidErrorMessage(e CertificateInvalidError) string {
 	switch e.Reason {
 	case NotAuthorizedToSign:
 		return "x509: certificate is not authorized to sign other certificates"
@@ -100,14 +101,25 @@ func (e CertificateInvalidError) Error() string {
 	return "x509: unknown error"
 }
 
+func newCertificateInvalidError(cert *Certificate, reason InvalidReason, detail string) CertificateInvalidError {
+	e := CertificateInvalidError{Cert: cert, Reason: reason, Detail: detail}
+	errors.InitCustom(&e.Error, "%s", certificateInvalidErrorMessage(e))
+	return e
+}
+
+func (e CertificateInvalidError) Error() string {
+	return certificateInvalidErrorMessage(e)
+}
+
 // HostnameError results when the set of authorized names doesn't match the
 // requested name.
 type HostnameError struct {
+	errors.Error
 	Certificate *Certificate
 	Host        string
 }
 
-func (h HostnameError) Error() string {
+func hostnameErrorMessage(h HostnameError) string {
 	c := h.Certificate
 	maxNamesIncluded := 100
 
@@ -143,8 +155,19 @@ func (h HostnameError) Error() string {
 	return "x509: certificate is valid for " + valid.String() + ", not " + h.Host
 }
 
+func newHostnameError(cert *Certificate, host string) HostnameError {
+	e := HostnameError{Certificate: cert, Host: host}
+	errors.InitCustom(&e.Error, "%s", hostnameErrorMessage(e))
+	return e
+}
+
+func (h HostnameError) Error() string {
+	return hostnameErrorMessage(h)
+}
+
 // UnknownAuthorityError results when the certificate issuer is unknown
 type UnknownAuthorityError struct {
+	errors.Error
 	Cert *Certificate
 	// hintErr contains an error that may be helpful in determining why an
 	// authority wasn't found.
@@ -154,7 +177,7 @@ type UnknownAuthorityError struct {
 	hintCert *Certificate
 }
 
-func (e UnknownAuthorityError) Error() string {
+func unknownAuthorityErrorMessage(e UnknownAuthorityError) string {
 	s := "x509: certificate signed by unknown authority"
 	if e.hintErr != nil {
 		certName := e.hintCert.Subject.CommonName
@@ -170,17 +193,38 @@ func (e UnknownAuthorityError) Error() string {
 	return s
 }
 
+func newUnknownAuthorityError(cert *Certificate, hintErr error, hintCert *Certificate) UnknownAuthorityError {
+	e := UnknownAuthorityError{Cert: cert, hintErr: hintErr, hintCert: hintCert}
+	errors.InitCustom(&e.Error, "%s", unknownAuthorityErrorMessage(e))
+	return e
+}
+
+func (e UnknownAuthorityError) Error() string {
+	return unknownAuthorityErrorMessage(e)
+}
+
 // SystemRootsError results when we fail to load the system root certificates.
 type SystemRootsError struct {
+	errors.Error
 	Err error
 }
 
-func (se SystemRootsError) Error() string {
+func systemRootsErrorMessage(se SystemRootsError) string {
 	msg := "x509: failed to load system roots and no roots provided"
 	if se.Err != nil {
 		return msg + "; " + se.Err.Error()
 	}
 	return msg
+}
+
+func newSystemRootsError(err error) SystemRootsError {
+	e := SystemRootsError{Err: err}
+	errors.InitCustom(&e.Error, "%s", systemRootsErrorMessage(e))
+	return e
+}
+
+func (se SystemRootsError) Error() string {
+	return systemRootsErrorMessage(se)
 }
 
 func (se SystemRootsError) Unwrap() error { return se.Err }
@@ -454,7 +498,7 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 	if len(currentChain) > 0 {
 		child := currentChain[len(currentChain)-1]
 		if !bytes.Equal(child.RawIssuer, c.RawSubject) {
-			return CertificateInvalidError{c, NameMismatch, ""}
+			return newCertificateInvalidError(c, NameMismatch, "")
 		}
 	}
 
@@ -463,17 +507,9 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 		now = time.Now()
 	}
 	if now.Before(c.NotBefore) {
-		return CertificateInvalidError{
-			Cert:   c,
-			Reason: Expired,
-			Detail: fmt.Sprintf("current time %s is before %s", now.Format(time.RFC3339), c.NotBefore.Format(time.RFC3339)),
-		}
+		return newCertificateInvalidError(c, Expired, fmt.Sprintf("current time %s is before %s", now.Format(time.RFC3339), c.NotBefore.Format(time.RFC3339)))
 	} else if now.After(c.NotAfter) {
-		return CertificateInvalidError{
-			Cert:   c,
-			Reason: Expired,
-			Detail: fmt.Sprintf("current time %s is after %s", now.Format(time.RFC3339), c.NotAfter.Format(time.RFC3339)),
-		}
+		return newCertificateInvalidError(c, Expired, fmt.Sprintf("current time %s is after %s", now.Format(time.RFC3339), c.NotAfter.Format(time.RFC3339)))
 	}
 
 	if certType == intermediateCertificate || certType == rootCertificate {
@@ -500,13 +536,13 @@ func (c *Certificate) isValid(certType int, currentChain []*Certificate, opts *V
 	// encryption key could only be used for Diffie-Hellman key agreement.
 
 	if certType == intermediateCertificate && (!c.BasicConstraintsValid || !c.IsCA) {
-		return CertificateInvalidError{c, NotAuthorizedToSign, ""}
+		return newCertificateInvalidError(c, NotAuthorizedToSign, "")
 	}
 
 	if c.BasicConstraintsValid && c.MaxPathLen >= 0 {
 		numIntermediates := len(currentChain) - 1
 		if numIntermediates > c.MaxPathLen {
-			return CertificateInvalidError{c, TooManyIntermediates, ""}
+			return newCertificateInvalidError(c, TooManyIntermediates, "")
 		}
 	}
 
@@ -583,7 +619,7 @@ func (c *Certificate) Verify(opts VerifyOptions) ([][]*Certificate, error) {
 	if opts.Roots == nil {
 		opts.Roots = systemRootsPool()
 		if opts.Roots == nil {
-			return nil, SystemRootsError{systemRootsErr}
+			return nil, newSystemRootsError(systemRootsErr)
 		}
 	}
 
@@ -638,7 +674,7 @@ func (c *Certificate) Verify(opts VerifyOptions) ([][]*Certificate, error) {
 		}
 		if err := checkChainConstraints(chain); err != nil {
 			if constraintsHintErr == nil {
-				constraintsHintErr = CertificateInvalidError{c, CANotAuthorizedForThisName, err.Error()}
+				constraintsHintErr = newCertificateInvalidError(c, CANotAuthorizedForThisName, err.Error())
 			}
 			return true
 		}
@@ -652,14 +688,14 @@ func (c *Certificate) Verify(opts VerifyOptions) ([][]*Certificate, error) {
 		var details []string
 		if incompatibleKeyUsageChains > 0 {
 			if invalidPoliciesChains == 0 {
-				return nil, CertificateInvalidError{c, IncompatibleUsage, ""}
+				return nil, newCertificateInvalidError(c, IncompatibleUsage, "")
 			}
 			details = append(details, fmt.Sprintf("%d candidate chains with incompatible key usage", incompatibleKeyUsageChains))
 		}
 		if invalidPoliciesChains > 0 {
 			details = append(details, fmt.Sprintf("%d candidate chains with invalid policies", invalidPoliciesChains))
 		}
-		err = CertificateInvalidError{c, NoValidChains, strings.Join(details, ", ")}
+		err = newCertificateInvalidError(c, NoValidChains, strings.Join(details, ", "))
 		return nil, err
 	}
 
@@ -805,7 +841,7 @@ candidateLoop:
 		err = nil
 	}
 	if len(chains) == 0 && err == nil {
-		err = UnknownAuthorityError{c, hintErr, hintCert}
+		err = newUnknownAuthorityError(c, hintErr, hintCert)
 	}
 
 	return
@@ -955,7 +991,7 @@ func (c *Certificate) VerifyHostname(h string) error {
 				return nil
 			}
 		}
-		return HostnameError{c, ip.String()}
+		return newHostnameError(c, candidateIP)
 	}
 
 	candidateName := toLowerCaseASCII(h) // Save allocations inside the loop.
@@ -979,7 +1015,7 @@ func (c *Certificate) VerifyHostname(h string) error {
 		}
 	}
 
-	return HostnameError{c, h}
+	return newHostnameError(c, h)
 }
 
 func splitHostname(host string) []string {

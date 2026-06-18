@@ -152,7 +152,7 @@ func (hs *clientHandshakeStateTLS13) handshake() error {
 
 	if hs.echContext != nil && hs.echContext.echRejected {
 		c.sendAlert(alertECHRequired)
-		return &ECHRejectionError{hs.echContext.retryConfigs}
+		return newECHRejectionError(hs.echContext.retryConfigs)
 	}
 
 	c.isHandshakeComplete.Store(true)

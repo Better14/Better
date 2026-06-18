@@ -1131,13 +1131,13 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 			chains, err := certs[0].Verify(opts)
 			if err != nil {
 				c.sendAlert(alertBadCertificate)
-				return &CertificateVerificationError{UnverifiedCertificates: certs, Err: err}
+				return newCertificateVerificationError(certs, err)
 			}
 
 			c.verifiedChains, err = fipsAllowedChains(chains)
 			if err != nil {
 				c.sendAlert(alertBadCertificate)
-				return &CertificateVerificationError{UnverifiedCertificates: certs, Err: err}
+				return newCertificateVerificationError(certs, err)
 			}
 		}
 	} else if !c.config.InsecureSkipVerify {
@@ -1154,13 +1154,13 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 		chains, err := certs[0].Verify(opts)
 		if err != nil {
 			c.sendAlert(alertBadCertificate)
-			return &CertificateVerificationError{UnverifiedCertificates: certs, Err: err}
+			return newCertificateVerificationError(certs, err)
 		}
 
 		c.verifiedChains, err = fipsAllowedChains(chains)
 		if err != nil {
 			c.sendAlert(alertBadCertificate)
-			return &CertificateVerificationError{UnverifiedCertificates: certs, Err: err}
+			return newCertificateVerificationError(certs, err)
 		}
 	}
 
