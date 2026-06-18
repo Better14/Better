@@ -1074,6 +1074,38 @@ interface Stringer {
 	}
 }
 
+func TestParseShorthandTypeDeclInFunction(t *testing.T) {
+	const src = `package p
+
+func f() {
+	struct subRow {
+		ID string
+	}
+	var rows []subRow
+}
+`
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+	if len(f.Decls) != 1 {
+		t.Fatalf("got %d decls, want 1", len(f.Decls))
+	}
+	fn, ok := f.Decls[0].(*ast.FuncDecl)
+	if !ok || fn.Body == nil || len(fn.Body.List) != 2 {
+		t.Fatalf("func decl: got %#v", f.Decls[0])
+	}
+	ds, ok := fn.Body.List[0].(*ast.DeclStmt)
+	if !ok {
+		t.Fatalf("first stmt: got %T", fn.Body.List[0])
+	}
+	sd, ok := ds.Decl.(*ast.StructDecl)
+	if !ok || sd.Name.Name != "subRow" {
+		t.Fatalf("struct decl in func: got %#v", ds.Decl)
+	}
+}
+
 func TestParseEnumMultilineStructVariant(t *testing.T) {
 	const src = `package p
 

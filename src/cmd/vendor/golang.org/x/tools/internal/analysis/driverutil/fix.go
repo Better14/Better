@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/printer"
 	"go/token"
@@ -256,6 +257,10 @@ fixloop:
 
 		// Attempt to format each file.
 		if formatted, err := FormatSourceRemoveImports(filePkgs[file], final); err == nil {
+			final = formatted
+		} else if formatted, err := format.Source(final); err == nil {
+			// Fallback when import heuristics fail (e.g. local struct shorthand
+			// declarations). gofmt places continuation dots at line starts.
 			final = formatted
 		}
 
