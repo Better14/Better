@@ -421,6 +421,14 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 		return nil, nil, InvalidUntypedConversion
 	}
 
+	if x.isNil() {
+		assert(isUntyped(x.typ()))
+		if hasNil(target) {
+			return target, nil, 0
+		}
+		return nil, nil, InvalidUntypedConversion
+	}
+
 	switch u := target.Underlying().(type) {
 	case *Basic:
 		if x.mode() == constant_ {

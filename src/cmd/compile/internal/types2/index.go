@@ -411,6 +411,20 @@ L:
 	}
 }
 
+// overloadIndices returns index expressions for []/[]= operator overload resolution.
+// Unlike singleIndex, multiple indices are allowed.
+func (check *Checker) overloadIndices(e *syntax.IndexExpr) []syntax.Expr {
+	index := e.Index
+	if index == nil {
+		check.errorf(e, InvalidSyntaxTree, "missing index for %s", e.X)
+		return nil
+	}
+	if l, ok := index.(*syntax.ListExpr); ok {
+		return l.ElemList
+	}
+	return []syntax.Expr{index}
+}
+
 // singleIndex returns the (single) index from the index expression e.
 // If the index is missing, or if there are multiple indices, an error
 // is reported and the result is nil.
