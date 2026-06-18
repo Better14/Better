@@ -16,6 +16,10 @@ import (
 	"unsafe"
 )
 
+type ifaceWithMethod interface {
+	M()
+}
+
 // Value is the reflection interface to a Go value.
 //
 // Not all methods apply to all kinds of values. Restrictions,
@@ -172,7 +176,7 @@ func unpackEface(i any) Value {
 // a [Value] that does not support it. Such cases are documented
 // in the description of each method.
 type ValueError struct {
-	errors.Error
+	errors.Layer
 	Method string
 	Kind   Kind
 }
@@ -186,7 +190,7 @@ func valueErrorMessage(method string, kind Kind) string {
 
 func newValueError(method string, kind Kind) *ValueError {
 	e := &ValueError{Method: method, Kind: kind}
-	errors.InitCustom(&e.Error, "%s", valueErrorMessage(method, kind))
+	errors.InitCustom(&e.Layer, "%s", valueErrorMessage(method, kind))
 	return e
 }
 
@@ -1585,7 +1589,7 @@ func TypeAssert[T any](v Value) (T, bool) {
 	if typ.Kind() == abi.Interface {
 		// To avoid allocating memory, in case the type assertion fails,
 		// first do the type assertion with a nil Data pointer.
-		iface := *(*any)(unsafe.Pointer(&abi.EmptyInterface{Type: v.typ(), Data: nil)))
+		iface := *(*any)(unsafe.Pointer(&abi.EmptyInterface{Type: v.typ(), Data: nil}))
 		if out, ok := iface.(T); ok {
 			// Now populate the Data field properly, we update the Data ptr
 			// directly to avoid an additional type asertion. We can re-use the
@@ -1618,9 +1622,7 @@ func packIfaceValueIntoEmptyIface(v Value) any {
 	if v.NumMethod() == 0 {
 		return *(*any)(v.ptr)
 	}
-	return *(*interface {
-		M()
-	))(v.ptr)
+	return *(*ifaceWithMethod)(v.ptr)
 }
 
 // InterfaceData returns a pair of unspecified uintptr values.

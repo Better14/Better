@@ -20,14 +20,14 @@ import (
 const errorPrefix = "jsontext: "
 
 type ioError struct {
-	errors.Error
+	errors.Layer
 	action string // either "read" or "write"
 	err    error
 }
 
 func newIOError(action string, err error) *ioError {
 	e := &ioError{action: action, err: err}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }
 
@@ -39,7 +39,7 @@ func (e *ioError) Unwrap() error {
 }
 
 type numError struct {
-	errors.Error
+	errors.Layer
 	accessor string // either "Int", "Uint", or "Float"
 	value    string // e.g., "1e1000"
 	err      error  // either [strconv.ErrSyntax] or [strconv.ErrRange]
@@ -47,7 +47,7 @@ type numError struct {
 
 func newNumError(accessor, value string, err error) *numError {
 	e := &numError{accessor: accessor, value: value, err: err}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }
 
@@ -66,7 +66,7 @@ type SyntacticError struct {
 	requireKeyedLiterals
 	nonComparable
 
-	errors.Error
+	errors.Layer
 
 	// ByteOffset indicates that an error occurred at or after this byte offset.
 	ByteOffset int64
@@ -85,7 +85,7 @@ func NewSyntacticError(offset int64, ptr Pointer, err error) *SyntacticError {
 
 func newSyntacticError(offset int64, ptr Pointer, err error) *SyntacticError {
 	e := &SyntacticError{ByteOffset: offset, JSONPointer: ptr, Err: err}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }
 
@@ -200,7 +200,7 @@ func (e *SyntacticError) Unwrap() error {
 // These tokens are reversed and concatenated to "/alpha/bravo/charlie"
 // to form the full pointer.
 type pointerSuffixError struct {
-	errors.Error
+	errors.Layer
 	err error
 
 	// reversePointer is a JSON pointer, but with each token in reverse order.
@@ -209,7 +209,7 @@ type pointerSuffixError struct {
 
 func newPointerSuffixError(err error) *pointerSuffixError {
 	e := &pointerSuffixError{err: err}
-	errors.InitCustom(&e.Error, "%s", err.Error())
+	errors.InitCustom(&e.Layer, "%s", err.Error())
 	return e
 }
 

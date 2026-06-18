@@ -66,6 +66,7 @@ var bootstrapDirs = []string{
 	"debug/elf",
 	"debug/macho",
 	"debug/pe",
+	"errors",
 	"go/build/constraint",
 	"go/constant",
 	"go/version",

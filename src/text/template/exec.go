@@ -119,7 +119,7 @@ func doublePercent(str string) string {
 // error evaluating its template. (If a write error occurs, the actual
 // error is returned; it will not be of type ExecError.)
 type ExecError struct {
-	errors.Error
+	errors.Layer
 	Name string // Name of template.
 	Err  error  // Pre-formatted error.
 }
@@ -134,7 +134,7 @@ func (e ExecError) Unwrap() error {
 
 func newExecError(name string, err error) ExecError {
 	e := ExecError{Name: name, Err: err}
-	errors.InitCustom(&e.Error, "%s", err.Error())
+	errors.InitCustom(&e.Layer, "%s", err.Error())
 	return e
 }
 
@@ -155,13 +155,13 @@ func (s *state) errorf(format string, args ...any) {
 // Note that this is not an implementation of error, so it cannot escape
 // from the package as an error value.
 type writeError struct {
-	errors.Error
+	errors.Layer
 	Err error // Original error.
 }
 
 func newWriteError(err error) writeError {
 	w := writeError{Err: err}
-	errors.InitCustom(&w.Error, "%s", err.Error())
+	errors.InitCustom(&w.Layer, "%s", err.Error())
 	return w
 }
 

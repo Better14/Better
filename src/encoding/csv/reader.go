@@ -65,7 +65,7 @@ import (
 // A ParseError is returned for parsing errors.
 // Line and column numbers are 1-indexed.
 type ParseError struct {
-	errors.Error
+	errors.Layer
 	StartLine int   // Line where the record starts
 	Line      int   // Line where the error occurred
 	Column    int   // Column (1-based byte index) where the error occurred
@@ -84,7 +84,7 @@ func parseErrorMessage(startLine, line, col int, err error) string {
 
 func newParseError(startLine, line, col int, err error) *ParseError {
 	pe := &ParseError{StartLine: startLine, Line: line, Column: col, Err: err}
-	errors.InitCustom(&pe.Error, "%s", parseErrorMessage(startLine, line, col, err))
+	errors.InitCustom(&pe.Layer, "%s", parseErrorMessage(startLine, line, col, err))
 	return pe
 }
 

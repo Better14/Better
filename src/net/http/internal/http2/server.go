@@ -1411,7 +1411,7 @@ func (sc *serverConn) processFrameFromReader(res readFrameResult) bool {
 			}
 		}
 		sc.logf("http2: server connection error from %v: %v", sc.conn.RemoteAddr(), ev)
-		sc.goAway(ErrCode(ev))
+		sc.goAway(ev.Code)
 		return true // goAway will handle shutdown
 	default:
 		if res.err != nil {
@@ -3224,7 +3224,7 @@ func (sc *serverConn) countError(name string, err error) error {
 	switch e := err.(type) {
 	case ConnectionError:
 		typ = "conn"
-		code = ErrCode(e)
+		code = e.Code
 	case StreamError:
 		typ = "stream"
 		code = ErrCode(e.Code)

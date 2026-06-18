@@ -24,11 +24,11 @@ func (file *File) Stat() (FileInfo, error) {
 // stat implements both Stat and Lstat of a file.
 func stat(funcname, name string, followSurrogates bool) (FileInfo, error) {
 	if len(name) == 0 {
-		return nil, fs.NewPathError(funcname, name, syscall.Errno(syscall.ERROR_PATH_NOT_FOUND))
+		return nil, NewPathError(funcname, name, syscall.Errno(syscall.ERROR_PATH_NOT_FOUND))
 	}
 	namep, err := syscall.UTF16PtrFromString(fixLongPath(name))
 	if err != nil {
-		return nil, fs.NewPathError(funcname, name, err)
+		return nil, NewPathError(funcname, name, err)
 	}
 
 	// Try GetFileAttributesEx first, because it is faster than CreateFile.
@@ -36,7 +36,7 @@ func stat(funcname, name string, followSurrogates bool) (FileInfo, error) {
 	var fa syscall.Win32FileAttributeData
 	err = syscall.GetFileAttributesEx(namep, syscall.GetFileExInfoStandard, (*byte)(unsafe.Pointer(&fa)))
 	if errors.Is(err, ErrNotExist) {
-		return nil, fs.NewPathError("GetFileAttributesEx", name, err)
+		return nil, NewPathError("GetFileAttributesEx", name, err)
 	}
 	if err == nil && fa.FileAttributes&syscall.FILE_ATTRIBUTE_REPARSE_POINT == 0 {
 		// Not a surrogate for another named entity, because it isn't any kind of reparse point.
@@ -54,7 +54,7 @@ func stat(funcname, name string, followSurrogates bool) (FileInfo, error) {
 		var fd syscall.Win32finddata
 		sh, err := syscall.FindFirstFile(namep, &fd)
 		if err != nil {
-			return nil, fs.NewPathError("FindFirstFile", name, err)
+			return nil, NewPathError("FindFirstFile", name, err)
 		}
 		syscall.FindClose(sh)
 		if fd.FileAttributes&syscall.FILE_ATTRIBUTE_REPARSE_POINT == 0 {
@@ -85,7 +85,7 @@ func stat(funcname, name string, followSurrogates bool) (FileInfo, error) {
 		// Since CreateFile failed, we can't determine whether name refers to a
 		// name surrogate, or some other kind of reparse point. Since we can't return a
 		// FileInfo with a known-accurate Mode, we must return an error.
-		return nil, fs.NewPathError("CreateFile", name, err)
+		return nil, NewPathError("CreateFile", name, err)
 	}
 
 	fi, err := statHandle(name, h)
@@ -97,7 +97,7 @@ func stat(funcname, name string, followSurrogates bool) (FileInfo, error) {
 		h, err = syscall.CreateFile(namep, 0, 0, nil, syscall.OPEN_EXISTING, syscall.FILE_FLAG_BACKUP_SEMANTICS, 0)
 		if err != nil {
 			// name refers to a symlink, but we couldn't resolve the symlink target.
-			return nil, fs.NewPathError("CreateFile", name, err)
+			return nil, NewPathError("CreateFile", name, err)
 		}
 		defer syscall.CloseHandle(h)
 		return statHandle(name, h)
@@ -108,7 +108,7 @@ func stat(funcname, name string, followSurrogates bool) (FileInfo, error) {
 func statHandle(name string, h syscall.Handle) (FileInfo, error) {
 	ft, err := syscall.GetFileType(h)
 	if err != nil {
-		return nil, fs.NewPathError("GetFileType", name, err)
+		return nil, NewPathError("GetFileType", name, err)
 	}
 	switch ft {
 	case syscall.FILE_TYPE_PIPE, syscall.FILE_TYPE_CHAR:

@@ -11,14 +11,14 @@ import (
 	"testing"
 )
 
-// appError embeds errors.Error for NewCustom tests.
+// appError embeds errors.Layer for NewCustom tests.
 type appError struct {
-	errors.Error
+	errors.Layer
 }
 
 // myError carries a structured error plus a Code field.
 type myError struct {
-	err  errors.Error
+	err  errors.Layer
 	Code int
 }
 

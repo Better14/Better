@@ -86,7 +86,7 @@ func (f *File) readdir(n int, mode readdirMode) (names []string, dirents []DirEn
 			d.nbuf, errno = f.pfd.ReadDirent(*d.buf)
 			runtime.KeepAlive(f)
 			if errno != nil {
-				return names, dirents, infos, fs.NewPathError("readdirent", f.name, errno)
+				return names, dirents, infos, NewPathError("readdirent", f.name, errno)
 			}
 			if d.nbuf <= 0 {
 				// Optimization: we can return the buffer to the pool, there is nothing else to read.

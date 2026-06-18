@@ -23,7 +23,7 @@ func MkdirAll(path string, perm FileMode) error {
 		if dir.IsDir() {
 			return nil
 		}
-		return fs.NewPathError("mkdir", path, syscall.ENOTDIR)
+		return NewPathError("mkdir", path, syscall.ENOTDIR)
 	}
 
 	// Slow path: make sure parent exists and then call Mkdir for path.

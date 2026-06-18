@@ -26,7 +26,7 @@ type root struct {
 func openRootNolog(name string) (*Root, error) {
 	r, err := newRoot(name)
 	if err != nil {
-		return nil, fs.NewPathError("open", name, err)
+		return nil, NewPathError("open", name, err)
 	}
 	return r, nil
 }
@@ -34,11 +34,11 @@ func openRootNolog(name string) (*Root, error) {
 // openRootInRoot is Root.OpenRoot.
 func openRootInRoot(r *Root, name string) (*Root, error) {
 	if err := checkPathEscapes(r, name); err != nil {
-		return nil, fs.NewPathError("openat", name, err)
+		return nil, NewPathError("openat", name, err)
 	}
 	r, err := newRoot(joinPath(r.root.name, name))
 	if err != nil {
-		return nil, fs.NewPathError("openat", name, err)
+		return nil, NewPathError("openat", name, err)
 	}
 	return r, nil
 }
@@ -70,11 +70,11 @@ func (r *root) Name() string {
 // rootOpenFileNolog is Root.OpenFile.
 func rootOpenFileNolog(r *Root, name string, flag int, perm FileMode) (*File, error) {
 	if err := checkPathEscapes(r, name); err != nil {
-		return nil, fs.NewPathError("openat", name, err)
+		return nil, NewPathError("openat", name, err)
 	}
 	f, err := openFileNolog(joinPath(r.root.name, name), flag, perm)
 	if err != nil {
-		return nil, fs.NewPathError("openat", name, underlyingError(err))
+		return nil, NewPathError("openat", name, underlyingError(err))
 	}
 	return f, nil
 }
@@ -94,57 +94,57 @@ func rootStat(r *Root, name string, lstat bool) (FileInfo, error) {
 		}
 	}
 	if err != nil {
-		return nil, fs.NewPathError("statat", name, underlyingError(err))
+		return nil, NewPathError("statat", name, underlyingError(err))
 	}
 	return fi, nil
 }
 
 func rootChmod(r *Root, name string, mode FileMode) error {
 	if err := checkPathEscapes(r, name); err != nil {
-		return fs.NewPathError("chmodat", name, err)
+		return NewPathError("chmodat", name, err)
 	}
 	if err := Chmod(joinPath(r.root.name, name), mode); err != nil {
-		return fs.NewPathError("chmodat", name, underlyingError(err))
+		return NewPathError("chmodat", name, underlyingError(err))
 	}
 	return nil
 }
 
 func rootChown(r *Root, name string, uid, gid int) error {
 	if err := checkPathEscapes(r, name); err != nil {
-		return fs.NewPathError("chownat", name, err)
+		return NewPathError("chownat", name, err)
 	}
 	if err := Chown(joinPath(r.root.name, name), uid, gid); err != nil {
-		return fs.NewPathError("chownat", name, underlyingError(err))
+		return NewPathError("chownat", name, underlyingError(err))
 	}
 	return nil
 }
 
 func rootLchown(r *Root, name string, uid, gid int) error {
 	if err := checkPathEscapesLstat(r, name); err != nil {
-		return fs.NewPathError("lchownat", name, err)
+		return NewPathError("lchownat", name, err)
 	}
 	if err := Lchown(joinPath(r.root.name, name), uid, gid); err != nil {
-		return fs.NewPathError("lchownat", name, underlyingError(err))
+		return NewPathError("lchownat", name, underlyingError(err))
 	}
 	return nil
 }
 
 func rootChtimes(r *Root, name string, atime time.Time, mtime time.Time) error {
 	if err := checkPathEscapes(r, name); err != nil {
-		return fs.NewPathError("chtimesat", name, err)
+		return NewPathError("chtimesat", name, err)
 	}
 	if err := Chtimes(joinPath(r.root.name, name), atime, mtime); err != nil {
-		return fs.NewPathError("chtimesat", name, underlyingError(err))
+		return NewPathError("chtimesat", name, underlyingError(err))
 	}
 	return nil
 }
 
 func rootMkdir(r *Root, name string, perm FileMode) error {
 	if err := checkPathEscapes(r, name); err != nil {
-		return fs.NewPathError("mkdirat", name, err)
+		return NewPathError("mkdirat", name, err)
 	}
 	if err := Mkdir(joinPath(r.root.name, name), perm); err != nil {
-		return fs.NewPathError("mkdirat", name, underlyingError(err))
+		return NewPathError("mkdirat", name, underlyingError(err))
 	}
 	return nil
 }
@@ -156,7 +156,7 @@ func rootMkdirAll(r *Root, name string, perm FileMode) error {
 	// MkdirAll will return a PathError referencing the exact location of the error,
 	// and we want to preserve that property.
 	if err := checkPathEscapes(r, name); err == errPathEscapes {
-		return fs.NewPathError("mkdirat", name, err)
+		return NewPathError("mkdirat", name, err)
 	}
 	prefix := r.root.name + string(PathSeparator)
 	if err := MkdirAll(prefix+name, perm); err != nil {
@@ -165,23 +165,23 @@ func rootMkdirAll(r *Root, name string, perm FileMode) error {
 			pe.Path = stringslite.TrimPrefix(pe.Path, prefix)
 			return pe
 		}
-		return fs.NewPathError("mkdirat", name, underlyingError(err))
+		return NewPathError("mkdirat", name, underlyingError(err))
 	}
 	return nil
 }
 
 func rootRemove(r *Root, name string) error {
 	if err := checkPathEscapesLstat(r, name); err != nil {
-		return fs.NewPathError("removeat", name, err)
+		return NewPathError("removeat", name, err)
 	}
 	if endsWithDot(name) {
 		// We don't want to permit removing the root itself, so check for that.
 		if filepathlite.Clean(name) == "." {
-			return fs.NewPathError("removeat", name, errPathEscapes)
+			return NewPathError("removeat", name, errPathEscapes)
 		}
 	}
 	if err := Remove(joinPath(r.root.name, name)); err != nil {
-		return fs.NewPathError("removeat", name, underlyingError(err))
+		return NewPathError("removeat", name, underlyingError(err))
 	}
 	return nil
 }
@@ -189,7 +189,7 @@ func rootRemove(r *Root, name string) error {
 func rootRemoveAll(r *Root, name string) error {
 	if endsWithDot(name) {
 		// Consistency with os.RemoveAll: Return EINVAL when trying to remove .
-		return fs.NewPathError("RemoveAll", name, syscall.EINVAL)
+		return NewPathError("RemoveAll", name, syscall.EINVAL)
 	}
 	if err := checkPathEscapesLstat(r, name); err != nil {
 		if err == syscall.ENOTDIR {
@@ -197,31 +197,31 @@ func rootRemoveAll(r *Root, name string) error {
 			// RemoveAll treats this as success (since the target doesn't exist).
 			return nil
 		}
-		return fs.NewPathError("RemoveAll", name, err)
+		return NewPathError("RemoveAll", name, err)
 	}
 	if err := RemoveAll(joinPath(r.root.name, name)); err != nil {
-		return fs.NewPathError("RemoveAll", name, underlyingError(err))
+		return NewPathError("RemoveAll", name, underlyingError(err))
 	}
 	return nil
 }
 
 func rootReadlink(r *Root, name string) (string, error) {
 	if err := checkPathEscapesLstat(r, name); err != nil {
-		return "", fs.NewPathError("readlinkat", name, err)
+		return "", NewPathError("readlinkat", name, err)
 	}
 	name, err := Readlink(joinPath(r.root.name, name))
 	if err != nil {
-		return "", fs.NewPathError("readlinkat", name, underlyingError(err))
+		return "", NewPathError("readlinkat", name, underlyingError(err))
 	}
 	return name, nil
 }
 
 func rootRename(r *Root, oldname, newname string) error {
 	if err := checkPathEscapesLstat(r, oldname); err != nil {
-		return fs.NewPathError("renameat", oldname, err)
+		return NewPathError("renameat", oldname, err)
 	}
 	if err := checkPathEscapesLstat(r, newname); err != nil {
-		return fs.NewPathError("renameat", newname, err)
+		return NewPathError("renameat", newname, err)
 	}
 	err := Rename(joinPath(r.root.name, oldname), joinPath(r.root.name, newname))
 	if err != nil {
@@ -232,14 +232,14 @@ func rootRename(r *Root, oldname, newname string) error {
 
 func rootLink(r *Root, oldname, newname string) error {
 	if err := checkPathEscapesLstat(r, oldname); err != nil {
-		return fs.NewPathError("linkat", oldname, err)
+		return NewPathError("linkat", oldname, err)
 	}
 	fullOldName := joinPath(r.root.name, oldname)
 	if fs, err := Lstat(fullOldName); err == nil && fs.Mode()&ModeSymlink != 0 {
-		return fs.NewPathError("linkat", oldname, errors.New("cannot create a hard link to a symlink"))
+		return NewPathError("linkat", oldname, errors.New("cannot create a hard link to a symlink"))
 	}
 	if err := checkPathEscapesLstat(r, newname); err != nil {
-		return fs.NewPathError("linkat", newname, err)
+		return NewPathError("linkat", newname, err)
 	}
 	err := Link(fullOldName, joinPath(r.root.name, newname))
 	if err != nil {
@@ -250,7 +250,7 @@ func rootLink(r *Root, oldname, newname string) error {
 
 func rootSymlink(r *Root, oldname, newname string) error {
 	if err := checkPathEscapesLstat(r, newname); err != nil {
-		return fs.NewPathError("symlinkat", newname, err)
+		return NewPathError("symlinkat", newname, err)
 	}
 	err := Symlink(oldname, joinPath(r.root.name, newname))
 	if err != nil {

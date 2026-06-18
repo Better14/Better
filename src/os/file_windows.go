@@ -152,12 +152,12 @@ const DevNull = "NUL"
 // openFileNolog is the Windows implementation of OpenFile.
 func openFileNolog(name string, flag int, perm FileMode) (*File, error) {
 	if name == "" {
-		return nil, fs.NewPathError("open", name, syscall.ENOENT)
+		return nil, NewPathError("open", name, syscall.ENOENT)
 	}
 	path := fixLongPath(name)
 	r, err := syscall.Open(path, flag|syscall.O_CLOEXEC, syscallMode(perm))
 	if err != nil {
-		return nil, fs.NewPathError("open", name, err)
+		return nil, NewPathError("open", name, err)
 	}
 	nonblocking := flag&windows.O_FILE_FLAG_OVERLAPPED != 0
 	return newFile(r, name, kindOpenFile, nonblocking), nil
@@ -179,7 +179,7 @@ func (file *file) close() error {
 		if e == poll.ErrFileClosing {
 			e = ErrClosed
 		}
-		err = fs.NewPathError("close", file.name, e)
+		err = NewPathError("close", file.name, e)
 	}
 
 	// no need for a finalizer anymore
@@ -222,7 +222,7 @@ func Truncate(name string, size int64) error {
 func Remove(name string) error {
 	p, e := syscall.UTF16PtrFromString(fixLongPath(name))
 	if e != nil {
-		return fs.NewPathError("remove", name, e)
+		return NewPathError("remove", name, e)
 	}
 
 	// Go file interface forces us to know whether
@@ -253,7 +253,7 @@ func Remove(name string) error {
 			}
 		}
 	}
-	return fs.NewPathError("remove", name, e)
+	return NewPathError("remove", name, e)
 }
 
 func rename(oldname, newname string) error {
@@ -501,7 +501,7 @@ func readReparseLinkHandle(h syscall.Handle) (string, error) {
 func readlink(name string) (string, error) {
 	s, err := readReparseLink(fixLongPath(name))
 	if err != nil {
-		return "", fs.NewPathError("readlink", name, err)
+		return "", NewPathError("readlink", name, err)
 	}
 	return s, nil
 }

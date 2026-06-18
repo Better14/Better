@@ -148,7 +148,7 @@ const (
 )
 
 // Error strings for invented errors
-var errors = [...]string{
+var errnoMessages = [...]string{
 	E2BIG - APPLICATION_ERROR:           "argument list too long",
 	EACCES - APPLICATION_ERROR:          "permission denied",
 	EADDRINUSE - APPLICATION_ERROR:      "address already in use",

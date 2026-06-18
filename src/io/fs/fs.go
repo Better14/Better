@@ -263,7 +263,7 @@ func (m FileMode) Type() FileMode {
 
 // PathError records an error and the operation and file path that caused it.
 type PathError struct {
-	errors.Error
+	errors.Layer
 	Op   string
 	Path string
 	Err  error
@@ -279,7 +279,7 @@ func pathErrorMessage(op, path string, err error) string {
 // NewPathError returns a PathError with a stack trace captured at the call site.
 func NewPathError(op, path string, err error) *PathError {
 	pe := &PathError{Op: op, Path: path, Err: err}
-	errors.InitCustom(&pe.Error, "%s", pathErrorMessage(op, path, err))
+	errors.InitCustom(&pe.Layer, "%s", pathErrorMessage(op, path, err))
 	return pe
 }
 
