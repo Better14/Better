@@ -32,7 +32,7 @@ func checkValid(data []byte) error {
 	if _, err := d.ReadValue(); err != nil {
 		if err == io.EOF {
 			offset := d.InputOffset() + int64(len(d.UnreadBuffer()))
-			err = &jsontext.SyntacticError{ByteOffset: offset, Err: io.ErrUnexpectedEOF}
+			err = jsontext.NewSyntacticError(offset, "", io.ErrUnexpectedEOF)
 		}
 		return transformSyntacticError(err)
 	}
@@ -45,6 +45,7 @@ func checkValid(data []byte) error {
 // A SyntaxError is a description of a JSON syntax error.
 // [Unmarshal] will return a SyntaxError if the JSON can't be parsed.
 type SyntaxError struct {
+	errors.Error
 	msg    string // description of error
 	Offset int64  // error occurred after reading Offset bytes
 }
@@ -68,7 +69,7 @@ func transformSyntacticError(err error) error {
 		if i := strings.Index(msg, " (expecting"); i >= 0 && !strings.Contains(msg, " in literal") {
 			msg = msg[:i]
 		}
-		return &SyntaxError{Offset: serr.ByteOffset, msg: syntaxErrorReplacer.Replace(msg)}
+		return newSyntaxError(syntaxErrorReplacer.Replace(msg), serr.ByteOffset)
 	case ok:
 		return (*SyntaxError)(nil)
 	case export.IsIOError(err):

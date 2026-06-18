@@ -16,13 +16,13 @@ import (
 
 var (
 	// Deprecated: No longer used.
-	ErrPersistEOF = &http.ProtocolError{ErrorString: "persistent connection closed"}
+	ErrPersistEOF = http.NewProtocolError("persistent connection closed")
 
 	// Deprecated: No longer used.
-	ErrClosed = &http.ProtocolError{ErrorString: "connection closed by user"}
+	ErrClosed = http.NewProtocolError("connection closed by user")
 
 	// Deprecated: No longer used.
-	ErrPipeline = &http.ProtocolError{ErrorString: "pipeline error"}
+	ErrPipeline = http.NewProtocolError("pipeline error")
 )
 
 // This is an API usage error - the local side is closed.

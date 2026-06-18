@@ -253,7 +253,7 @@ func (dec *Decoder) Token() (Token, error) {
 		}
 		v, err := tok.Float()
 		if err != nil {
-			return nil, &UnmarshalTypeError{Value: "number " + tok.String(), Type: reflect.TypeFor[float64](), Offset: dec.InputOffset()}
+			return nil, newUnmarshalTypeError("number "+tok.String(), reflect.TypeFor[float64](), dec.InputOffset(), "", "", nil)
 		}
 		return v, nil
 	case '{', '}', '[', ']':

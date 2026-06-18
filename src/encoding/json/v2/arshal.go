@@ -443,7 +443,7 @@ func UnmarshalDecode(in *jsontext.Decoder, out any, opts ...Options) (err error)
 func unmarshalDecode(in *jsontext.Decoder, out any, uo *jsonopts.Struct, last bool) (err error) {
 	v := reflect.ValueOf(out)
 	if v.Kind() != reflect.Pointer || v.IsNil() {
-		return &SemanticError{action: "unmarshal", GoType: reflect.TypeOf(out), Err: internal.ErrNonNilReference}
+		return initSemanticError(&SemanticError{action: "unmarshal", GoType: reflect.TypeOf(out), Err: internal.ErrNonNilReference})
 	}
 	va := addressableValue{v.Elem(), false} // dereferenced pointer is always addressable
 	t := va.Type()
@@ -454,7 +454,7 @@ func unmarshalDecode(in *jsontext.Decoder, out any, uo *jsonopts.Struct, last bo
 		if err := export.Decoder(in).CheckNextValue(last); err != nil {
 			if err == io.EOF && last {
 				offset := in.InputOffset() + int64(len(in.UnreadBuffer()))
-				return &jsontext.SyntacticError{ByteOffset: offset, Err: io.ErrUnexpectedEOF}
+				return jsontext.NewSyntacticError(offset, "", io.ErrUnexpectedEOF)
 			}
 			return err
 		}

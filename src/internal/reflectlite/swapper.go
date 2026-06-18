@@ -17,7 +17,7 @@ import (
 func Swapper(slice any) func(i, j int) {
 	v := ValueOf(slice)
 	if v.Kind() != Slice {
-		panic(&ValueError{Method: "Swapper", Kind: v.Kind()})
+		panic(newValueError("Swapper", v.Kind()))
 	}
 	// Fast path for slices of size 0 and 1. Nothing to swap.
 	switch v.Len() {

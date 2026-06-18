@@ -79,7 +79,7 @@ var errNoExportedFields = errors.New("Go struct has no exported fields")
 
 func makeStructFields(root reflect.Type) (fs structFields, serr *SemanticError) {
 	orErrorf := func(serr *SemanticError, t reflect.Type, f string, a ...any) *SemanticError {
-		return cmp.Or(serr, &SemanticError{GoType: t, Err: fmt.Errorf(f, a...)})
+		return cmp.Or(serr, initSemanticError(&SemanticError{GoType: t, Err: fmt.Errorf(f, a...)}))
 	}
 
 	// Setup a queue for a breadth-first search.
@@ -110,7 +110,7 @@ func makeStructFields(root reflect.Type) (fs structFields, serr *SemanticError) 
 			hasAnyJSONTag = hasAnyJSONTag || hasTag
 			options, ignored, err := parseFieldOptions(sf)
 			if err != nil {
-				serr = cmp.Or(serr, &SemanticError{GoType: t, Err: err})
+				serr = cmp.Or(serr, initSemanticError(&SemanticError{GoType: t, Err: err}))
 			}
 			if ignored {
 				continue
@@ -278,7 +278,7 @@ func makeStructFields(root reflect.Type) (fs structFields, serr *SemanticError) 
 		// errors returned by errors.New would fail to serialize.
 		isEmptyStruct := t.NumField() == 0
 		if !isEmptyStruct && !hasAnyJSONTag && !hasAnyJSONField {
-			serr = cmp.Or(serr, &SemanticError{GoType: t, Err: errNoExportedFields})
+			serr = cmp.Or(serr, initSemanticError(&SemanticError{GoType: t, Err: errNoExportedFields}))
 		}
 	}
 

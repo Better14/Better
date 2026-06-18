@@ -58,7 +58,7 @@ func (dec *Decoder) Decode(v any) error {
 	}
 
 	if !dec.tokenValueAllowed() {
-		return &SyntaxError{msg: "not at beginning of value", Offset: dec.InputOffset()}
+		return newSyntaxError("not at beginning of value", dec.InputOffset())
 	}
 
 	// Read whole value into buffer.
@@ -326,7 +326,7 @@ func (dec *Decoder) tokenPrepareForDecode() error {
 			return err
 		}
 		if c != ',' {
-			return &SyntaxError{"expected comma after array element", dec.InputOffset()}
+			return newSyntaxError("expected comma after array element", dec.InputOffset())
 		}
 		dec.scanp++
 		dec.tokenState = tokenArrayValue
@@ -336,7 +336,7 @@ func (dec *Decoder) tokenPrepareForDecode() error {
 			return err
 		}
 		if c != ':' {
-			return &SyntaxError{"expected colon after object key", dec.InputOffset()}
+			return newSyntaxError("expected colon after object key", dec.InputOffset())
 		}
 		dec.scanp++
 		dec.tokenState = tokenObjectValue
@@ -489,7 +489,7 @@ func (dec *Decoder) tokenError(c byte) (Token, error) {
 	case tokenObjectComma:
 		context = " after object key:value pair"
 	}
-	return nil, &SyntaxError{"invalid character " + quoteChar(c) + context, dec.InputOffset()}
+	return nil, newSyntaxError("invalid character "+quoteChar(c)+context, dec.InputOffset())
 }
 
 // More reports whether there is another element in the

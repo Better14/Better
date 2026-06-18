@@ -613,7 +613,14 @@ func isIdentity(te []string) bool { return len(te) == 1 && te[0] == "identity" }
 
 // unsupportedTEError reports unsupported transfer-encodings.
 type unsupportedTEError struct {
+	errors.Error
 	err string
+}
+
+func newUnsupportedTEError(msg string) *unsupportedTEError {
+	e := &unsupportedTEError{err: msg}
+	errors.InitCustom(&e.Error, "%s", msg)
+	return e
 }
 
 func (uste *unsupportedTEError) Error() string {
@@ -645,10 +652,10 @@ func (t *transferReader) parseTransferEncoding() error {
 	// surfaces in HTTP/1.1 due to the risk of request smuggling, so we keep it
 	// strict and simple.
 	if len(raw) != 1 {
-		return &unsupportedTEError{fmt.Sprintf("too many transfer encodings: %q", raw)}
+		return newUnsupportedTEError(fmt.Sprintf("too many transfer encodings: %q", raw))
 	}
 	if !ascii.EqualFold(raw[0], "chunked") {
-		return &unsupportedTEError{fmt.Sprintf("unsupported transfer encoding: %q", raw[0])}
+		return newUnsupportedTEError(fmt.Sprintf("unsupported transfer encoding: %q", raw[0]))
 	}
 
 	t.Chunked = true

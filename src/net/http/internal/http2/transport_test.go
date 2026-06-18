@@ -2485,7 +2485,7 @@ func testTransportReturnsErrorOnBadResponseHeaders(t *testing.T) {
 	})
 
 	err := rt.err()
-	want := StreamError{1, ErrCodeProtocol, HeaderFieldNameError("  content-type")}
+	want := NewStreamError(1, ErrCodeProtocol, HeaderFieldNameError("  content-type"))
 	if !reflect.DeepEqual(err, want) {
 		t.Fatalf("RoundTrip error = %#v; want %#v", err, want)
 	}

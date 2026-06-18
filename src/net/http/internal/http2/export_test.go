@@ -39,9 +39,9 @@ type (
 	Stream      = stream
 	StreamState = streamState
 
-	PseudoHeaderError     = pseudoHeaderError
-	HeaderFieldNameError  = headerFieldNameError
-	HeaderFieldValueError = headerFieldValueError
+	PseudoHeaderError     = newPseudoHeaderError
+	HeaderFieldNameError  = newHeaderFieldNameError
+	HeaderFieldValueError = newHeaderFieldValueError
 )
 
 const (

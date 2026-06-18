@@ -6,6 +6,7 @@ package http2
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -1070,9 +1071,12 @@ func TestReadFrameOrder(t *testing.T) {
 			t.Errorf("%d. after %d good frames, ReadFrame = %v; want success\n%s", i, n, err, log.Bytes())
 			continue
 		}
-		if !ok && err != ConnectionError(ErrCodeProtocol) {
-			t.Errorf("%d. after %d good frames, ReadFrame = %v; want ConnectionError(ErrCodeProtocol)\n%s", i, n, err, log.Bytes())
-			continue
+		if !ok {
+			var ce ConnectionError
+			if !errors.As(err, &ce) || ce.Code != ErrCodeProtocol {
+				t.Errorf("%d. after %d good frames, ReadFrame = %v; want ConnectionError(ErrCodeProtocol)\n%s", i, n, err, log.Bytes())
+				continue
+			}
 		}
 		if !((f.errDetail == nil && tt.wantErr == "") || (fmt.Sprint(f.errDetail) == tt.wantErr)) {
 			t.Errorf("%d. framer error = %q; want %q\n%s", i, f.errDetail, tt.wantErr, log.Bytes())
@@ -1175,7 +1179,7 @@ func TestMetaFrameHeader(t *testing.T) {
 				write(f, all[:2], all[2:])
 			},
 			maxHeaderListSize: (1 << 10) / 2,
-			want:              ConnectionError(ErrCodeCompression),
+			want:              NewConnectionError(ErrCodeCompression),
 		},
 		5: {
 			name: "max_header_list_truncated",
@@ -1564,7 +1568,8 @@ func TestReadFrameHeaderBadFrameOrder(t *testing.T) {
 		t.Fatalf("ReadFrameForHeader failed: %v", err)
 	}
 
-	if _, err := fr.ReadFrameHeader(); err != ConnectionError(ErrCodeProtocol) {
+	var ce ConnectionError
+	if !errors.As(err, &ce) || ce.Code != ErrCodeProtocol {
 		t.Fatalf("ReadFrameHeader returned error %v; want ConnectionError(ErrCodeProtocol)", err)
 	}
 }

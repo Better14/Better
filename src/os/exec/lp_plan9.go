@@ -28,7 +28,7 @@ func findExecutable(file string) error {
 
 func lookPath(file string) (string, error) {
 	if err := validateLookPath(filepath.Clean(file)); err != nil {
-		return "", &Error{file, err}
+		return "", NewError(file, err)
 	}
 
 	// skip the path lookup for these prefixes
@@ -40,7 +40,7 @@ func lookPath(file string) (string, error) {
 			if err == nil {
 				return file, nil
 			}
-			return "", &Error{file, err}
+			return "", NewError(file, err)
 		}
 	}
 
@@ -50,14 +50,14 @@ func lookPath(file string) (string, error) {
 		if err := findExecutable(path); err == nil {
 			if !filepath.IsAbs(path) {
 				if execerrdot.Value() != "0" {
-					return path, &Error{file, ErrDot}
+					return path, NewError(file, ErrDot)
 				}
 				execerrdot.IncNonDefault()
 			}
 			return path, nil
 		}
 	}
-	return "", &Error{file, ErrNotFound}
+	return "", NewError(file, ErrNotFound)
 }
 
 // lookExtensions is a no-op on non-Windows platforms, since

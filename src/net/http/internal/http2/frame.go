@@ -578,13 +578,13 @@ func (fr *Framer) ReadFrame() (Frame, error) {
 	return fr.ReadFrameForHeader(fh)
 }
 
-// connError returns ConnectionError(code) but first
+// connError returns NewConnectionError(code) but first
 // stashes away a public reason to the caller can optionally relay it
 // to the peer before hanging up on them. This might help others debug
 // their implementations.
 func (fr *Framer) connError(code ErrCode, reason string) error {
 	fr.errDetail = errors.New(reason)
-	return ConnectionError(code)
+	return NewConnectionError(code)
 }
 
 // checkFrameOrder reports an error if f is an invalid frame to return
@@ -654,7 +654,7 @@ func parseDataFrame(fc *frameCache, fh FrameHeader, countError func(string), pay
 		// connection error (Section 5.4.1) of type
 		// PROTOCOL_ERROR.
 		countError("frame_data_stream_0")
-		return nil, connError{ErrCodeProtocol, "DATA frame with stream ID 0"}
+		return nil, newConnError(ErrCodeProtocol, "DATA frame with stream ID 0")
 	}
 	f := fc.getDataFrame()
 	f.FrameHeader = fh
@@ -674,7 +674,7 @@ func parseDataFrame(fc *frameCache, fh FrameHeader, countError func(string), pay
 		// treat this as a connection error.
 		// Filed: https://github.com/http2/http2-spec/issues/610
 		countError("frame_data_pad_too_big")
-		return nil, connError{ErrCodeProtocol, "pad size larger than data payload"}
+		return nil, newConnError(ErrCodeProtocol, "pad size larger than data payload")
 	}
 	f.data = payload[:len(payload)-int(padSize)]
 	return f, nil
@@ -774,7 +774,7 @@ func parseSettingsFrame(_ *frameCache, fh FrameHeader, countError func(string), 
 		// connection error (Section 5.4.1) of type
 		// FRAME_SIZE_ERROR.
 		countError("frame_settings_ack_with_length")
-		return nil, ConnectionError(ErrCodeFrameSize)
+		return nil, NewConnectionError(ErrCodeFrameSize)
 	}
 	if fh.StreamID != 0 {
 		// SETTINGS frames always apply to a connection,
@@ -785,12 +785,12 @@ func parseSettingsFrame(_ *frameCache, fh FrameHeader, countError func(string), 
 		// respond with a connection error (Section 5.4.1) of
 		// type PROTOCOL_ERROR.
 		countError("frame_settings_has_stream")
-		return nil, ConnectionError(ErrCodeProtocol)
+		return nil, NewConnectionError(ErrCodeProtocol)
 	}
 	if len(p)%6 != 0 {
 		countError("frame_settings_mod_6")
 		// Expecting even number of 6 byte settings.
-		return nil, ConnectionError(ErrCodeFrameSize)
+		return nil, NewConnectionError(ErrCodeFrameSize)
 	}
 	f := &SettingsFrame{FrameHeader: fh, p: p}
 	if v, ok := f.Value(SettingInitialWindowSize); ok && v > (1<<31)-1 {
@@ -798,7 +798,7 @@ func parseSettingsFrame(_ *frameCache, fh FrameHeader, countError func(string), 
 		// Values above the maximum flow control window size of 2^31 - 1 MUST
 		// be treated as a connection error (Section 5.4.1) of type
 		// FLOW_CONTROL_ERROR.
-		return nil, ConnectionError(ErrCodeFlowControl)
+		return nil, NewConnectionError(ErrCodeFlowControl)
 	}
 	return f, nil
 }
@@ -909,11 +909,11 @@ func (f *PingFrame) IsAck() bool { return f.Flags.Has(FlagPingAck) }
 func parsePingFrame(_ *frameCache, fh FrameHeader, countError func(string), payload []byte) (Frame, error) {
 	if len(payload) != 8 {
 		countError("frame_ping_length")
-		return nil, ConnectionError(ErrCodeFrameSize)
+		return nil, NewConnectionError(ErrCodeFrameSize)
 	}
 	if fh.StreamID != 0 {
 		countError("frame_ping_has_stream")
-		return nil, ConnectionError(ErrCodeProtocol)
+		return nil, NewConnectionError(ErrCodeProtocol)
 	}
 	f := &PingFrame{FrameHeader: fh}
 	copy(f.Data[:], payload)
@@ -951,11 +951,11 @@ func (f *GoAwayFrame) DebugData() []byte {
 func parseGoAwayFrame(_ *frameCache, fh FrameHeader, countError func(string), p []byte) (Frame, error) {
 	if fh.StreamID != 0 {
 		countError("frame_goaway_has_stream")
-		return nil, ConnectionError(ErrCodeProtocol)
+		return nil, NewConnectionError(ErrCodeProtocol)
 	}
 	if len(p) < 8 {
 		countError("frame_goaway_short")
-		return nil, ConnectionError(ErrCodeFrameSize)
+		return nil, NewConnectionError(ErrCodeFrameSize)
 	}
 	return &GoAwayFrame{
 		FrameHeader:  fh,
@@ -1004,7 +1004,7 @@ type WindowUpdateFrame struct {
 func parseWindowUpdateFrame(_ *frameCache, fh FrameHeader, countError func(string), p []byte) (Frame, error) {
 	if len(p) != 4 {
 		countError("frame_windowupdate_bad_len")
-		return nil, ConnectionError(ErrCodeFrameSize)
+		return nil, NewConnectionError(ErrCodeFrameSize)
 	}
 	inc := binary.BigEndian.Uint32(p[:4]) & 0x7fffffff // mask off high reserved bit
 	if inc == 0 {
@@ -1016,7 +1016,7 @@ func parseWindowUpdateFrame(_ *frameCache, fh FrameHeader, countError func(strin
 		// error (Section 5.4.1).
 		if fh.StreamID == 0 {
 			countError("frame_windowupdate_zero_inc_conn")
-			return nil, ConnectionError(ErrCodeProtocol)
+			return nil, NewConnectionError(ErrCodeProtocol)
 		}
 		countError("frame_windowupdate_zero_inc_stream")
 		return nil, streamError(fh.StreamID, ErrCodeProtocol)
@@ -1079,7 +1079,7 @@ func parseHeadersFrame(_ *frameCache, fh FrameHeader, countError func(string), p
 		// respond with a connection error (Section 5.4.1) of type
 		// PROTOCOL_ERROR.
 		countError("frame_headers_zero_stream")
-		return nil, connError{ErrCodeProtocol, "HEADERS frame with stream ID 0"}
+		return nil, newConnError(ErrCodeProtocol, "HEADERS frame with stream ID 0")
 	}
 	var padLength uint8
 	if fh.Flags.Has(FlagHeadersPadded) {
@@ -1262,11 +1262,11 @@ func (p PriorityParam) IsZero() bool {
 func parsePriorityFrame(_ *frameCache, fh FrameHeader, countError func(string), payload []byte) (Frame, error) {
 	if fh.StreamID == 0 {
 		countError("frame_priority_zero_stream")
-		return nil, connError{ErrCodeProtocol, "PRIORITY frame with stream ID 0"}
+		return nil, newConnError(ErrCodeProtocol, "PRIORITY frame with stream ID 0")
 	}
 	if len(payload) != 5 {
 		countError("frame_priority_bad_length")
-		return nil, connError{ErrCodeFrameSize, fmt.Sprintf("PRIORITY frame payload size was %d; want 5", len(payload))}
+		return nil, newConnError(ErrCodeFrameSize, fmt.Sprintf("PRIORITY frame payload size was %d; want 5", len(payload)))
 	}
 	v := binary.BigEndian.Uint32(payload[:4])
 	streamID := v & 0x7fffffff // mask off high bit
@@ -1336,17 +1336,17 @@ func parseRFC9218Priority(s string, canUseDefault bool) (p PriorityParam, ok boo
 func parsePriorityUpdateFrame(_ *frameCache, fh FrameHeader, countError func(string), payload []byte) (Frame, error) {
 	if fh.StreamID != 0 {
 		countError("frame_priority_update_non_zero_stream")
-		return nil, connError{ErrCodeProtocol, "PRIORITY_UPDATE frame with non-zero stream ID"}
+		return nil, newConnError(ErrCodeProtocol, "PRIORITY_UPDATE frame with non-zero stream ID")
 	}
 	if len(payload) < 4 {
 		countError("frame_priority_update_bad_length")
-		return nil, connError{ErrCodeFrameSize, fmt.Sprintf("PRIORITY_UPDATE frame payload size was %d; want at least 4", len(payload))}
+		return nil, newConnError(ErrCodeFrameSize, fmt.Sprintf("PRIORITY_UPDATE frame payload size was %d; want at least 4", len(payload)))
 	}
 	v := binary.BigEndian.Uint32(payload[:4])
 	streamID := v & 0x7fffffff // mask off high bit
 	if streamID == 0 {
 		countError("frame_priority_update_prioritizing_zero_stream")
-		return nil, connError{ErrCodeProtocol, "PRIORITY_UPDATE frame with prioritized stream ID of zero"}
+		return nil, newConnError(ErrCodeProtocol, "PRIORITY_UPDATE frame with prioritized stream ID of zero")
 	}
 	return &PriorityUpdateFrame{
 		FrameHeader:         fh,
@@ -1379,11 +1379,11 @@ type RSTStreamFrame struct {
 func parseRSTStreamFrame(_ *frameCache, fh FrameHeader, countError func(string), p []byte) (Frame, error) {
 	if len(p) != 4 {
 		countError("frame_rststream_bad_len")
-		return nil, ConnectionError(ErrCodeFrameSize)
+		return nil, NewConnectionError(ErrCodeFrameSize)
 	}
 	if fh.StreamID == 0 {
 		countError("frame_rststream_zero_stream")
-		return nil, ConnectionError(ErrCodeProtocol)
+		return nil, NewConnectionError(ErrCodeProtocol)
 	}
 	return &RSTStreamFrame{fh, ErrCode(binary.BigEndian.Uint32(p[:4]))}, nil
 }
@@ -1411,7 +1411,7 @@ type ContinuationFrame struct {
 func parseContinuationFrame(_ *frameCache, fh FrameHeader, countError func(string), p []byte) (Frame, error) {
 	if fh.StreamID == 0 {
 		countError("frame_continuation_zero_stream")
-		return nil, connError{ErrCodeProtocol, "CONTINUATION frame with stream ID 0"}
+		return nil, newConnError(ErrCodeProtocol, "CONTINUATION frame with stream ID 0")
 	}
 	return &ContinuationFrame{fh, p}, nil
 }
@@ -1471,7 +1471,7 @@ func parsePushPromise(_ *frameCache, fh FrameHeader, countError func(string), p 
 		// 0x0, a recipient MUST respond with a connection error
 		// (Section 5.4.1) of type PROTOCOL_ERROR.
 		countError("frame_pushpromise_zero_stream")
-		return nil, ConnectionError(ErrCodeProtocol)
+		return nil, NewConnectionError(ErrCodeProtocol)
 	}
 	// The PUSH_PROMISE frame includes optional padding.
 	// Padding fields and flags are identical to those defined for DATA frames
@@ -1493,7 +1493,7 @@ func parsePushPromise(_ *frameCache, fh FrameHeader, countError func(string), p 
 	if int(padLength) > len(p) {
 		// like the DATA frame, error out if padding is longer than the body.
 		countError("frame_pushpromise_pad_too_big")
-		return nil, ConnectionError(ErrCodeProtocol)
+		return nil, NewConnectionError(ErrCodeProtocol)
 	}
 	pp.headerFragBuf = p[:len(p)-int(padLength)]
 	return pp, nil
@@ -1677,14 +1677,14 @@ func (mh *MetaHeadersFrame) checkPseudos() error {
 		case ":status":
 			isResponse = true
 		default:
-			return pseudoHeaderError(hf.Name)
+			return newPseudoHeaderError(hf.Name)
 		}
 		// Check for duplicates.
 		// This would be a bad algorithm, but N is 5.
 		// And this doesn't allocate.
 		for _, hf2 := range pf[:i] {
 			if hf.Name == hf2.Name {
-				return duplicatePseudoHeaderError(hf.Name)
+				return newDuplicatePseudoHeaderError(hf.Name)
 			}
 		}
 	}
@@ -1726,7 +1726,7 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (Frame, error) {
 		}
 		if !httpguts.ValidHeaderFieldValue(hf.Value) {
 			// Don't include the value in the error, because it may be sensitive.
-			invalid = headerFieldValueError(hf.Name)
+			invalid = newHeaderFieldValueError(hf.Name)
 		}
 		isPseudo := strings.HasPrefix(hf.Name, ":")
 		if isPseudo {
@@ -1736,7 +1736,7 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (Frame, error) {
 		} else {
 			sawRegular = true
 			if !validWireHeaderFieldName(hf.Name) {
-				invalid = headerFieldNameError(hf.Name)
+				invalid = newHeaderFieldNameError(hf.Name)
 			}
 		}
 
@@ -1777,7 +1777,7 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (Frame, error) {
 			}
 			// It would be nice to send a RST_STREAM before sending the GOAWAY,
 			// but the structure of the server's frame writer makes this difficult.
-			return mh, ConnectionError(ErrCodeProtocol)
+			return mh, NewConnectionError(ErrCodeProtocol)
 		}
 
 		// Also close the connection after any CONTINUATION frame following an
@@ -1789,11 +1789,11 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (Frame, error) {
 			}
 			// It would be nice to send a RST_STREAM before sending the GOAWAY,
 			// but the structure of the server's frame writer makes this difficult.
-			return mh, ConnectionError(ErrCodeProtocol)
+			return mh, NewConnectionError(ErrCodeProtocol)
 		}
 
 		if _, err := hdec.Write(frag); err != nil {
-			return mh, ConnectionError(ErrCodeCompression)
+			return mh, NewConnectionError(ErrCodeCompression)
 		}
 
 		if hc.HeadersEnded() {
@@ -1810,21 +1810,21 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (Frame, error) {
 	mh.HeadersFrame.invalidate()
 
 	if err := hdec.Close(); err != nil {
-		return mh, ConnectionError(ErrCodeCompression)
+		return mh, NewConnectionError(ErrCodeCompression)
 	}
 	if invalid != nil {
 		fr.errDetail = invalid
 		if VerboseLogs {
 			log.Printf("http2: invalid header: %v", invalid)
 		}
-		return nil, StreamError{mh.StreamID, ErrCodeProtocol, invalid}
+		return nil, NewStreamError(mh.StreamID, ErrCodeProtocol, invalid)
 	}
 	if err := mh.checkPseudos(); err != nil {
 		fr.errDetail = err
 		if VerboseLogs {
 			log.Printf("http2: invalid pseudo headers: %v", err)
 		}
-		return nil, StreamError{mh.StreamID, ErrCodeProtocol, err}
+		return nil, NewStreamError(mh.StreamID, ErrCodeProtocol, err)
 	}
 	return mh, nil
 }

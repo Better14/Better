@@ -201,7 +201,7 @@ func (e *encoderState) Flush() error {
 		if n > 0 {
 			e.Buf = e.Buf[:copy(e.Buf, e.Buf[n:])]
 		}
-		return &ioError{action: "write", err: err}
+		return newIOError("write", err)
 	}
 	e.Buf = e.Buf[:0]
 

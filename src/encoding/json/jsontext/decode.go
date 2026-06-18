@@ -197,7 +197,7 @@ func (d *decoderState) fetch() error {
 			// The user is trying to use a bytes.Buffer as a pipe,
 			// but a bytes.Buffer is a poor implementation of a pipe,
 			// the purpose-built io.Pipe should be used instead.
-			return &ioError{action: "read", err: errBufferWriteAfterNext}
+			return newIOError("read", errBufferWriteAfterNext)
 		}
 	}
 
@@ -245,7 +245,7 @@ func (d *decoderState) fetch() error {
 		case err == io.EOF:
 			return io.ErrUnexpectedEOF
 		case err != nil:
-			return &ioError{action: "read", err: err}
+			return newIOError("read", err)
 		default:
 			continue // Read returned (0, nil)
 		}

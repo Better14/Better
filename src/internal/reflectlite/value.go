@@ -5,6 +5,7 @@
 package reflectlite
 
 import (
+	"errors"
 	"internal/abi"
 	"internal/goarch"
 	"internal/unsafeheader"
@@ -165,15 +166,26 @@ func unpackEface(i any) Value {
 // a Value that does not support it. Such cases are documented
 // in the description of each method.
 type ValueError struct {
+	errors.Error
 	Method string
 	Kind   Kind
 }
 
-func (e *ValueError) Error() string {
-	if e.Kind == 0 {
-		return "reflect: call of " + e.Method + " on zero Value"
+func valueErrorMessage(method string, kind Kind) string {
+	if kind == 0 {
+		return "reflect: call of " + method + " on zero Value"
 	}
-	return "reflect: call of " + e.Method + " on " + e.Kind.String() + " Value"
+	return "reflect: call of " + method + " on " + kind.String() + " Value"
+}
+
+func newValueError(method string, kind Kind) *ValueError {
+	e := &ValueError{Method: method, Kind: kind}
+	errors.InitCustom(&e.Error, "%s", valueErrorMessage(method, kind))
+	return e
+}
+
+func (e *ValueError) Error() string {
+	return valueErrorMessage(e.Method, e.Kind)
 }
 
 // methodName returns the name of the calling method,
@@ -191,7 +203,7 @@ func methodName() string {
 // an unexported field.
 func (f flag) mustBeExported() {
 	if f == 0 {
-		panic(&ValueError{methodName(), 0})
+		panic(newValueError(methodName(), 0))
 	}
 	if f&flagRO != 0 {
 		panic("reflect: " + methodName() + " using value obtained using unexported field")
@@ -203,7 +215,7 @@ func (f flag) mustBeExported() {
 // or it is not addressable.
 func (f flag) mustBeAssignable() {
 	if f == 0 {
-		panic(&ValueError{methodName(), abi.Invalid})
+		panic(newValueError(methodName(), abi.Invalid))
 	}
 	// Assignable if addressable and not read-only.
 	if f&flagRO != 0 {
@@ -237,7 +249,7 @@ func (v Value) Elem() Value {
 		} else {
 			eface = (any)(*(*interface {
 				M()
-			})(v.ptr))
+			))(v.ptr))
 		}
 		x := unpackEface(eface)
 		if x.flag != 0 {
@@ -259,12 +271,12 @@ func (v Value) Elem() Value {
 		fl |= flag(typ.Kind())
 		return Value{typ, ptr, fl}
 	}
-	panic(&ValueError{"reflectlite.Value.Elem", v.kind()})
+	panic(newValueError("reflectlite.Value.Elem", v.kind()))
 }
 
 func valueInterface(v Value) any {
 	if v.flag == 0 {
-		panic(&ValueError{"reflectlite.Value.Interface", 0})
+		panic(newValueError("reflectlite.Value.Interface", 0))
 	}
 
 	if v.kind() == abi.Interface {
@@ -276,7 +288,7 @@ func valueInterface(v Value) any {
 		}
 		return *(*interface {
 			M()
-		})(v.ptr)
+		))(v.ptr)
 	}
 
 	return packEface(v)
@@ -306,7 +318,7 @@ func (v Value) IsNil() bool {
 		// Both are always bigger than a word; assume flagIndir.
 		return *(*unsafe.Pointer)(v.ptr) == nil
 	}
-	panic(&ValueError{"reflectlite.Value.IsNil", v.kind()})
+	panic(newValueError("reflectlite.Value.IsNil", v.kind()))
 }
 
 // IsValid reports whether v represents a value.
@@ -351,13 +363,13 @@ func (v Value) Len() int {
 		// String is bigger than a word; assume flagIndir.
 		return (*unsafeheader.String)(v.ptr).Len
 	}
-	panic(&ValueError{"reflectlite.Value.Len", v.kind()})
+	panic(newValueError("reflectlite.Value.Len", v.kind()))
 }
 
 // NumMethod returns the number of exported methods in the value's method set.
 func (v Value) numMethod() int {
 	if v.typ() == nil {
-		panic(&ValueError{"reflectlite.Value.NumMethod", abi.Invalid})
+		panic(newValueError("reflectlite.Value.NumMethod", abi.Invalid))
 	}
 	return v.typ().NumMethod()
 }
@@ -384,7 +396,7 @@ func (v Value) Set(x Value) {
 func (v Value) Type() Type {
 	f := v.flag
 	if f == 0 {
-		panic(&ValueError{"reflectlite.Value.Type", abi.Invalid})
+		panic(newValueError("reflectlite.Value.Type", abi.Invalid))
 	}
 	// Method values not supported.
 	return toRType(v.typ())

@@ -839,6 +839,7 @@ var errBad = errors.New("bad value for field") // placeholder not passed to user
 
 // ParseError describes a problem parsing a time string.
 type ParseError struct {
+	errors.Error
 	Layout     string
 	Value      string
 	LayoutElem string
@@ -846,12 +847,26 @@ type ParseError struct {
 	Message    string
 }
 
+func parseErrorMessage(layout, value, layoutElem, valueElem, message string) string {
+	if message == "" {
+		return "parsing time " +
+			quote(value) + " as " +
+			quote(layout) + ": cannot parse " +
+			quote(valueElem) + " as " +
+			quote(layoutElem)
+	}
+	return "parsing time " +
+		quote(value) + message
+}
+
 // newParseError creates a new ParseError.
 // The provided value and valueElem are cloned to avoid escaping their values.
 func newParseError(layout, value, layoutElem, valueElem, message string) *ParseError {
 	valueCopy := stringslite.Clone(value)
 	valueElemCopy := stringslite.Clone(valueElem)
-	return &ParseError{layout, valueCopy, layoutElem, valueElemCopy, message}
+	pe := &ParseError{Layout: layout, Value: valueCopy, LayoutElem: layoutElem, ValueElem: valueElemCopy, Message: message}
+	errors.InitCustom(&pe.Error, "%s", parseErrorMessage(layout, valueCopy, layoutElem, valueElemCopy, message))
+	return pe
 }
 
 // These are borrowed from unicode/utf8 and strconv and replicate behavior in
@@ -900,15 +915,7 @@ func quote(s string) string {
 
 // Error returns the string representation of a ParseError.
 func (e *ParseError) Error() string {
-	if e.Message == "" {
-		return "parsing time " +
-			quote(e.Value) + " as " +
-			quote(e.Layout) + ": cannot parse " +
-			quote(e.ValueElem) + " as " +
-			quote(e.LayoutElem)
-	}
-	return "parsing time " +
-		quote(e.Value) + e.Message
+	return parseErrorMessage(e.Layout, e.Value, e.LayoutElem, e.ValueElem, e.Message)
 }
 
 // isDigit reports whether s[i] is in range and is a decimal digit.
@@ -1607,12 +1614,23 @@ func leadingFraction(s string) (x uint64, scale float64, rem string) {
 
 // parseDurationError describes a problem parsing a duration string.
 type parseDurationError struct {
+	errors.Error
 	message string
 	value   string
 }
 
+func parseDurationErrorMessage(message, value string) string {
+	return "time: " + message + " " + quote(value)
+}
+
+func newParseDurationError(message, value string) *parseDurationError {
+	pe := &parseDurationError{message: message, value: value}
+	errors.InitCustom(&pe.Error, "%s", parseDurationErrorMessage(message, value))
+	return pe
+}
+
 func (e *parseDurationError) Error() string {
-	return "time: " + e.message + " " + quote(e.value)
+	return parseDurationErrorMessage(e.message, e.value)
 }
 
 var unitMap = map[string]uint64{
@@ -1650,7 +1668,7 @@ func ParseDuration(s string) (Duration, error) {
 		return 0, nil
 	}
 	if s == "" {
-		return 0, &parseDurationError{"invalid duration", orig}
+		return 0, newParseDurationError("invalid duration", orig)
 	}
 	for s != "" {
 		var (
@@ -1662,13 +1680,13 @@ func ParseDuration(s string) (Duration, error) {
 
 		// The next character must be [0-9.]
 		if !(s[0] == '.' || '0' <= s[0] && s[0] <= '9') {
-			return 0, &parseDurationError{"invalid duration", orig}
+			return 0, newParseDurationError("invalid duration", orig)
 		}
 		// Consume [0-9]*
 		pl := len(s)
 		v, s, err = leadingInt(s)
 		if err != nil {
-			return 0, &parseDurationError{"invalid duration", orig}
+			return 0, newParseDurationError("invalid duration", orig)
 		}
 		pre := pl != len(s) // whether we consumed anything before a period
 
@@ -1682,7 +1700,7 @@ func ParseDuration(s string) (Duration, error) {
 		}
 		if !pre && !post {
 			// no digits (e.g. ".s" or "-.s")
-			return 0, &parseDurationError{"invalid duration", orig}
+			return 0, newParseDurationError("invalid duration", orig)
 		}
 
 		// Consume unit.
@@ -1694,17 +1712,17 @@ func ParseDuration(s string) (Duration, error) {
 			}
 		}
 		if i == 0 {
-			return 0, &parseDurationError{"missing unit in duration", orig}
+			return 0, newParseDurationError("missing unit in duration", orig)
 		}
 		u := s[:i]
 		s = s[i:]
 		unit, ok := unitMap[u]
 		if !ok {
-			return 0, &parseDurationError{"unknown unit " + quote(u) + " in duration", orig}
+			return 0, newParseDurationError("unknown unit "+quote(u)+" in duration", orig)
 		}
 		if v > 1<<63/unit {
 			// overflow
-			return 0, &parseDurationError{"invalid duration", orig}
+			return 0, newParseDurationError("invalid duration", orig)
 		}
 		v *= unit
 		if f > 0 {
@@ -1713,19 +1731,19 @@ func ParseDuration(s string) (Duration, error) {
 			v += uint64(float64(f) * (float64(unit) / scale))
 			if v > 1<<63 {
 				// overflow
-				return 0, &parseDurationError{"invalid duration", orig}
+				return 0, newParseDurationError("invalid duration", orig)
 			}
 		}
 		d += v
 		if d > 1<<63 {
-			return 0, &parseDurationError{"invalid duration", orig}
+			return 0, newParseDurationError("invalid duration", orig)
 		}
 	}
 	if neg {
 		return -Duration(d), nil
 	}
 	if d > 1<<63-1 {
-		return 0, &parseDurationError{"invalid duration", orig}
+		return 0, newParseDurationError("invalid duration", orig)
 	}
 	return Duration(d), nil
 }

@@ -20,7 +20,7 @@ import (
 func AppendQuote[Bytes ~[]byte | ~string](dst []byte, src Bytes) ([]byte, error) {
 	dst, err := jsonwire.AppendQuote(dst, []byte(src), &jsonflags.Flags{})
 	if err != nil {
-		err = &SyntacticError{Err: err}
+		err = newSyntacticError(0, "", err)
 	}
 	return dst, err
 }
@@ -35,7 +35,7 @@ func AppendQuote[Bytes ~[]byte | ~string](dst []byte, src Bytes) ([]byte, error)
 func AppendUnquote[Bytes ~[]byte | ~string](dst []byte, src Bytes) ([]byte, error) {
 	dst, err := jsonwire.AppendUnquote(dst, []byte(src))
 	if err != nil {
-		err = &SyntacticError{Err: err}
+		err = newSyntacticError(0, "", err)
 	}
 	return dst, err
 }

@@ -65,20 +65,31 @@ import (
 // A ParseError is returned for parsing errors.
 // Line and column numbers are 1-indexed.
 type ParseError struct {
+	errors.Error
 	StartLine int   // Line where the record starts
 	Line      int   // Line where the error occurred
 	Column    int   // Column (1-based byte index) where the error occurred
 	Err       error // The actual error
 }
 
+func parseErrorMessage(startLine, line, col int, err error) string {
+	if err == ErrFieldCount {
+		return fmt.Sprintf("record on line %d: %v", line, err)
+	}
+	if startLine != line {
+		return fmt.Sprintf("record on line %d; parse error on line %d, column %d: %v", startLine, line, col, err)
+	}
+	return fmt.Sprintf("parse error on line %d, column %d: %v", line, col, err)
+}
+
+func newParseError(startLine, line, col int, err error) *ParseError {
+	pe := &ParseError{StartLine: startLine, Line: line, Column: col, Err: err}
+	errors.InitCustom(&pe.Error, "%s", parseErrorMessage(startLine, line, col, err))
+	return pe
+}
+
 func (e *ParseError) Error() string {
-	if e.Err == ErrFieldCount {
-		return fmt.Sprintf("record on line %d: %v", e.Line, e.Err)
-	}
-	if e.StartLine != e.Line {
-		return fmt.Sprintf("record on line %d; parse error on line %d, column %d: %v", e.StartLine, e.Line, e.Column, e.Err)
-	}
-	return fmt.Sprintf("parse error on line %d, column %d: %v", e.Line, e.Column, e.Err)
+	return parseErrorMessage(e.StartLine, e.Line, e.Column, e.Err)
 }
 
 func (e *ParseError) Unwrap() error { return e.Err }
@@ -353,7 +364,7 @@ parseField:
 			if !r.LazyQuotes {
 				if j := bytes.IndexByte(field, '"'); j >= 0 {
 					col := pos.col + j
-					err = &ParseError{StartLine: recLine, Line: r.numLine, Column: col, Err: ErrBareQuote}
+					err = newParseError(recLine, r.numLine, col, ErrBareQuote)
 					break parseField
 				}
 			}
@@ -401,7 +412,7 @@ parseField:
 						r.recordBuffer = append(r.recordBuffer, '"')
 					default:
 						// `"*` sequence (invalid non-escaped quote).
-						err = &ParseError{StartLine: recLine, Line: r.numLine, Column: pos.col - quoteLen, Err: ErrQuote}
+						err = newParseError(recLine, r.numLine, pos.col-quoteLen, ErrQuote)
 						break parseField
 					}
 				} else if len(line) > 0 {
@@ -422,7 +433,7 @@ parseField:
 				} else {
 					// Abrupt end of file (EOF or error).
 					if !r.LazyQuotes && errRead == nil {
-						err = &ParseError{StartLine: recLine, Line: pos.line, Column: pos.col, Err: ErrQuote}
+						err = newParseError(recLine, pos.line, pos.col, ErrQuote)
 						break parseField
 					}
 					r.fieldIndexes = append(r.fieldIndexes, len(r.recordBuffer))
@@ -453,12 +464,7 @@ parseField:
 	// Check or update the expected fields per record.
 	if r.FieldsPerRecord > 0 {
 		if len(dst) != r.FieldsPerRecord && err == nil {
-			err = &ParseError{
-				StartLine: recLine,
-				Line:      recLine,
-				Column:    1,
-				Err:       ErrFieldCount,
-			}
+			err = newParseError(recLine, recLine, 1, ErrFieldCount)
 		}
 	} else if r.FieldsPerRecord == 0 {
 		r.FieldsPerRecord = len(dst)

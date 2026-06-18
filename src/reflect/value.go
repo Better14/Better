@@ -172,15 +172,26 @@ func unpackEface(i any) Value {
 // a [Value] that does not support it. Such cases are documented
 // in the description of each method.
 type ValueError struct {
+	errors.Error
 	Method string
 	Kind   Kind
 }
 
-func (e *ValueError) Error() string {
-	if e.Kind == 0 {
-		return "reflect: call of " + e.Method + " on zero Value"
+func valueErrorMessage(method string, kind Kind) string {
+	if kind == 0 {
+		return "reflect: call of " + method + " on zero Value"
 	}
-	return "reflect: call of " + e.Method + " on " + e.Kind.String() + " Value"
+	return "reflect: call of " + method + " on " + kind.String() + " Value"
+}
+
+func newValueError(method string, kind Kind) *ValueError {
+	e := &ValueError{Method: method, Kind: kind}
+	errors.InitCustom(&e.Error, "%s", valueErrorMessage(method, kind))
+	return e
+}
+
+func (e *ValueError) Error() string {
+	return valueErrorMessage(e.Method, e.Kind)
 }
 
 // valueMethodName returns the name of the exported calling method on Value.
@@ -218,7 +229,7 @@ type nonEmptyInterface struct {
 func (f flag) mustBe(expected Kind) {
 	// TODO(mvdan): use f.kind() again once mid-stack inlining gets better
 	if Kind(f&flagKindMask) != expected {
-		panic(&ValueError{valueMethodName(), f.kind()})
+		panic(newValueError(valueMethodName(), f.kind()))
 	}
 }
 
@@ -232,7 +243,7 @@ func (f flag) mustBeExported() {
 
 func (f flag) mustBeExportedSlow() {
 	if f == 0 {
-		panic(&ValueError{valueMethodName(), Invalid})
+		panic(newValueError(valueMethodName(), Invalid))
 	}
 	if f&flagRO != 0 {
 		panic("reflect: " + valueMethodName() + " using value obtained using unexported field")
@@ -250,7 +261,7 @@ func (f flag) mustBeAssignable() {
 
 func (f flag) mustBeAssignableSlow() {
 	if f == 0 {
-		panic(&ValueError{valueMethodName(), Invalid})
+		panic(newValueError(valueMethodName(), Invalid))
 	}
 	// Assignable if addressable and not read-only.
 	if f&flagRO != 0 {
@@ -322,7 +333,7 @@ func (v Value) bytesSlow() []byte {
 		n := int((*arrayType)(unsafe.Pointer(v.typ())).Len)
 		return unsafe.Slice(p, n)
 	}
-	panic(&ValueError{"reflect.Value.Bytes", v.kind()})
+	panic(newValueError("reflect.Value.Bytes", v.kind()))
 }
 
 // runes returns v's underlying value.
@@ -1173,7 +1184,7 @@ func (v Value) capNonSlice() int {
 		}
 		panic("reflect: call of reflect.Value.Cap on ptr to non-array Value")
 	}
-	panic(&ValueError{"reflect.Value.Cap", v.kind()})
+	panic(newValueError("reflect.Value.Cap", v.kind()))
 }
 
 // Close closes the channel v.
@@ -1210,7 +1221,7 @@ func (v Value) Complex() complex128 {
 	case Complex128:
 		return *(*complex128)(v.ptr)
 	}
-	panic(&ValueError{"reflect.Value.Complex", v.kind()})
+	panic(newValueError("reflect.Value.Complex", v.kind()))
 }
 
 // Elem returns the value that the interface v contains
@@ -1256,14 +1267,14 @@ func (v Value) Elem() Value {
 		fl |= flag(typ.Kind())
 		return Value{typ, ptr, fl}
 	}
-	panic(&ValueError{"reflect.Value.Elem", v.kind()})
+	panic(newValueError("reflect.Value.Elem", v.kind()))
 }
 
 // Field returns the i'th field of the struct v.
 // It panics if v's Kind is not [Struct] or i is out of range.
 func (v Value) Field(i int) Value {
 	if v.kind() != Struct {
-		panic(&ValueError{"reflect.Value.Field", v.kind()})
+		panic(newValueError("reflect.Value.Field", v.kind()))
 	}
 	tt := (*structType)(unsafe.Pointer(v.typ()))
 	if uint(i) >= uint(len(tt.Fields)) {
@@ -1390,7 +1401,7 @@ func (v Value) Float() float64 {
 	case Float64:
 		return *(*float64)(v.ptr)
 	}
-	panic(&ValueError{"reflect.Value.Float", v.kind()})
+	panic(newValueError("reflect.Value.Float", v.kind()))
 }
 
 var uint8Type = rtypeOf(uint8(0))
@@ -1438,7 +1449,7 @@ func (v Value) Index(i int) Value {
 		fl := v.flag.ro() | flag(Uint8) | flagIndir
 		return Value{uint8Type, p, fl}
 	}
-	panic(&ValueError{"reflect.Value.Index", v.kind()})
+	panic(newValueError("reflect.Value.Index", v.kind()))
 }
 
 // CanInt reports whether Int can be used without panicking.
@@ -1468,13 +1479,13 @@ func (v Value) Int() int64 {
 	case Int64:
 		return *(*int64)(p)
 	}
-	panic(&ValueError{"reflect.Value.Int", v.kind()})
+	panic(newValueError("reflect.Value.Int", v.kind()))
 }
 
 // CanInterface reports whether [Value.Interface] can be used without panicking.
 func (v Value) CanInterface() bool {
 	if v.flag == 0 {
-		panic(&ValueError{"reflect.Value.CanInterface", Invalid})
+		panic(newValueError("reflect.Value.CanInterface", Invalid))
 	}
 	return v.flag&flagRO == 0
 }
@@ -1492,7 +1503,7 @@ func (v Value) Interface() (i any) {
 
 func valueInterface(v Value, safe bool) any {
 	if v.flag == 0 {
-		panic(&ValueError{"reflect.Value.Interface", Invalid})
+		panic(newValueError("reflect.Value.Interface", Invalid))
 	}
 	if safe && v.flag&flagRO != 0 {
 		// Do not allow access to unexported values via Interface,
@@ -1528,7 +1539,7 @@ func valueInterface(v Value, safe bool) any {
 //     concrete type implements T.
 func TypeAssert[T any](v Value) (T, bool) {
 	if v.flag == 0 {
-		panic(&ValueError{"reflect.TypeAssert", Invalid})
+		panic(newValueError("reflect.TypeAssert", Invalid))
 	}
 	if v.flag&flagRO != 0 {
 		// Do not allow access to unexported values via TypeAssert,
@@ -1570,11 +1581,11 @@ func TypeAssert[T any](v Value) (T, bool) {
 	// If T is an interface and v is a concrete type. For example:
 	//
 	//	TypeAssert[any](ValueOf(1)) == ValueOf(1).Interface().(any)
-	//	TypeAssert[error](ValueOf(&someError{})) == ValueOf(&someError{}).Interface().(error)
+	//	TypeAssert[error](ValueOf(&someError{))) == ValueOf(&someError{)).Interface().(error)
 	if typ.Kind() == abi.Interface {
 		// To avoid allocating memory, in case the type assertion fails,
 		// first do the type assertion with a nil Data pointer.
-		iface := *(*any)(unsafe.Pointer(&abi.EmptyInterface{Type: v.typ(), Data: nil}))
+		iface := *(*any)(unsafe.Pointer(&abi.EmptyInterface{Type: v.typ(), Data: nil)))
 		if out, ok := iface.(T); ok {
 			// Now populate the Data field properly, we update the Data ptr
 			// directly to avoid an additional type asertion. We can re-use the
@@ -1609,7 +1620,7 @@ func packIfaceValueIntoEmptyIface(v Value) any {
 	}
 	return *(*interface {
 		M()
-	})(v.ptr)
+	))(v.ptr)
 }
 
 // InterfaceData returns a pair of unspecified uintptr values.
@@ -1657,7 +1668,7 @@ func (v Value) IsNil() bool {
 		// Both are always bigger than a word; assume flagIndir.
 		return *(*unsafe.Pointer)(v.ptr) == nil
 	}
-	panic(&ValueError{"reflect.Value.IsNil", v.kind()})
+	panic(newValueError("reflect.Value.IsNil", v.kind()))
 }
 
 // IsValid reports whether v represents a value.
@@ -1743,7 +1754,7 @@ func (v Value) IsZero() bool {
 	default:
 		// This should never happen, but will act as a safeguard for later,
 		// as a default value doesn't makes sense here.
-		panic(&ValueError{"reflect.Value.IsZero", v.Kind()})
+		panic(newValueError("reflect.Value.IsZero", v.Kind()))
 	}
 }
 
@@ -1846,7 +1857,7 @@ func (v Value) SetZero() {
 	default:
 		// This should never happen, but will act as a safeguard for later,
 		// as a default value doesn't makes sense here.
-		panic(&ValueError{"reflect.Value.SetZero", v.Kind()})
+		panic(newValueError("reflect.Value.SetZero", v.Kind()))
 	}
 }
 
@@ -1884,7 +1895,7 @@ func (v Value) lenNonSlice() int {
 		}
 		panic("reflect: call of reflect.Value.Len on ptr to non-array Value")
 	}
-	panic(&ValueError{"reflect.Value.Len", v.kind()})
+	panic(newValueError("reflect.Value.Len", v.kind()))
 }
 
 // copyVal returns a Value containing the map key or value at ptr,
@@ -1909,7 +1920,7 @@ func copyVal(typ *abi.Type, fl flag, ptr unsafe.Pointer) Value {
 // This may make the executable binary larger but will not affect execution time.
 func (v Value) Method(i int) Value {
 	if v.typ() == nil {
-		panic(&ValueError{"reflect.Value.Method", Invalid})
+		panic(newValueError("reflect.Value.Method", Invalid))
 	}
 	if v.flag&flagMethod != 0 || uint(i) >= uint(toRType(v.typ()).NumMethod()) {
 		panic("reflect: Method index out of range")
@@ -1930,7 +1941,7 @@ func (v Value) Method(i int) Value {
 // For an interface type, it returns the number of exported and unexported methods.
 func (v Value) NumMethod() int {
 	if v.typ() == nil {
-		panic(&ValueError{"reflect.Value.NumMethod", Invalid})
+		panic(newValueError("reflect.Value.NumMethod", Invalid))
 	}
 	if v.flag&flagMethod != 0 {
 		return 0
@@ -1949,7 +1960,7 @@ func (v Value) NumMethod() int {
 // This may make the executable binary larger but will not affect execution time.
 func (v Value) MethodByName(name string) Value {
 	if v.typ() == nil {
-		panic(&ValueError{"reflect.Value.MethodByName", Invalid})
+		panic(newValueError("reflect.Value.MethodByName", Invalid))
 	}
 	if v.flag&flagMethod != 0 {
 		return Value{}
@@ -1979,7 +1990,7 @@ func (v Value) OverflowComplex(x complex128) bool {
 	case Complex128:
 		return false
 	}
-	panic(&ValueError{"reflect.Value.OverflowComplex", v.kind()})
+	panic(newValueError("reflect.Value.OverflowComplex", v.kind()))
 }
 
 // OverflowFloat reports whether the float64 x cannot be represented by v's type.
@@ -1992,7 +2003,7 @@ func (v Value) OverflowFloat(x float64) bool {
 	case Float64:
 		return false
 	}
-	panic(&ValueError{"reflect.Value.OverflowFloat", v.kind()})
+	panic(newValueError("reflect.Value.OverflowFloat", v.kind()))
 }
 
 func overflowFloat32(x float64) bool {
@@ -2012,7 +2023,7 @@ func (v Value) OverflowInt(x int64) bool {
 		trunc := (x << (64 - bitSize)) >> (64 - bitSize)
 		return x != trunc
 	}
-	panic(&ValueError{"reflect.Value.OverflowInt", v.kind()})
+	panic(newValueError("reflect.Value.OverflowInt", v.kind()))
 }
 
 // OverflowUint reports whether the uint64 x cannot be represented by v's type.
@@ -2025,7 +2036,7 @@ func (v Value) OverflowUint(x uint64) bool {
 		trunc := (x << (64 - bitSize)) >> (64 - bitSize)
 		return x != trunc
 	}
-	panic(&ValueError{"reflect.Value.OverflowUint", v.kind()})
+	panic(newValueError("reflect.Value.OverflowUint", v.kind()))
 }
 
 //go:nocheckptr
@@ -2090,7 +2101,7 @@ func (v Value) Pointer() uintptr {
 	case String:
 		return uintptr((*unsafeheader.String)(v.ptr).Data)
 	}
-	panic(&ValueError{"reflect.Value.Pointer", v.kind()})
+	panic(newValueError("reflect.Value.Pointer", v.kind()))
 }
 
 // Recv receives and returns a value from the channel v.
@@ -2217,7 +2228,7 @@ func (v Value) SetComplex(x complex128) {
 	v.mustBeAssignable()
 	switch k := v.kind(); k {
 	default:
-		panic(&ValueError{"reflect.Value.SetComplex", v.kind()})
+		panic(newValueError("reflect.Value.SetComplex", v.kind()))
 	case Complex64:
 		*(*complex64)(v.ptr) = complex64(x)
 	case Complex128:
@@ -2232,7 +2243,7 @@ func (v Value) SetFloat(x float64) {
 	v.mustBeAssignable()
 	switch k := v.kind(); k {
 	default:
-		panic(&ValueError{"reflect.Value.SetFloat", v.kind()})
+		panic(newValueError("reflect.Value.SetFloat", v.kind()))
 	case Float32:
 		*(*float32)(v.ptr) = float32(x)
 	case Float64:
@@ -2247,7 +2258,7 @@ func (v Value) SetInt(x int64) {
 	v.mustBeAssignable()
 	switch k := v.kind(); k {
 	default:
-		panic(&ValueError{"reflect.Value.SetInt", v.kind()})
+		panic(newValueError("reflect.Value.SetInt", v.kind()))
 	case Int:
 		*(*int)(v.ptr) = int(x)
 	case Int8:
@@ -2296,7 +2307,7 @@ func (v Value) SetUint(x uint64) {
 	v.mustBeAssignable()
 	switch k := v.kind(); k {
 	default:
-		panic(&ValueError{"reflect.Value.SetUint", v.kind()})
+		panic(newValueError("reflect.Value.SetUint", v.kind()))
 	case Uint:
 		*(*uint)(v.ptr) = uint(x)
 	case Uint8:
@@ -2340,7 +2351,7 @@ func (v Value) Slice(i, j int) Value {
 	)
 	switch kind := v.kind(); kind {
 	default:
-		panic(&ValueError{"reflect.Value.Slice", v.kind()})
+		panic(newValueError("reflect.Value.Slice", v.kind()))
 
 	case Array:
 		if v.flag&flagAddr == 0 {
@@ -2402,7 +2413,7 @@ func (v Value) Slice3(i, j, k int) Value {
 	)
 	switch kind := v.kind(); kind {
 	default:
-		panic(&ValueError{"reflect.Value.Slice3", v.kind()})
+		panic(newValueError("reflect.Value.Slice3", v.kind()))
 
 	case Array:
 		if v.flag&flagAddr == 0 {
@@ -2509,7 +2520,7 @@ func (v Value) abiType() *abi.Type {
 
 func (v Value) abiTypeSlow() *abi.Type {
 	if v.flag == 0 {
-		panic(&ValueError{"reflect.Value.Type", Invalid})
+		panic(newValueError("reflect.Value.Type", Invalid))
 	}
 
 	typ := v.typ()
@@ -2567,7 +2578,7 @@ func (v Value) Uint() uint64 {
 	case Uintptr:
 		return uint64(*(*uintptr)(p))
 	}
-	panic(&ValueError{"reflect.Value.Uint", v.kind()})
+	panic(newValueError("reflect.Value.Uint", v.kind()))
 }
 
 //go:nocheckptr
@@ -2581,7 +2592,7 @@ func (v Value) Uint() uint64 {
 // It's preferred to use uintptr(Value.Addr().UnsafePointer()) to get the equivalent result.
 func (v Value) UnsafeAddr() uintptr {
 	if v.typ() == nil {
-		panic(&ValueError{"reflect.Value.UnsafeAddr", Invalid})
+		panic(newValueError("reflect.Value.UnsafeAddr", Invalid))
 	}
 	if v.flag&flagAddr == 0 {
 		panic("reflect.Value.UnsafeAddr of unaddressable value")
@@ -2643,7 +2654,7 @@ func (v Value) UnsafePointer() unsafe.Pointer {
 	case String:
 		return (*unsafeheader.String)(v.ptr).Data
 	}
-	panic(&ValueError{"reflect.Value.UnsafePointer", v.kind()})
+	panic(newValueError("reflect.Value.UnsafePointer", v.kind()))
 }
 
 // Fields returns an iterator over each [StructField] of v along with its [Value].
@@ -2792,7 +2803,7 @@ func (v Value) Clear() {
 	case Map:
 		mapclear(v.typ(), v.pointer())
 	default:
-		panic(&ValueError{"reflect.Value.Clear", v.Kind()})
+		panic(newValueError("reflect.Value.Clear", v.Kind()))
 	}
 }
 
@@ -2832,7 +2843,7 @@ func AppendSlice(s, t Value) Value {
 func Copy(dst, src Value) int {
 	dk := dst.kind()
 	if dk != Array && dk != Slice {
-		panic(&ValueError{"reflect.Copy", dk})
+		panic(newValueError("reflect.Copy", dk))
 	}
 	if dk == Array {
 		dst.mustBeAssignable()
@@ -2844,7 +2855,7 @@ func Copy(dst, src Value) int {
 	if sk != Array && sk != Slice {
 		stringCopy = sk == String && dst.typ().Elem().Kind() == abi.Uint8
 		if !stringCopy {
-			panic(&ValueError{"reflect.Copy", sk})
+			panic(newValueError("reflect.Copy", sk))
 		}
 	}
 	src.mustBeExported()
@@ -2950,11 +2961,11 @@ const stackAllocSelectCases = 4
 func Select(cases []SelectCase) (chosen int, recv Value, recvOK bool) {
 	// This function is specially designed to be inlined, such that when called as:
 	//
-	// Select([]SelectCase{})
+	// Select([]SelectCase{...})
 	//
 	// With a slice, that has a compile known length, the runcases slice
 	// will end up being stack allocated, since the compiler can infer
-	// the len([]SelectCase{}).
+	// the len([]SelectCase{)).
 	//
 	// We additionaly want to optimize Select(cases) for cases where len(cases)
 	// cannot be infered at compile-time, thus in [select0] we allocate a

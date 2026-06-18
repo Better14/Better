@@ -170,18 +170,18 @@ func parseStrictRFC3339(b []byte) (Time, error) {
 		case true:
 			return t, nil
 		case b[len("2006-01-02T")+1] == ':': // hour must be two digits
-			return Time{}, &ParseError{RFC3339, string(b), "15", string(b[len("2006-01-02T"):][:1]), ""}
+			return Time{}, newParseError(RFC3339, string(b), "15", string(b[len("2006-01-02T"):][:1]), "")
 		case b[len("2006-01-02T15:04:05")] == ',': // sub-second separator must be a period
-			return Time{}, &ParseError{RFC3339, string(b), ".", ",", ""}
+			return Time{}, newParseError(RFC3339, string(b), ".", ",", "")
 		case b[len(b)-1] != 'Z':
 			switch {
 			case num2(b[len(b)-len("07:00"):]) >= 24: // timezone hour must be in range
-				return Time{}, &ParseError{RFC3339, string(b), "Z07:00", string(b[len(b)-len("Z07:00"):]), ": timezone hour out of range"}
+				return Time{}, newParseError(RFC3339, string(b), "Z07:00", string(b[len(b)-len("Z07:00"):]), ": timezone hour out of range")
 			case num2(b[len(b)-len("00"):]) >= 60: // timezone minute must be in range
-				return Time{}, &ParseError{RFC3339, string(b), "Z07:00", string(b[len(b)-len("Z07:00"):]), ": timezone minute out of range"}
+				return Time{}, newParseError(RFC3339, string(b), "Z07:00", string(b[len(b)-len("Z07:00"):]), ": timezone minute out of range")
 			}
 		default: // unknown error; should not occur
-			return Time{}, &ParseError{RFC3339, string(b), RFC3339, string(b), ""}
+			return Time{}, newParseError(RFC3339, string(b), RFC3339, string(b), "")
 		}
 	}
 	return t, nil

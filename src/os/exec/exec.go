@@ -110,14 +110,26 @@ import (
 // Error is returned by [LookPath] when it fails to classify a file as an
 // executable.
 type Error struct {
+	errors.Error
 	// Name is the file name for which the error occurred.
 	Name string
 	// Err is the underlying error.
 	Err error
 }
 
+func execErrorMessage(name string, err error) string {
+	return "exec: " + strconv.Quote(name) + ": " + err.Error()
+}
+
+// NewError returns an Error with a stack trace captured at the call site.
+func NewError(name string, err error) *Error {
+	e := &Error{Name: name, Err: err}
+	errors.InitCustom(&e.Error, "%s", execErrorMessage(name, err))
+	return e
+}
+
 func (e *Error) Error() string {
-	return "exec: " + strconv.Quote(e.Name) + ": " + e.Err.Error()
+	return execErrorMessage(e.Name, e.Err)
 }
 
 func (e *Error) Unwrap() error { return e.Err }
@@ -129,12 +141,23 @@ var ErrWaitDelay = errors.New("exec: WaitDelay expired before I/O complete")
 
 // wrappedError wraps an error without relying on fmt.Errorf.
 type wrappedError struct {
+	errors.Error
 	prefix string
 	err    error
 }
 
+func wrappedErrorMessage(prefix string, err error) string {
+	return prefix + ": " + err.Error()
+}
+
+func newWrappedError(prefix string, err error) wrappedError {
+	w := wrappedError{prefix: prefix, err: err}
+	errors.InitCustom(&w.Error, "%s", wrappedErrorMessage(prefix, err))
+	return w
+}
+
 func (w wrappedError) Error() string {
-	return w.prefix + ": " + w.err.Error()
+	return wrappedErrorMessage(w.prefix, w.err)
 }
 
 func (w wrappedError) Unwrap() error {
@@ -823,10 +846,7 @@ func (c *Cmd) watchCtx(resultc chan<- ctxResult) {
 			// (Perhaps c.Wait hadn't been called, or perhaps it happened to race with
 			// c.ctx being canceled.) Don't inject a needless error.
 		} else {
-			err = wrappedError{
-				prefix: "exec: canceling Cmd",
-				err:    interruptErr,
-			}
+			err = newWrappedError("exec: canceling Cmd", interruptErr)
 		}
 	}
 	if c.WaitDelay == 0 {
@@ -851,10 +871,7 @@ func (c *Cmd) watchCtx(resultc chan<- ctxResult) {
 		// so don't set err to anything here.
 		killed = true
 	} else if !errors.Is(killErr, os.ErrProcessDone) {
-		err = wrappedError{
-			prefix: "exec: killing Cmd",
-			err:    killErr,
-		}
+		err = newWrappedError("exec: killing Cmd", killErr)
 	}
 
 	if c.goroutineErr != nil {
@@ -894,6 +911,7 @@ func (c *Cmd) watchCtx(resultc chan<- ctxResult) {
 
 // An ExitError reports an unsuccessful exit by a command.
 type ExitError struct {
+	errors.Error
 	*os.ProcessState
 
 	// Stderr holds a subset of the standard error output from the
@@ -907,6 +925,12 @@ type ExitError struct {
 	// Stderr is provided for debugging, for inclusion in error messages.
 	// Users with other needs should redirect Cmd.Stderr as needed.
 	Stderr []byte
+}
+
+func newExitError(state *os.ProcessState) *ExitError {
+	e := &ExitError{ProcessState: state}
+	errors.InitCustom(&e.Error, "%s", state.String())
+	return e
 }
 
 func (e *ExitError) Error() string {
@@ -943,7 +967,7 @@ func (c *Cmd) Wait() error {
 
 	state, err := c.Process.Wait()
 	if err == nil && !state.Success() {
-		err = &ExitError{ProcessState: state}
+		err = newExitError(state)
 	}
 	c.ProcessState = state
 
