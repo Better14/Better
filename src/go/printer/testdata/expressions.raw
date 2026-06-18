@@ -204,7 +204,7 @@ func _() {
 	x1, x0 := x>>w2, x&m2
 	z0 = t1<<w2 + t0
 	z1 = (t1 + t0>>w2) >> w2
-	q1, r1 := x1/d1, x1%d1
+	q1, r1 := x1/d1, x1 % d1
 	r1 = r1*b2 | x0>>w2
 	x1 = (x1 << z) | (x0 >> (uint(w) - z))
 	x1 = x1<<z | x0>>(uint(w)-z)

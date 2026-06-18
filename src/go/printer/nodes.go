@@ -851,6 +851,10 @@ func isComparison(op token.Token) bool {
 	return false
 }
 
+func isRemainder(op token.Token) bool {
+	return op == token.REM
+}
+
 func diffPrec(expr ast.Expr, prec int) int {
 	x, ok := expr.(*ast.BinaryExpr)
 	if !ok || prec != x.Op.Precedence() {
@@ -895,7 +899,7 @@ func reduceDepth(depth int) int {
 //     ++	6
 //     --	6
 //
-//     (Comparison operators always have spaces around them.)
+//     (Comparison and remainder operators always have spaces around them.)
 //
 //  2. If there is a mix of level 6 and level 5 operators, then the cutoff
 //     is 6 (use spaces to distinguish precedence) in Normal mode
@@ -917,7 +921,7 @@ func (p *printer) binaryExpr(x *ast.BinaryExpr, prec1, cutoff, depth int) {
 	}
 
 	printBlank := prec < cutoff
-	if isComparison(x.Op) {
+	if isComparison(x.Op) || isRemainder(x.Op) {
 		printBlank = true
 	}
 
