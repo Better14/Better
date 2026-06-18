@@ -921,6 +921,24 @@ enum Message {
 			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 		}
 	})
+
+	t.Run("enum variant composite literal", func(t *testing.T) {
+		const src = `package p
+
+func f() {
+	_ = Message.Write{text: "hi", bytes: 5}
+	_ = Message.ChangeColor{r: 1, g: 2, b: 3}
+}
+`
+		got, err := format([]byte(src), 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "package p\n\nfunc f() {\n\t_ = Message.Write{ text: \"hi\", bytes: 5 }\n\t_ = Message.ChangeColor{ r: 1, g: 2, b: 3 }\n}\n"
+		if string(got) != want {
+			t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+		}
+	})
 }
 
 func TestIfSwitchExprFormat(t *testing.T) {
