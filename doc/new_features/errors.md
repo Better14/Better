@@ -309,7 +309,7 @@ func (e *Error) Unwrap() error {
 
 ```go
 // createStackTrace captures the current goroutine stack, skipping
-// internal errors-package frames. Used by New, Wrap, and fmt.Errorf.
+// internal errors-package frames. Used by New, Wrap, and single-%w fmt.Errorf.
 // The slice is ordered innermost caller first.
 func createStackTrace() []StackFrame {
 	// Walk runtime.Callers / runtime.CallersFrames and populate the slice.
@@ -317,7 +317,17 @@ func createStackTrace() []StackFrame {
 }
 ```
 
-Stack traces are captured when an `*Error` is created through **`New`**, **`Wrap`**, or **`fmt.Errorf`** (see below). Other `error` implementations returned without conversion have no trace unless they embed or wrap `*Error`.
+Stack traces are captured when an `*Error` is created through **`New`**, **`Wrap`**, **`NewCustom`**, **`InitCustom`**, or **`fmt.Errorf` with zero or one `%w` verb** (see [Interoperability](#fmterrorf-and-w)). Other `error` implementations returned without conversion have no trace unless they embed or wrap `*Error`.
+
+**No stack trace at the call site** for:
+
+| Call | Why |
+| ---- | --- |
+| `fmt.Errorf("… %w … %w", e1, e2)` (two or more `%w`) | Returns upstream `fmt.wrapErrors`, not `*errors.Error` — formatted message and `Unwrap() []error` only |
+| `errors.Join(errs…)` | Aggregates existing errors; does not add a new layer |
+| Plain custom `error` types | Unless they embed `errors.Error` or are wrapped by `errors.Wrap` / single-`%w` `fmt.Errorf` |
+
+For multi-`%w` `fmt.Errorf`, stack traces on **`e1`** and **`e2`** themselves are unchanged; only the outer `Errorf` hop does not capture a new trace.
 
 ## Usage patterns
 
@@ -374,7 +384,7 @@ if errors.As(err, &pathErr) {
 | ---- | ------ |
 | `fmt.Errorf("msg")` | `*errors.Error` — same as `errors.New("msg")` (already delegated to `errors.New` today) |
 | `fmt.Errorf("… %w", err)` (one `%w`) | `*errors.Error` — replaces `fmt.wrapError`; `Message` is the **full formatted string**; `InnerError` links the operand for `Is` / `As` |
-| `fmt.Errorf("… %w … %w", e1, e2)` (multiple `%w`) | **`fmt.wrapErrors` unchanged** — multiple operands do not map to a single `InnerError`; no `*errors.Error` outer layer until a structured multi-cause type exists |
+| `fmt.Errorf("… %w … %w", e1, e2)` (multiple `%w`) | **`fmt.wrapErrors` unchanged** — multiple operands do not map to a single `InnerError`; **no stack trace** at the `Errorf` call site; no `*errors.Error` outer layer until a structured multi-cause type exists |
 
 Example (single `%w`):
 
@@ -385,6 +395,18 @@ if err := readFile(path); err != nil {
 ```
 
 The returned value is `*errors.Error` with a fresh `StackTrace` at this line. `errors.Is` / `errors.As` traverse `InnerError` as with `Wrap`. The outer `Error()` string is still the full formatted message (including the wrapped error’s text from `%w`), matching today’s `fmt.wrapError` behavior.
+
+Example (multiple `%w` — **no stack trace**):
+
+```go
+err := fmt.Errorf("failed: %w and %w", openErr, readErr)
+// err is fmt.wrapErrors, not *errors.Error
+// err.Error() → "failed: <openErr> and <readErr>"
+// Unwrap() []error → [openErr, readErr]
+// No StackTrace captured at this Errorf call site.
+```
+
+Multiple `%w` operands still produce a formatted message and `Unwrap() []error` for `errors.Is` / `errors.As`, but the implementation stays the upstream `fmt.wrapErrors` type. Stack traces from earlier `errors.New` / `Wrap` / single-`%w` layers on `openErr` and `readErr` are preserved on those inner errors; only the outer `Errorf` hop does not add a new trace. Prefer **`errors.Join`** when a newline-separated message is enough and you do not need a custom format string.
 
 Implementation sketch (`fmt` package):
 
@@ -506,6 +528,7 @@ Existing **`fmt.Errorf`** call sites also gain stack traces where the implementa
 
 - `fmt.Errorf("…")` — via `errors.New`, same as above.
 - `fmt.Errorf("… %w", err)` — one `%w` operand returns `*errors.Error` at the `Errorf` site (replaces `fmt.wrapError`).
+- `fmt.Errorf("… %w … %w", e1, e2)` — **unchanged** `fmt.wrapErrors`; **no stack trace** at the `Errorf` site (see [Interoperability](#fmterrorf-and-w)).
 
 No migration required for typical wrap-and-return code. Use **`errors.Wrap`** when you want a short context label without `fmt` verbs; use **`fmt.Errorf`** when the message needs formatting (`%s`, `%d`, etc.).
 
@@ -569,6 +592,7 @@ Mechanical rewrites (e.g. `fmt.Errorf("… %w", err)` → `errors.Wrap(err, "…
 ## Design notes
 
 - **One stack trace per layer** — wrapping adds a new `[]StackFrame` at the wrap site; inner errors retain their original traces.
+- **Multi-`%w` `fmt.Errorf` is unchanged** — `fmt.Errorf("… %w … %w", e1, e2)` does not capture a stack trace at that call site and does not return `*errors.Error`; use single-`%w` chaining, `errors.Wrap`, or `errors.Join` when you need structured traces instead.
 - **`Message` is the layer label** — use short, stable text; put dynamic detail in `Message` or in wrapped inner messages consistently.
 - **Nil-safe** — `(*Error)(nil).Error()` and `(*Error)(nil).String()` return `"<nil>"`; `Wrap` on `nil` behaves like `New`.
 - **Not valid in upstream Go** — this extension applies to this fork’s standard library.
@@ -588,4 +612,6 @@ Mechanical rewrites (e.g. `fmt.Errorf("… %w", err)` → `errors.Wrap(err, "…
 | `err.Unwrap()` | Returns `InnerError` |
 | `err.StackTrace` | `StackTrace` (`[]StackFrame`) at this layer |
 | `fmt.Errorf("…")` | `*errors.Error` with stack trace (via `errors.New`) |
-| `fmt.Errorf("… %w", err)` | `*errors.Error` with stack trace (one `%w`); multi-`%w` unchanged |
+| `fmt.Errorf("… %w", err)` | `*errors.Error` with stack trace (one `%w`) |
+| `fmt.Errorf("… %w … %w", e1, e2)` | `fmt.wrapErrors` — **no stack trace** at `Errorf` site |
+| `errors.Join(errs…)` | Combined error — **no stack trace** (aggregates operands) |

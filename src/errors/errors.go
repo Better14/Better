@@ -7,8 +7,9 @@
 // The [New] function creates [*Error] values with a message and stack trace.
 // New and [NewCustom] accept an optional format string and arguments (like fmt.Sprintf).
 // [NewCustom] creates a named type that embeds Error; [InitCustom] fills an embedded *Error in place.
-// [Wrap] adds context layers with fresh stack traces. Use [Error.String] for
-// full serialization of the error chain and traces.
+// [Wrap] adds context layers with fresh stack traces. [CaptureStackTrace] records
+// the current stack for other callers (for example [log.Fatal]). Use [Error.String]
+// for full serialization of the error chain and traces.
 //
 // An error e wraps another error if e's type has one of the methods
 //
