@@ -6,14 +6,19 @@ package errors
 
 import "runtime"
 
-// Error is a structured error with message, stack trace, and optional inner error.
-type Error struct {
+// Layer is the embeddable structured-error payload (message, stack trace, inner link).
+// Embed errors.Layer in custom error types that also define Error() string;
+// the type name Layer avoids a field/method name clash with Error().
+type Layer struct {
 	Message    string
 	StackTrace StackTrace
-	InnerError *Error
+	InnerError *Layer
 
-	link error // non-*Error target for Unwrap when InnerError is nil
+	link error // non-*Layer target for Unwrap when InnerError is nil
 }
+
+// Error is an alias for Layer. APIs such as New and Wrap return *Error.
+type Error = Layer
 
 // StackTrace is a captured call stack (innermost frame first).
 type StackTrace []StackFrame
@@ -26,7 +31,7 @@ type StackFrame struct {
 }
 
 // Error returns the layer message only.
-func (e *Error) Error() string {
+func (e *Layer) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
@@ -34,7 +39,7 @@ func (e *Error) Error() string {
 }
 
 // String serializes the full error chain and stack traces.
-func (e *Error) String() string {
+func (e *Layer) String() string {
 	if e == nil {
 		return "<nil>"
 	}
@@ -81,7 +86,7 @@ func (st StackTrace) String() string {
 }
 
 // Unwrap returns the next error in the chain.
-func (e *Error) Unwrap() error {
+func (e *Layer) Unwrap() error {
 	if e == nil {
 		return nil
 	}
@@ -92,11 +97,11 @@ func (e *Error) Unwrap() error {
 }
 
 // Wrap prepends a layer with message and a fresh stack trace.
-func (e *Error) Wrap(message string) *Error {
+func (e *Layer) Wrap(message string) *Layer {
 	if e == nil {
 		return newError(message)
 	}
-	return &Error{
+	return &Layer{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),
 		InnerError: e,
@@ -104,14 +109,14 @@ func (e *Error) Wrap(message string) *Error {
 }
 
 // Wrap adds context and a stack trace layer around err.
-func Wrap(err error, message string) *Error {
+func Wrap(err error, message string) *Layer {
 	if err == nil {
 		return nil
 	}
-	if e, ok := err.(*Error); ok {
+	if e, ok := err.(*Layer); ok {
 		return e.Wrap(message)
 	}
-	return &Error{
+	return &Layer{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),
 		InnerError: bridgeError(err),
@@ -121,7 +126,7 @@ func Wrap(err error, message string) *Error {
 // NewWrapped returns a structured error for fmt.Errorf with a single %w verb.
 // message is the full formatted string; wrapped is the wrapped operand.
 func NewWrapped(message string, wrapped error) error {
-	e := &Error{
+	e := &Layer{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),
 	}
@@ -130,7 +135,7 @@ func NewWrapped(message string, wrapped error) error {
 }
 
 func newError(message string) *Error {
-	return &Error{
+	return &Layer{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),
 	}
@@ -138,45 +143,45 @@ func newError(message string) *Error {
 
 // NewCustom returns a root error of type T with Message, StackTrace, and InnerError set
 // on the embedded Error field. T must be a named type whose underlying type is
-// struct{ Error } — that is, it embeds errors.Error and adds no other fields.
+// struct{ Layer } — that is, it embeds errors.Layer and adds no other fields.
 // When args are provided, format is interpreted like fmt.Sprintf.
-func NewCustom[T ~struct{ Error }](format string, args ...any) *T {
-	return &T{Error: *newError(formatMessage(format, args...))}
+func NewCustom[T ~struct{ Layer }](format string, args ...any) *T {
+	return &T{Layer: *newError(formatMessage(format, args...))}
 }
 
 // InitCustom assigns Message, StackTrace, and InnerError on e from a new root error
-// captured at the call site. Use this to initialize the embedded errors.Error field
-// of a custom type that has extra domain fields, e.g. InitCustom(&myErr.Error, msg).
+// captured at the call site. Use this to initialize the embedded errors.Layer field
+// of a custom type that has extra domain fields, e.g. InitCustom(&myErr.Layer, msg).
 // When args are provided, format is interpreted like fmt.Sprintf.
 // If e is nil, InitCustom does nothing.
-func InitCustom(e *Error, format string, args ...any) {
+func InitCustom(e *Layer, format string, args ...any) {
 	if e == nil {
 		return
 	}
 	*e = *newError(formatMessage(format, args...))
 }
 
-func setLink(e *Error, err error) {
+func setLink(e *Layer, err error) {
 	if err == nil {
 		return
 	}
-	if inner, ok := err.(*Error); ok {
+	if inner, ok := err.(*Layer); ok {
 		e.InnerError = inner
 		return
 	}
 	e.link = err
 }
 
-// bridgeError wraps a non-*Error value for InnerError chains while
+// bridgeError wraps a non-*Layer value for InnerError chains while
 // preserving the original error for Unwrap/Is/As via link.
-func bridgeError(err error) *Error {
+func bridgeError(err error) *Layer {
 	if err == nil {
 		return nil
 	}
-	if e, ok := err.(*Error); ok {
+	if e, ok := err.(*Layer); ok {
 		return e
 	}
-	return &Error{
+	return &Layer{
 		Message: err.Error(),
 		link:    err,
 	}

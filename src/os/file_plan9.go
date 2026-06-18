@@ -116,18 +116,18 @@ func openFileNolog(name string, flag int, perm FileMode) (*File, error) {
 		if IsNotExist(e) && create {
 			fd, e = syscall.Create(name, flag, syscallMode(perm))
 			if e != nil {
-				return nil, fs.NewPathError("create", name, e)
+				return nil, NewPathError("create", name, e)
 			}
 		}
 	}
 
 	if e != nil {
-		return nil, fs.NewPathError("open", name, e)
+		return nil, NewPathError("open", name, e)
 	}
 
 	if append {
 		if _, e = syscall.Seek(fd, 0, io.SeekEnd); e != nil {
-			return nil, fs.NewPathError("seek", name, e)
+			return nil, NewPathError("seek", name, e)
 		}
 	}
 
@@ -146,7 +146,7 @@ func openDirNolog(name string) (*File, error) {
 	}
 	if !d.IsDir() {
 		f.Close()
-		return nil, fs.NewPathError("open", name, syscall.ENOTDIR)
+		return nil, NewPathError("open", name, syscall.ENOTDIR)
 	}
 	return f, nil
 }
@@ -164,7 +164,7 @@ func (f *File) Close() error {
 
 func (file *file) close() error {
 	if !file.fdmu.IncrefAndClose() {
-		return fs.NewPathError("close", file.name, ErrClosed)
+		return NewPathError("close", file.name, ErrClosed)
 	}
 
 	// At this point we should cancel any pending I/O.
@@ -183,7 +183,7 @@ func (file *file) close() error {
 func (file *file) destroy() error {
 	var err error
 	if e := syscall.Close(file.sysfd); e != nil {
-		err = fs.NewPathError("close", file.name, e)
+		err = NewPathError("close", file.name, e)
 	}
 	return err
 }
@@ -216,7 +216,7 @@ func (f *File) Truncate(size int64) error {
 	var buf [syscall.STATFIXLEN]byte
 	n, err := d.Marshal(buf[:])
 	if err != nil {
-		return fs.NewPathError("truncate", f.name, err)
+		return NewPathError("truncate", f.name, err)
 	}
 
 	if err := f.incref("truncate"); err != nil {
@@ -225,7 +225,7 @@ func (f *File) Truncate(size int64) error {
 	defer f.decref()
 
 	if err = syscall.Fwstat(f.sysfd, buf[:n]); err != nil {
-		return fs.NewPathError("truncate", f.name, err)
+		return NewPathError("truncate", f.name, err)
 	}
 	return nil
 }
@@ -240,7 +240,7 @@ func (f *File) chmod(mode FileMode) error {
 
 	odir, e := dirstat(f)
 	if e != nil {
-		return fs.NewPathError("chmod", f.name, e)
+		return NewPathError("chmod", f.name, e)
 	}
 	d.Null()
 	d.Mode = odir.Mode&^chmodMask | syscallMode(mode)&chmodMask
@@ -248,7 +248,7 @@ func (f *File) chmod(mode FileMode) error {
 	var buf [syscall.STATFIXLEN]byte
 	n, err := d.Marshal(buf[:])
 	if err != nil {
-		return fs.NewPathError("chmod", f.name, err)
+		return NewPathError("chmod", f.name, err)
 	}
 
 	if err := f.incref("chmod"); err != nil {
@@ -257,7 +257,7 @@ func (f *File) chmod(mode FileMode) error {
 	defer f.decref()
 
 	if err = syscall.Fwstat(f.sysfd, buf[:n]); err != nil {
-		return fs.NewPathError("chmod", f.name, err)
+		return NewPathError("chmod", f.name, err)
 	}
 	return nil
 }
@@ -275,7 +275,7 @@ func (f *File) Sync() error {
 	var buf [syscall.STATFIXLEN]byte
 	n, err := d.Marshal(buf[:])
 	if err != nil {
-		return fs.NewPathError("sync", f.name, err)
+		return NewPathError("sync", f.name, err)
 	}
 
 	if err := f.incref("sync"); err != nil {
@@ -284,7 +284,7 @@ func (f *File) Sync() error {
 	defer f.decref()
 
 	if err = syscall.Fwstat(f.sysfd, buf[:n]); err != nil {
-		return fs.NewPathError("sync", f.name, err)
+		return NewPathError("sync", f.name, err)
 	}
 	return nil
 }
@@ -375,10 +375,10 @@ func Truncate(name string, size int64) error {
 	var buf [syscall.STATFIXLEN]byte
 	n, err := d.Marshal(buf[:])
 	if err != nil {
-		return fs.NewPathError("truncate", name, err)
+		return NewPathError("truncate", name, err)
 	}
 	if err = syscall.Wstat(name, buf[:n]); err != nil {
-		return fs.NewPathError("truncate", name, err)
+		return NewPathError("truncate", name, err)
 	}
 	return nil
 }
@@ -387,7 +387,7 @@ func Truncate(name string, size int64) error {
 // If there is an error, it will be of type [*PathError].
 func Remove(name string) error {
 	if e := syscall.Remove(name); e != nil {
-		return fs.NewPathError("remove", name, e)
+		return NewPathError("remove", name, e)
 	}
 	return nil
 }
@@ -435,7 +435,7 @@ func chmod(name string, mode FileMode) error {
 
 	odir, e := dirstat(name)
 	if e != nil {
-		return fs.NewPathError("chmod", name, e)
+		return NewPathError("chmod", name, e)
 	}
 	d.Null()
 	d.Mode = odir.Mode&^chmodMask | syscallMode(mode)&chmodMask
@@ -443,10 +443,10 @@ func chmod(name string, mode FileMode) error {
 	var buf [syscall.STATFIXLEN]byte
 	n, err := d.Marshal(buf[:])
 	if err != nil {
-		return fs.NewPathError("chmod", name, err)
+		return NewPathError("chmod", name, err)
 	}
 	if err = syscall.Wstat(name, buf[:n]); err != nil {
-		return fs.NewPathError("chmod", name, err)
+		return NewPathError("chmod", name, err)
 	}
 	return nil
 }
@@ -474,10 +474,10 @@ func Chtimes(name string, atime time.Time, mtime time.Time) error {
 	var buf [syscall.STATFIXLEN]byte
 	n, err := d.Marshal(buf[:])
 	if err != nil {
-		return fs.NewPathError("chtimes", name, err)
+		return NewPathError("chtimes", name, err)
 	}
 	if err = syscall.Wstat(name, buf[:n]); err != nil {
-		return fs.NewPathError("chtimes", name, err)
+		return NewPathError("chtimes", name, err)
 	}
 	return nil
 }
@@ -511,7 +511,7 @@ func Symlink(oldname, newname string) error {
 }
 
 func readlink(name string) (string, error) {
-	return "", fs.NewPathError("readlink", name, syscall.EPLAN9)
+	return "", NewPathError("readlink", name, syscall.EPLAN9)
 }
 
 // Chown changes the numeric uid and gid of the named file.
@@ -522,14 +522,14 @@ func readlink(name string) (string, error) {
 // On Windows or Plan 9, Chown always returns the [syscall.EWINDOWS] or
 // [syscall.EPLAN9] error, wrapped in [*PathError].
 func Chown(name string, uid, gid int) error {
-	return fs.NewPathError("chown", name, syscall.EPLAN9)
+	return NewPathError("chown", name, syscall.EPLAN9)
 }
 
 // Lchown changes the numeric uid and gid of the named file.
 // If the file is a symbolic link, it changes the uid and gid of the link itself.
 // If there is an error, it will be of type [*PathError].
 func Lchown(name string, uid, gid int) error {
-	return fs.NewPathError("lchown", name, syscall.EPLAN9)
+	return NewPathError("lchown", name, syscall.EPLAN9)
 }
 
 // Chown changes the numeric uid and gid of the named file.
@@ -538,7 +538,7 @@ func (f *File) Chown(uid, gid int) error {
 	if f == nil {
 		return ErrInvalid
 	}
-	return fs.NewPathError("chown", f.name, syscall.EPLAN9)
+	return NewPathError("chown", f.name, syscall.EPLAN9)
 }
 
 func tempDir() string {
@@ -558,7 +558,7 @@ func (f *File) Chdir() error {
 	}
 	defer f.decref()
 	if e := syscall.Fchdir(f.sysfd); e != nil {
-		return fs.NewPathError("chdir", f.name, e)
+		return NewPathError("chdir", f.name, e)
 	}
 	return nil
 }

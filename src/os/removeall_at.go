@@ -22,7 +22,7 @@ func removeAll(path string) error {
 	// The rmdir system call does not permit removing ".",
 	// so we don't permit it either.
 	if endsWithDot(path) {
-		return fs.NewPathError("RemoveAll", path, syscall.EINVAL)
+		return NewPathError("RemoveAll", path, syscall.EINVAL)
 	}
 
 	// Simple case: if Remove works, we're done.
@@ -77,7 +77,7 @@ func removeAllFrom(parentFd sysfdType, base string) error {
 	// whose contents need to be removed.
 	// Otherwise just return the error.
 	if err != syscall.EISDIR && err != syscall.EPERM && err != syscall.EACCES {
-		return fs.NewPathError("unlinkat", base, err)
+		return NewPathError("unlinkat", base, err)
 	}
 	uErr := err
 
@@ -95,13 +95,13 @@ func removeAllFrom(parentFd sysfdType, base string) error {
 			}
 			if err == syscall.ENOTDIR {
 				// Not a directory; return the error from the removefileat.
-				return fs.NewPathError("unlinkat", base, uErr)
+				return NewPathError("unlinkat", base, uErr)
 			}
 			if _, ok := err.(errSymlink); ok {
 				// Not a user-visible error.
 				err = uErr
 			}
-			recurseErr = fs.NewPathError("openfdat", base, err)
+			recurseErr = NewPathError("openfdat", base, err)
 			break
 		}
 
@@ -115,7 +115,7 @@ func removeAllFrom(parentFd sysfdType, base string) error {
 				if IsNotExist(readErr) {
 					return nil
 				}
-				return fs.NewPathError("readdirnames", base, readErr)
+				return NewPathError("readdirnames", base, readErr)
 			}
 
 			respSize = len(names)
@@ -161,7 +161,7 @@ func removeAllFrom(parentFd sysfdType, base string) error {
 	if recurseErr != nil {
 		return recurseErr
 	}
-	return fs.NewPathError("unlinkat", base, unlinkError)
+	return NewPathError("unlinkat", base, unlinkError)
 }
 
 // openDirAt opens a directory name relative to the directory referred to by

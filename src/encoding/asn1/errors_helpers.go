@@ -15,7 +15,7 @@ func structuralErrorMessage(msg string) string {
 
 func newStructuralError(msg string) StructuralError {
 	e := StructuralError{Msg: msg}
-	errors.InitCustom(&e.Error, "%s", structuralErrorMessage(msg))
+	errors.InitCustom(&e.Layer, "%s", structuralErrorMessage(msg))
 	return e
 }
 
@@ -25,7 +25,7 @@ func syntaxErrorMessage(msg string) string {
 
 func newSyntaxError(msg string) SyntaxError {
 	e := SyntaxError{Msg: msg}
-	errors.InitCustom(&e.Error, "%s", syntaxErrorMessage(msg))
+	errors.InitCustom(&e.Layer, "%s", syntaxErrorMessage(msg))
 	return e
 }
 
@@ -41,6 +41,6 @@ func invalidUnmarshalErrorMessage(typ reflect.Type) string {
 
 func newInvalidUnmarshalError(typ reflect.Type) *invalidUnmarshalError {
 	e := &invalidUnmarshalError{Type: typ}
-	errors.InitCustom(&e.Error, "%s", invalidUnmarshalErrorMessage(typ))
+	errors.InitCustom(&e.Layer, "%s", invalidUnmarshalErrorMessage(typ))
 	return e
 }

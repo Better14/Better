@@ -13,36 +13,36 @@ import (
 
 func newSyntaxError(msg string, offset int64) *SyntaxError {
 	e := &SyntaxError{msg: msg, Offset: offset}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }
 
 func newUnmarshalTypeError(value string, typ reflect.Type, offset int64, structName, field string, err error) *UnmarshalTypeError {
 	e := &UnmarshalTypeError{Value: value, Type: typ, Offset: offset, Struct: structName, Field: field, Err: err}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }
 
 func newInvalidUnmarshalError(typ reflect.Type) *InvalidUnmarshalError {
 	e := &InvalidUnmarshalError{Type: typ}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }
 
 func newMarshalerError(typ reflect.Type, err error, sourceFunc string) *MarshalerError {
 	e := &MarshalerError{Type: typ, Err: err, sourceFunc: sourceFunc}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }
 
 func newUnsupportedTypeError(typ reflect.Type) *UnsupportedTypeError {
 	e := &UnsupportedTypeError{Type: typ}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }
 
 func newUnsupportedValueError(str string) *UnsupportedValueError {
 	e := &UnsupportedValueError{Str: str}
-	errors.InitCustom(&e.Error, "%s", e.Error())
+	errors.InitCustom(&e.Layer, "%s", e.Error())
 	return e
 }

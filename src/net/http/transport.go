@@ -746,7 +746,7 @@ func (t *Transport) roundTrip(req *Request) (_ *Response, err error) {
 			// Issue 16465: return underlying net.Conn.Read error from peek,
 			// as we've historically done.
 			if e, ok := err.(nothingWrittenError); ok {
-				err = e.error
+				err = e.Err
 			}
 			if e, ok := err.(transportReadFromServerError); ok {
 				err = e.err
@@ -1099,13 +1099,13 @@ var (
 // the user's custom net.Conn.Read error too, so we carry it along for
 // them to return from Transport.RoundTrip.
 type transportReadFromServerError struct {
-	errors.Error
+	errors.Layer
 	err error
 }
 
 func newTransportReadFromServerError(err error) transportReadFromServerError {
 	e := transportReadFromServerError{err: err}
-	errors.InitCustom(&e.Error, "net/http: Transport failed to read from server: %v", err)
+	errors.InitCustom(&e.Layer, "net/http: Transport failed to read from server: %v", err)
 	return e
 }
 
@@ -2804,13 +2804,13 @@ func (b *readWriteCloserBody) CloseWrite() error {
 
 // nothingWrittenError wraps a write errors which ended up writing zero bytes.
 type nothingWrittenError struct {
-	errors.Error
+	errors.Layer
 	Err error
 }
 
 func newNothingWrittenError(err error) nothingWrittenError {
 	e := nothingWrittenError{Err: err}
-	errors.InitCustom(&e.Error, "%s", err.Error())
+	errors.InitCustom(&e.Layer, "%s", err.Error())
 	return e
 }
 
@@ -2942,13 +2942,13 @@ type writeRequest struct {
 // httpTimeoutError represents a timeout.
 // It implements net.Error and wraps context.DeadlineExceeded.
 type timeoutError struct {
-	errors.Error
+	errors.Layer
 	err string
 }
 
 func newTimeoutError(msg string) *timeoutError {
 	e := &timeoutError{err: msg}
-	errors.InitCustom(&e.Error, "%s", msg)
+	errors.InitCustom(&e.Layer, "%s", msg)
 	return e
 }
 
@@ -3393,12 +3393,12 @@ func (gz *gzipReader) Close() error {
 }
 
 type tlsHandshakeTimeoutError struct {
-	errors.Error
+	errors.Layer
 }
 
 func newTLSHandshakeTimeoutError() tlsHandshakeTimeoutError {
 	e := tlsHandshakeTimeoutError{}
-	errors.InitCustom(&e.Error, "net/http: TLS handshake timeout")
+	errors.InitCustom(&e.Layer, "net/http: TLS handshake timeout")
 	return e
 }
 

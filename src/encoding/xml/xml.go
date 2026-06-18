@@ -24,7 +24,7 @@ import (
 
 // A SyntaxError represents a syntax error in the XML input stream.
 type SyntaxError struct {
-	errors.Error
+	errors.Layer
 	Msg  string
 	Line int
 }
@@ -470,7 +470,7 @@ func (d *Decoder) pushNs(local string, url string, ok bool) {
 // Creates a SyntaxError with the current line number.
 func (d *Decoder) syntaxError(msg string) error {
 	se := &SyntaxError{Msg: msg, Line: d.line}
-	errors.InitCustom(&se.Error, "%s", syntaxErrorMessage(msg, d.line))
+	errors.InitCustom(&se.Layer, "%s", syntaxErrorMessage(msg, d.line))
 	return se
 }
 

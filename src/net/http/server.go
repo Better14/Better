@@ -1886,14 +1886,14 @@ func badRequestError(e string) error { return newStatusError(StatusBadRequest, e
 // statusError is an error used to respond to a request with an HTTP status.
 // The text should be plain text without user info or other embedded errors.
 type statusError struct {
-	errors.Error
+	errors.Layer
 	code int
 	text string
 }
 
 func newStatusError(code int, text string) statusError {
 	e := statusError{code: code, text: text}
-	errors.InitCustom(&e.Error, "%s", StatusText(code)+": "+text)
+	errors.InitCustom(&e.Layer, "%s", StatusText(code)+": "+text)
 	return e
 }
 

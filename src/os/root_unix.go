@@ -28,7 +28,7 @@ func openRootNolog(name string) (*Root, error) {
 		return err
 	})
 	if err != nil {
-		return nil, fs.NewPathError("open", name, err)
+		return nil, NewPathError("open", name, err)
 	}
 	return newRoot(fd, name)
 }
@@ -43,7 +43,7 @@ func newRoot(fd int, name string) (*Root, error) {
 	fillFileStatFromSys(&fs, name)
 	if err == nil && !fs.IsDir() {
 		syscall.Close(fd)
-		return nil, fs.NewPathError("open", name, errors.New("not a directory"))
+		return nil, NewPathError("open", name, errors.New("not a directory"))
 	}
 
 	// There's a race here with fork/exec, which we are
@@ -73,7 +73,7 @@ func openRootInRoot(r *Root, name string) (*Root, error) {
 		return fd, err
 	})
 	if err != nil {
-		return nil, fs.NewPathError("openat", name, err)
+		return nil, NewPathError("openat", name, err)
 	}
 	return newRoot(fd, joinPath(r.Name(), name))
 }
@@ -101,7 +101,7 @@ func rootOpenFileNolog(root *Root, name string, flag int, perm FileMode) (*File,
 		return fd, err
 	})
 	if err != nil {
-		return nil, fs.NewPathError("openat", name, err)
+		return nil, NewPathError("openat", name, err)
 	}
 	f := newFile(fd, joinPath(root.Name(), name), kindOpenFile, unix.HasNonblockFlag(flag))
 	f.inRoot = true
@@ -141,7 +141,7 @@ func rootStat(r *Root, name string, lstat bool) (FileInfo, error) {
 		return &fs, nil
 	})
 	if err != nil {
-		return nil, fs.NewPathError("statat", name, err)
+		return nil, NewPathError("statat", name, err)
 	}
 	return fi, nil
 }

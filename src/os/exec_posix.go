@@ -58,7 +58,7 @@ func startProcess(name string, argv []string, attr *ProcAttr) (p *Process, err e
 	runtime.KeepAlive(attr)
 
 	if e != nil {
-		return nil, fs.NewPathError("fork/exec", name, e)
+		return nil, NewPathError("fork/exec", name, e)
 	}
 
 	// For Windows, syscall.StartProcess above already returned a process handle.

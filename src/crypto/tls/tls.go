@@ -111,14 +111,14 @@ func Listen(network, laddr string, config *Config) (net.Listener, error) {
 }
 
 type timeoutError struct {
-	errors.Error
+	errors.Layer
 }
 
 const timeoutErrorMessage = "tls: DialWithDialer timed out"
 
 func newTimeoutError() timeoutError {
 	e := timeoutError{}
-	errors.InitCustom(&e.Error, "%s", timeoutErrorMessage)
+	errors.InitCustom(&e.Layer, "%s", timeoutErrorMessage)
 	return e
 }
 

@@ -613,13 +613,13 @@ func isIdentity(te []string) bool { return len(te) == 1 && te[0] == "identity" }
 
 // unsupportedTEError reports unsupported transfer-encodings.
 type unsupportedTEError struct {
-	errors.Error
+	errors.Layer
 	err string
 }
 
 func newUnsupportedTEError(msg string) *unsupportedTEError {
 	e := &unsupportedTEError{err: msg}
-	errors.InitCustom(&e.Error, "%s", msg)
+	errors.InitCustom(&e.Layer, "%s", msg)
 	return e
 }
 

@@ -5,7 +5,6 @@
 package reflectlite
 
 import (
-	"errors"
 	"internal/abi"
 	"internal/goarch"
 	"internal/unsafeheader"
@@ -166,26 +165,19 @@ func unpackEface(i any) Value {
 // a Value that does not support it. Such cases are documented
 // in the description of each method.
 type ValueError struct {
-	errors.Error
 	Method string
 	Kind   Kind
 }
 
-func valueErrorMessage(method string, kind Kind) string {
-	if kind == 0 {
-		return "reflect: call of " + method + " on zero Value"
+func (e *ValueError) Error() string {
+	if e.Kind == 0 {
+		return "reflect: call of " + e.Method + " on zero Value"
 	}
-	return "reflect: call of " + method + " on " + kind.String() + " Value"
+	return "reflect: call of " + e.Method + " on " + e.Kind.String() + " Value"
 }
 
 func newValueError(method string, kind Kind) *ValueError {
-	e := &ValueError{Method: method, Kind: kind}
-	errors.InitCustom(&e.Error, "%s", valueErrorMessage(method, kind))
-	return e
-}
-
-func (e *ValueError) Error() string {
-	return valueErrorMessage(e.Method, e.Kind)
+	return &ValueError{Method: method, Kind: kind}
 }
 
 // methodName returns the name of the calling method,
@@ -235,6 +227,10 @@ func (v Value) CanSet() bool {
 	return v.flag&(flagAddr|flagRO) == flagAddr
 }
 
+type ifaceWithMethod interface {
+	M()
+}
+
 // Elem returns the value that the interface v contains
 // or that the pointer v points to.
 // It panics if v's Kind is not Interface or Pointer.
@@ -247,9 +243,7 @@ func (v Value) Elem() Value {
 		if v.typ().NumMethod() == 0 {
 			eface = *(*any)(v.ptr)
 		} else {
-			eface = (any)(*(*interface {
-				M()
-			))(v.ptr))
+			eface = (any)(*(*ifaceWithMethod)(v.ptr))
 		}
 		x := unpackEface(eface)
 		if x.flag != 0 {
@@ -286,9 +280,7 @@ func valueInterface(v Value) any {
 		if v.numMethod() == 0 {
 			return *(*any)(v.ptr)
 		}
-		return *(*interface {
-			M()
-		))(v.ptr)
+		return *(*ifaceWithMethod)(v.ptr)
 	}
 
 	return packEface(v)

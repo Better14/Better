@@ -362,7 +362,7 @@ func bodyAllowedForStatus(status int) bool {
 }
 
 type httpError struct {
-	errors.Error
+	errors.Layer
 	_       incomparable
 	msg     string
 	timeout bool
@@ -370,7 +370,7 @@ type httpError struct {
 
 func newHTTPError(msg string, timeout bool) *httpError {
 	e := &httpError{msg: msg, timeout: timeout}
-	errors.InitCustom(&e.Error, "%s", msg)
+	errors.InitCustom(&e.Layer, "%s", msg)
 	return e
 }
 

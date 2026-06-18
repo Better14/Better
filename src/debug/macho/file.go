@@ -184,7 +184,7 @@ type Symbol struct {
 // FormatError is returned by some operations if the data does
 // not have the correct format for an object file.
 type FormatError struct {
-	errors.Error
+	errors.Layer
 	off int64
 	msg string
 	val any
@@ -200,7 +200,7 @@ func formatErrorMessage(off int64, msg string, val any) string {
 
 func newFormatError(off int64, msg string, val any) *FormatError {
 	e := &FormatError{off: off, msg: msg, val: val}
-	errors.InitCustom(&e.Error, "%s", formatErrorMessage(off, msg, val))
+	errors.InitCustom(&e.Layer, "%s", formatErrorMessage(off, msg, val))
 	return e
 }
 
@@ -366,11 +366,11 @@ func NewFile(r io.ReaderAt) (*File, error) {
 			} else if hdr.Iundefsym > uint32(len(f.Symtab.Syms)) {
 				return nil, newFormatError(offset, fmt.Sprintf(
 					"undefined symbols index in dynamic symbol table command is greater than symbol table length (%d > %d)",
-					hdr.Iundefsym, len(f.Symtab.Syms)), nil}
+					hdr.Iundefsym, len(f.Symtab.Syms)), nil)
 			} else if hdr.Iundefsym+hdr.Nundefsym > uint32(len(f.Symtab.Syms)) {
 				return nil, newFormatError(offset, fmt.Sprintf(
 					"number of undefined symbols after index in dynamic symbol table command is greater than symbol table length (%d > %d)",
-					hdr.Iundefsym+hdr.Nundefsym, len(f.Symtab.Syms)), nil}
+					hdr.Iundefsym+hdr.Nundefsym, len(f.Symtab.Syms)), nil)
 			}
 			dat, err := saferio.ReadDataAt(r, uint64(hdr.Nindirectsyms)*4, int64(hdr.Indirectsymoff))
 			if err != nil {

@@ -101,7 +101,7 @@ const (
 // LinkError records an error during a link or symlink or rename
 // system call and the paths that caused it.
 type LinkError struct {
-	errors.Error
+	errors.Layer
 	Op  string
 	Old string
 	New string
@@ -118,7 +118,7 @@ func linkErrorMessage(op, old, new string, err error) string {
 // NewLinkError returns a LinkError with a stack trace captured at the call site.
 func NewLinkError(op, old, new string, err error) *LinkError {
 	e := &LinkError{Op: op, Old: old, New: new, Err: err}
-	errors.InitCustom(&e.Error, "%s", linkErrorMessage(op, old, new, err))
+	errors.InitCustom(&e.Layer, "%s", linkErrorMessage(op, old, new, err))
 	return e
 }
 

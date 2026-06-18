@@ -138,7 +138,7 @@ func MustParseAddr(s string) Addr {
 }
 
 type parseAddrError struct {
-	errors.Error
+	errors.Layer
 	in  string // the string given to ParseAddr
 	msg string // an explanation of the parse failure
 	at  string // optionally, the unparsed portion of in at which the error occurred.
@@ -154,7 +154,7 @@ func parseAddrErrorMessage(in, msg, at string) string {
 
 func newParseAddrError(in, msg, at string) error {
 	e := parseAddrError{in: in, msg: msg, at: at}
-	errors.InitCustom(&e.Error, "%s", parseAddrErrorMessage(in, msg, at))
+	errors.InitCustom(&e.Layer, "%s", parseAddrErrorMessage(in, msg, at))
 	return e
 }
 
@@ -1364,7 +1364,7 @@ func (p Prefix) Compare(p2 Prefix) int {
 }
 
 type parsePrefixError struct {
-	errors.Error
+	errors.Layer
 	in  string // the string given to ParsePrefix
 	msg string // an explanation of the parse failure
 }
@@ -1375,7 +1375,7 @@ func parsePrefixErrorMessage(in, msg string) string {
 
 func newParsePrefixError(in, msg string) error {
 	e := parsePrefixError{in: in, msg: msg}
-	errors.InitCustom(&e.Error, "%s", parsePrefixErrorMessage(in, msg))
+	errors.InitCustom(&e.Layer, "%s", parsePrefixErrorMessage(in, msg))
 	return e
 }
 

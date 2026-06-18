@@ -78,14 +78,14 @@ func floatValue(f float64) Value {
 
 // Error wraps a JavaScript error.
 type Error struct {
-	errors.Error
+	errors.Layer
 	// Value is the underlying JavaScript error value.
 	Value
 }
 
 func newJSError(v Value) Error {
 	e := Error{Value: v}
-	errors.InitCustom(&e.Error, "%s", "JavaScript error: "+v.Get("message").String())
+	errors.InitCustom(&e.Layer, "%s", "JavaScript error: "+v.Get("message").String())
 	return e
 }
 
@@ -644,14 +644,14 @@ func valueInstanceOf(v ref, t ref) bool
 // a Value that does not support it. Such cases are documented
 // in the description of each method.
 type ValueError struct {
-	errors.Error
+	errors.Layer
 	Method string
 	Type   Type
 }
 
 func newValueError(method string, typ Type) *ValueError {
 	e := &ValueError{Method: method, Type: typ}
-	errors.InitCustom(&e.Error, "%s", "syscall/js: call of "+method+" on "+typ.String())
+	errors.InitCustom(&e.Layer, "%s", "syscall/js: call of "+method+" on "+typ.String())
 	return e
 }
 

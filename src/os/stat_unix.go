@@ -32,7 +32,7 @@ func statNolog(name string) (FileInfo, error) {
 		return syscall.Stat(name, &fs.sys)
 	})
 	if err != nil {
-		return nil, fs.NewPathError("stat", name, err)
+		return nil, NewPathError("stat", name, err)
 	}
 	fillFileStatFromSys(&fs, name)
 	return &fs, nil
@@ -45,7 +45,7 @@ func lstatNolog(name string) (FileInfo, error) {
 		return syscall.Lstat(name, &fs.sys)
 	})
 	if err != nil {
-		return nil, fs.NewPathError("lstat", name, err)
+		return nil, NewPathError("lstat", name, err)
 	}
 	fillFileStatFromSys(&fs, name)
 	return &fs, nil

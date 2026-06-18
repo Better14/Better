@@ -142,8 +142,8 @@ var errnoErrorCache sync.Map
 func (e Errno) Error() string {
 	// deal with special go errors
 	idx := int(e - APPLICATION_ERROR)
-	if 0 <= idx && idx < len(errors) {
-		return errors[idx]
+	if 0 <= idx && idx < len(errnoMessages) {
+		return errnoMessages[idx]
 	}
 
 	cache := false

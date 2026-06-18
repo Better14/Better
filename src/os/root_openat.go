@@ -70,7 +70,7 @@ func rootChmod(r *Root, name string, mode FileMode) error {
 		return struct{}{}, chmodat(parent, name, mode)
 	})
 	if err != nil {
-		return fs.NewPathError("chmodat", name, err)
+		return NewPathError("chmodat", name, err)
 	}
 	return nil
 }
@@ -80,7 +80,7 @@ func rootChown(r *Root, name string, uid, gid int) error {
 		return struct{}{}, chownat(parent, name, uid, gid)
 	})
 	if err != nil {
-		return fs.NewPathError("chownat", name, err)
+		return NewPathError("chownat", name, err)
 	}
 	return nil
 }
@@ -90,7 +90,7 @@ func rootLchown(r *Root, name string, uid, gid int) error {
 		return struct{}{}, lchownat(parent, name, uid, gid)
 	})
 	if err != nil {
-		return fs.NewPathError("lchownat", name, err)
+		return NewPathError("lchownat", name, err)
 	}
 	return err
 }
@@ -100,7 +100,7 @@ func rootChtimes(r *Root, name string, atime time.Time, mtime time.Time) error {
 		return struct{}{}, chtimesat(parent, name, atime, mtime)
 	})
 	if err != nil {
-		return fs.NewPathError("chtimesat", name, err)
+		return NewPathError("chtimesat", name, err)
 	}
 	return err
 }
@@ -110,7 +110,7 @@ func rootMkdir(r *Root, name string, perm FileMode) error {
 		return struct{}{}, mkdirat(parent, name, perm)
 	})
 	if err != nil {
-		return fs.NewPathError("mkdirat", name, err)
+		return NewPathError("mkdirat", name, err)
 	}
 	return nil
 }
@@ -129,12 +129,12 @@ func rootMkdirAll(r *Root, fullname string, perm FileMode) error {
 				return fd, err
 			}
 			if try > 0 || !IsNotExist(err) {
-				return 0, fs.NewPathError("openat", "", err)
+				return 0, NewPathError("openat", "", err)
 			}
 			// Try again on EEXIST, because the directory may have been created
 			// by another process or thread between the rootOpenDir and mkdirat calls.
 			if err := mkdirat(parent, name, perm); err != nil && err != syscall.EEXIST {
-				return 0, fs.NewPathError("mkdirat", "", err)
+				return 0, NewPathError("mkdirat", "", err)
 			}
 		}
 		panic("unreachable")
@@ -165,12 +165,12 @@ func rootMkdirAll(r *Root, fullname string, perm FileMode) error {
 		case nil, errSymlink:
 			return struct{}{}, err
 		}
-		return struct{}{}, fs.NewPathError("mkdirat", "", err)
+		return struct{}{}, NewPathError("mkdirat", "", err)
 	}
 	_, err := doInRoot(r, fullname, openDirFunc, openLastComponentFunc)
 	if err != nil {
 		if _, ok := err.(*PathError); !ok {
-			err = fs.NewPathError("mkdirat", fullname, err)
+			err = NewPathError("mkdirat", fullname, err)
 		}
 	}
 	return err
@@ -181,7 +181,7 @@ func rootReadlink(r *Root, name string) (string, error) {
 		return readlinkat(parent, name)
 	})
 	if err != nil {
-		return "", fs.NewPathError("readlinkat", name, err)
+		return "", NewPathError("readlinkat", name, err)
 	}
 	return target, nil
 }
@@ -191,7 +191,7 @@ func rootRemove(r *Root, name string) error {
 		return struct{}{}, removeat(parent, name)
 	})
 	if err != nil {
-		return fs.NewPathError("removeat", name, err)
+		return NewPathError("removeat", name, err)
 	}
 	return nil
 }
@@ -204,7 +204,7 @@ func rootRemoveAll(r *Root, name string) error {
 	}
 	if endsWithDot(name) {
 		// Consistency with os.RemoveAll: Return EINVAL when trying to remove .
-		return fs.NewPathError("RemoveAll", name, syscall.EINVAL)
+		return NewPathError("RemoveAll", name, syscall.EINVAL)
 	}
 	_, err := doInRoot(r, name, nil, func(parent sysfdType, name string) (struct{}, error) {
 		return struct{}{}, removeAllFrom(parent, name)
@@ -213,7 +213,7 @@ func rootRemoveAll(r *Root, name string) error {
 		return nil
 	}
 	if err != nil {
-		return fs.NewPathError("RemoveAll", name, underlyingError(err))
+		return NewPathError("RemoveAll", name, underlyingError(err))
 	}
 	return err
 }

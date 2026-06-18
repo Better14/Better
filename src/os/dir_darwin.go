@@ -34,7 +34,7 @@ func (f *File) readdir(n int, mode readdirMode) (names []string, dirents []DirEn
 		}
 		dir, call, errno := f.pfd.OpenDir()
 		if errno != nil {
-			return nil, nil, nil, fs.NewPathError(call, f.name, errno)
+			return nil, nil, nil, NewPathError(call, f.name, errno)
 		}
 		d = &dirInfo{dir: dir}
 		if f.dirinfo.CompareAndSwap(nil, d) {
@@ -57,7 +57,7 @@ func (f *File) readdir(n int, mode readdirMode) (names []string, dirents []DirEn
 			if errno == syscall.EINTR {
 				continue
 			}
-			return names, dirents, infos, fs.NewPathError("readdir", f.name, errno)
+			return names, dirents, infos, NewPathError("readdir", f.name, errno)
 		}
 		if entptr == nil { // EOF
 			break

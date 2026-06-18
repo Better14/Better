@@ -46,9 +46,14 @@ type timeout interface {
 // PathError records an error and the operation and file path that caused it.
 type PathError = fs.PathError
 
+// NewPathError returns a PathError with a stack trace captured at the call site.
+func NewPathError(op, path string, err error) *PathError {
+	return fs.NewPathError(op, path, err)
+}
+
 // SyscallError records an error from a specific system call.
 type SyscallError struct {
-	errors.Error
+	errors.Layer
 	Syscall string
 	Err     error
 }
@@ -78,7 +83,7 @@ func NewSyscallError(syscall string, err error) error {
 		return nil
 	}
 	e := &SyscallError{Syscall: syscall, Err: err}
-	errors.InitCustom(&e.Error, "%s", syscallErrorMessage(syscall, err))
+	errors.InitCustom(&e.Layer, "%s", syscallErrorMessage(syscall, err))
 	return e
 }
 

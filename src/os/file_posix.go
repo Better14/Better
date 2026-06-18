@@ -79,7 +79,7 @@ func chmod(name string, mode FileMode) error {
 		return syscall.Chmod(longName, syscallMode(mode))
 	})
 	if e != nil {
-		return fs.NewPathError("chmod", name, e)
+		return NewPathError("chmod", name, e)
 	}
 	return nil
 }
@@ -107,7 +107,7 @@ func Chown(name string, uid, gid int) error {
 		return syscall.Chown(name, uid, gid)
 	})
 	if e != nil {
-		return fs.NewPathError("chown", name, e)
+		return NewPathError("chown", name, e)
 	}
 	return nil
 }
@@ -123,7 +123,7 @@ func Lchown(name string, uid, gid int) error {
 		return syscall.Lchown(name, uid, gid)
 	})
 	if e != nil {
-		return fs.NewPathError("lchown", name, e)
+		return NewPathError("lchown", name, e)
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func (f *File) Sync() error {
 func Chtimes(name string, atime time.Time, mtime time.Time) error {
 	utimes := chtimesUtimes(atime, mtime)
 	if e := syscall.UtimesNano(fixLongPath(name), utimes[0:]); e != nil {
-		return fs.NewPathError("chtimes", name, e)
+		return NewPathError("chtimes", name, e)
 	}
 	return nil
 }

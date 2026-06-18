@@ -353,12 +353,12 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 // (IsHTTP2NoCachedConnError) that net/http sniffs for via func
 // isNoCachedConnError.
 type noCachedConnError struct {
-	errors.Error
+	errors.Layer
 }
 
 func newNoCachedConnError() noCachedConnError {
 	e := noCachedConnError{}
-	errors.InitCustom(&e.Error, "http2: no cached connection was available")
+	errors.InitCustom(&e.Layer, "http2: no cached connection was available")
 	return e
 }
 
@@ -1921,7 +1921,7 @@ func (cc *ClientConn) readLoop() {
 	cc.readerErr = rl.run()
 	if ce, ok := cc.readerErr.(ConnectionError); ok {
 		cc.wmu.Lock()
-		cc.fr.WriteGoAway(0, ErrCode(ce), nil)
+		cc.fr.WriteGoAway(0, ce.Code, nil)
 		cc.wmu.Unlock()
 	}
 }
@@ -1929,7 +1929,7 @@ func (cc *ClientConn) readLoop() {
 // GoAwayError is returned by the Transport when the server closes the
 // TCP connection after sending a GOAWAY frame.
 type GoAwayError struct {
-	errors.Error
+	errors.Layer
 	LastStreamID uint32
 	ErrCode      ErrCode
 	DebugData    string
@@ -1942,7 +1942,7 @@ func goAwayErrorMessage(lastStreamID uint32, errCode ErrCode, debugData string) 
 
 func NewGoAwayError(lastStreamID uint32, errCode ErrCode, debugData string) GoAwayError {
 	e := GoAwayError{LastStreamID: lastStreamID, ErrCode: errCode, DebugData: debugData}
-	errors.InitCustom(&e.Error, "%s", goAwayErrorMessage(lastStreamID, errCode, debugData))
+	errors.InitCustom(&e.Layer, "%s", goAwayErrorMessage(lastStreamID, errCode, debugData))
 	return e
 }
 
@@ -2032,7 +2032,7 @@ func (cc *ClientConn) countReadFrameError(err error) {
 		return
 	}
 	if ce, ok := err.(ConnectionError); ok {
-		errCode := ErrCode(ce)
+		errCode := ce.Code
 		f(fmt.Sprintf("read_frame_conn_error_%s", errCode.stringToken()))
 		return
 	}

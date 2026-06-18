@@ -69,7 +69,7 @@ func dirstat(arg any) (*syscall.Dir, error) {
 		}
 
 		if n < bitSize16 {
-			return nil, fs.NewPathError("stat", name, err)
+			return nil, NewPathError("stat", name, err)
 		}
 
 		// Pull the real size out of the stat message.
@@ -80,7 +80,7 @@ func dirstat(arg any) (*syscall.Dir, error) {
 		if size <= n {
 			d, err := syscall.UnmarshalDir(buf[:n])
 			if err != nil {
-				return nil, fs.NewPathError("stat", name, err)
+				return nil, NewPathError("stat", name, err)
 			}
 			return d, nil
 		}
@@ -91,7 +91,7 @@ func dirstat(arg any) (*syscall.Dir, error) {
 		err = syscall.ErrBadStat
 	}
 
-	return nil, fs.NewPathError("stat", name, err)
+	return nil, NewPathError("stat", name, err)
 }
 
 // statNolog implements Stat for Plan 9.
