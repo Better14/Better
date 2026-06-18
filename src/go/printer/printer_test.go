@@ -1028,6 +1028,32 @@ func f(v Color) string {
 	}
 }
 
+func TestResultTypeFormat(t *testing.T) {
+	const src = `package p
+
+import "database/sql"
+
+func Open(path string) *sql.DB! {
+	return nil, nil
+}
+`
+	got, err := format([]byte(src), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `package p
+
+import "database/sql"
+
+func Open(path string) *sql.DB! {
+	return nil, nil
+}
+`
+	if string(got) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestLambdaFormat(t *testing.T) {
 	const src = `package p
 

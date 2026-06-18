@@ -6,12 +6,12 @@
 
 package main
 
-struct Person struct {
+struct Person {
 	Name string
 	Age  int
 }
 
-interface Stringer interface {
+interface Stringer {
 	String() string
 }
 
