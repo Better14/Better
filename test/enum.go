@@ -10,7 +10,7 @@ enum SomeEnum {
 	Value1
 	Value2(string)
 	Value3(int)
-	Value4= 3
+	Value4 = 3
 }
 
 enum Message {

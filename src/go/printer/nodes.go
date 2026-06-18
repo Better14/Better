@@ -2182,7 +2182,7 @@ func (p *printer) enumDecl(d *ast.EnumDecl) {
 		p.print(vtab)
 		p.print(v.Name)
 		if v.Tag != nil {
-			p.print(token.ASSIGN, blank)
+			p.print(blank, token.ASSIGN, blank)
 			p.expr(v.Tag)
 		} else if len(v.Types) > 0 {
 			p.print(token.LPAREN)
