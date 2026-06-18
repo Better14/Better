@@ -25,6 +25,9 @@ var ShorthandTypesAnalyzer = &analysis.Analyzer{
 }
 
 func shorthandTypes(pass *analysis.Pass) (any, error) {
+	if pkgInGOROOT(pass) {
+		return nil, nil
+	}
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	type candidate struct {

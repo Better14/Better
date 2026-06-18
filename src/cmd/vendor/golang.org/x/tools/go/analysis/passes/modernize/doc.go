@@ -643,5 +643,9 @@ to the shorthand syntax:
 Only standalone (non-parenthesized) type declarations without type
 parameters or type aliases are rewritten. Other type declarations are
 left unchanged.
+
+Packages whose source files live under GOROOT/src are never rewritten,
+so that go fix can be run on the toolchain tree without breaking
+bootstrap builds.
 */
 package modernize

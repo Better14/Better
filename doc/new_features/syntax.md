@@ -85,6 +85,8 @@ interface Stringer {
 
 Running gofix on a package or file would rewrite only struct and interface type declarations that match the old pattern. Other `type` declarations (aliases, defined non-struct/interface types, type parameters, and so on) would be left unchanged.
 
+Packages under `GOROOT/src` (the Go toolchain and standard library tree) are never rewritten, so `go fix` can be run safely while developing the compiler itself.
+
 ## Feedback
 
 This proposal is open for discussion. If you have thoughts on readability, tooling impact, migration, or whether the shorthand is worth the extra keyword forms, please share feedback before implementation proceeds.
