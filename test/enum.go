@@ -10,7 +10,7 @@ enum SomeEnum {
 	Value1
 	Value2(string)
 	Value3(int)
-	Value4 = 3
+	Value4= 3
 }
 
 enum Message {
@@ -68,10 +68,10 @@ func main() {
 		panic(desc)
 	}
 
-	color := Message.ChangeColor { r: 1, g: 2, b: 3 }
+	color := Message.ChangeColor{ r: 1, g: 2, b: 3 }
 	switch color {
 	case ChangeColor { r, g, b }:
-		if r != 1 || g != 2 || b != 3 {
+		if r!=1 || g!=2 || b!=3 {
 			panic("struct pattern binding failed")
 		}
 	default:

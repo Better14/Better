@@ -507,6 +507,18 @@ func (p *printer) isOneLineEnumFieldList(list []*ast.Field) bool {
 	return len(list) > 0
 }
 
+// isOneLineEnumVariantCompositeLit reports whether x is a single-line
+// enum variant struct literal such as Message.Write{ text: "hi", bytes: 5 }.
+func (p *printer) isOneLineEnumVariantCompositeLit(x *ast.CompositeLit) bool {
+	if _, ok := x.Type.(*ast.SelectorExpr); !ok {
+		return false // e.g. Message.Write
+	}
+	if !x.Lbrace.IsValid() || !x.Rbrace.IsValid() {
+		return false
+	}
+	return p.lineFor(x.Lbrace) == p.lineFor(x.Rbrace)
+}
+
 func (p *printer) printEnumVariantFields(list []*ast.Field) {
 	for i, f := range list {
 		if i > 0 {
@@ -1214,7 +1226,12 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		}
 		p.level++
 		p.setPos(x.Lbrace)
-		p.print(token.LBRACE)
+		enumVariant := p.isOneLineEnumVariantCompositeLit(x)
+		if enumVariant {
+			p.print(token.LBRACE, blank)
+		} else {
+			p.print(token.LBRACE)
+		}
 		p.exprList(x.Lbrace, x.Elts, 1, commaTerm, x.Rbrace, x.Incomplete)
 		// do not insert extra line break following a /*-style comment
 		// before the closing '}' as it might break the code if there
@@ -1228,6 +1245,9 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		// need the initial indent to print lone comments with
 		// the proper level of indentation
 		p.print(indent, unindent, mode)
+		if enumVariant {
+			p.print(blank)
+		}
 		p.setPos(x.Rbrace)
 		p.print(token.RBRACE, mode)
 		p.level--
