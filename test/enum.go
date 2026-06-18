@@ -71,7 +71,7 @@ func main() {
 	color := Message.ChangeColor{ r: 1, g: 2, b: 3 }
 	switch color {
 	case ChangeColor { r, g, b }:
-		if r!=1 || g!=2 || b!=3 {
+		if r != 1 || g != 2 || b != 3 {
 			panic("struct pattern binding failed")
 		}
 	default:

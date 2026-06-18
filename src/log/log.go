@@ -10,11 +10,13 @@
 // of each logged message.
 // Every log message is output on a separate line: if the message being
 // printed does not end in a newline, the logger will add one.
-// The Fatal functions call [os.Exit](1) after writing the log message.
+// The Fatal functions call [os.Exit](1) after writing the log message and a
+// stack trace captured at the Fatal call site.
 // The Panic functions call panic after writing the log message.
 package log
 
 import (
+	stderrors "errors"
 	"fmt"
 	"io"
 	"log/internal"
@@ -277,26 +279,37 @@ func (l *Logger) Println(v ...any) {
 	})
 }
 
-// Fatal is equivalent to l.Print() followed by a call to [os.Exit](1).
+func appendFatalStackTrace(b []byte) []byte {
+	st := stderrors.CaptureStackTrace()
+	if len(st) == 0 {
+		return b
+	}
+	if len(b) > 0 && b[len(b)-1] != '\n' {
+		b = append(b, '\n')
+	}
+	return append(b, st.String()...)
+}
+
+// Fatal is equivalent to l.Print() followed by a stack trace and a call to [os.Exit](1).
 func (l *Logger) Fatal(v ...any) {
 	l.output(0, 2, func(b []byte) []byte {
-		return fmt.Append(b, v...)
+		return appendFatalStackTrace(fmt.Append(b, v...))
 	})
 	os.Exit(1)
 }
 
-// Fatalf is equivalent to l.Printf() followed by a call to [os.Exit](1).
+// Fatalf is equivalent to l.Printf() followed by a stack trace and a call to [os.Exit](1).
 func (l *Logger) Fatalf(format string, v ...any) {
 	l.output(0, 2, func(b []byte) []byte {
-		return fmt.Appendf(b, format, v...)
+		return appendFatalStackTrace(fmt.Appendf(b, format, v...))
 	})
 	os.Exit(1)
 }
 
-// Fatalln is equivalent to l.Println() followed by a call to [os.Exit](1).
+// Fatalln is equivalent to l.Println() followed by a stack trace and a call to [os.Exit](1).
 func (l *Logger) Fatalln(v ...any) {
 	l.output(0, 2, func(b []byte) []byte {
-		return fmt.Appendln(b, v...)
+		return appendFatalStackTrace(fmt.Appendln(b, v...))
 	})
 	os.Exit(1)
 }
@@ -418,26 +431,26 @@ func Println(v ...any) {
 	})
 }
 
-// Fatal is equivalent to [Print] followed by a call to [os.Exit](1).
+// Fatal is equivalent to [Print] followed by a stack trace and a call to [os.Exit](1).
 func Fatal(v ...any) {
 	std.output(0, 2, func(b []byte) []byte {
-		return fmt.Append(b, v...)
+		return appendFatalStackTrace(fmt.Append(b, v...))
 	})
 	os.Exit(1)
 }
 
-// Fatalf is equivalent to [Printf] followed by a call to [os.Exit](1).
+// Fatalf is equivalent to [Printf] followed by a stack trace and a call to [os.Exit](1).
 func Fatalf(format string, v ...any) {
 	std.output(0, 2, func(b []byte) []byte {
-		return fmt.Appendf(b, format, v...)
+		return appendFatalStackTrace(fmt.Appendf(b, format, v...))
 	})
 	os.Exit(1)
 }
 
-// Fatalln is equivalent to [Println] followed by a call to [os.Exit](1).
+// Fatalln is equivalent to [Println] followed by a stack trace and a call to [os.Exit](1).
 func Fatalln(v ...any) {
 	std.output(0, 2, func(b []byte) []byte {
-		return fmt.Appendln(b, v...)
+		return appendFatalStackTrace(fmt.Appendln(b, v...))
 	})
 	os.Exit(1)
 }

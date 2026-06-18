@@ -98,7 +98,7 @@ func (e *Error) Wrap(message string) *Error {
 	}
 	return &Error{
 		Message:    message,
-		StackTrace: captureStackTrace(),
+		StackTrace: CaptureStackTrace(),
 		InnerError: e,
 	}
 }
@@ -113,7 +113,7 @@ func Wrap(err error, message string) *Error {
 	}
 	return &Error{
 		Message:    message,
-		StackTrace: captureStackTrace(),
+		StackTrace: CaptureStackTrace(),
 		InnerError: bridgeError(err),
 	}
 }
@@ -123,7 +123,7 @@ func Wrap(err error, message string) *Error {
 func NewWrapped(message string, wrapped error) error {
 	e := &Error{
 		Message:    message,
-		StackTrace: captureStackTrace(),
+		StackTrace: CaptureStackTrace(),
 	}
 	setLink(e, wrapped)
 	return e
@@ -132,7 +132,7 @@ func NewWrapped(message string, wrapped error) error {
 func newError(message string) *Error {
 	return &Error{
 		Message:    message,
-		StackTrace: captureStackTrace(),
+		StackTrace: CaptureStackTrace(),
 	}
 }
 
@@ -184,7 +184,11 @@ func bridgeError(err error) *Error {
 
 const stackTraceDepth = 32
 
-func captureStackTrace() StackTrace {
+// CaptureStackTrace records the current goroutine stack, skipping internal
+// frames in the errors, fmt, and log packages. Frames are ordered innermost
+// caller first. The trace starts at the call site of the function that invoked
+// CaptureStackTrace.
+func CaptureStackTrace() StackTrace {
 	var pcs [stackTraceDepth]uintptr
 	n := runtime.Callers(2, pcs[:])
 	if n == 0 {
@@ -215,11 +219,11 @@ func skipStackFrame(fn string) bool {
 	if hasPrefix(fn, "runtime.") {
 		return true
 	}
-	// Skip frames inside the errors and fmt packages.
+	// Skip frames inside the errors, fmt, and log packages.
 	if i := lastIndexByte(fn, '/'); i >= 0 {
 		fn = fn[i+1:]
 	}
-	if hasPrefix(fn, "errors.") || hasPrefix(fn, "fmt.") {
+	if hasPrefix(fn, "errors.") || hasPrefix(fn, "fmt.") || hasPrefix(fn, "log.") {
 		return true
 	}
 	return false
