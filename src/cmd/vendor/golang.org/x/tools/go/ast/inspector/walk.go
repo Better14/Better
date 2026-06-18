@@ -44,6 +44,9 @@ func walk(v *visitor, ek edge.Kind, index int, node ast.Node) {
 		if n.Type != nil {
 			walk(v, edge.Field_Type, -1, n.Type)
 		}
+		if n.Default != nil {
+			walk(v, edge.Invalid, -1, n.Default)
+		}
 		if n.Tag != nil {
 			walk(v, edge.Field_Tag, -1, n.Tag)
 		}
@@ -123,6 +126,50 @@ func walk(v *visitor, ek edge.Kind, index int, node ast.Node) {
 	case *ast.KeyValueExpr:
 		walk(v, edge.KeyValueExpr_Key, -1, n.Key)
 		walk(v, edge.KeyValueExpr_Value, -1, n.Value)
+
+	case *ast.ResultTypeExpr:
+		walk(v, edge.Invalid, -1, n.X)
+
+	case *ast.TryExpr:
+		walk(v, edge.Invalid, -1, n.X)
+
+	case *ast.NullableTypeExpr:
+		walk(v, edge.Invalid, -1, n.X)
+
+	case *ast.NullCondExpr:
+		walk(v, edge.Invalid, -1, n.X)
+
+	case *ast.EnumPatternExpr:
+		walk(v, edge.Invalid, -1, n.Variant)
+		for _, id := range n.Args {
+			walk(v, edge.Invalid, -1, id)
+		}
+		for _, f := range n.Fields {
+			walk(v, edge.Invalid, -1, f)
+		}
+
+	case *ast.ForceExpr:
+		walk(v, edge.Invalid, -1, n.X)
+
+	case *ast.IfExpr:
+		walk(v, edge.Invalid, -1, n.Cond)
+		walk(v, edge.Invalid, -1, n.Then)
+		walk(v, edge.Invalid, -1, n.ElseBody)
+
+	case *ast.SwitchExpr:
+		walk(v, edge.Invalid, -1, n.Tag)
+		for _, c := range n.Body {
+			for _, e := range c.Cases {
+				walk(v, edge.Invalid, -1, e)
+			}
+			walk(v, edge.Invalid, -1, c.Body)
+		}
+
+	case *ast.LambdaExpr:
+		for _, id := range n.Params {
+			walk(v, edge.Invalid, -1, id)
+		}
+		walk(v, edge.Invalid, -1, n.Body)
 
 	// Types
 	case *ast.ArrayType:
@@ -320,6 +367,53 @@ func walk(v *visitor, ek edge.Kind, index int, node ast.Node) {
 		walk(v, edge.FuncDecl_Type, -1, n.Type)
 		if n.Body != nil {
 			walk(v, edge.FuncDecl_Body, -1, n.Body)
+		}
+
+	case *ast.EnumDecl:
+		if n.Doc != nil {
+			walk(v, edge.Invalid, -1, n.Doc)
+		}
+		walk(v, edge.Invalid, -1, n.Name)
+		if n.TypeParams != nil {
+			walk(v, edge.Invalid, -1, n.TypeParams)
+		}
+		for _, spec := range n.Variants {
+			if spec != nil {
+				walk(v, edge.Invalid, -1, spec.Name)
+				if spec.Tag != nil {
+					walk(v, edge.Invalid, -1, spec.Tag)
+				}
+				for _, t := range spec.Types {
+					walk(v, edge.Invalid, -1, t)
+				}
+				if spec.StructFields != nil {
+					walk(v, edge.Invalid, -1, spec.StructFields)
+				}
+			}
+		}
+
+	case *ast.StructDecl:
+		if n.Doc != nil {
+			walk(v, edge.Invalid, -1, n.Doc)
+		}
+		walk(v, edge.Invalid, -1, n.Name)
+		if n.TypeParams != nil {
+			walk(v, edge.Invalid, -1, n.TypeParams)
+		}
+		if n.Fields != nil {
+			walk(v, edge.Invalid, -1, n.Fields)
+		}
+
+	case *ast.InterfaceDecl:
+		if n.Doc != nil {
+			walk(v, edge.Invalid, -1, n.Doc)
+		}
+		walk(v, edge.Invalid, -1, n.Name)
+		if n.TypeParams != nil {
+			walk(v, edge.Invalid, -1, n.TypeParams)
+		}
+		if n.Methods != nil {
+			walk(v, edge.Invalid, -1, n.Methods)
 		}
 
 	case *ast.File:
