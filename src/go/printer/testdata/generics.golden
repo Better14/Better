@@ -75,8 +75,8 @@ type _ []byte
 type _ [n]byte
 type _ [P(T)]byte
 type _ [P((T))]byte
-type _ [P*(*T)]byte
-type _ [P*T]byte
+type _ [P * (*T)]byte
+type _ [P * T]byte
 type _ [P(*T)]byte
 type _ [P(**T)]byte
 type _ [P*T - T]byte

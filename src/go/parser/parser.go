@@ -487,7 +487,7 @@ func (p *parser) parseFuncDeclName() *ast.Ident {
 		return &ast.Ident{NamePos: pos, Name: "*"}
 	case token.INC, token.DEC:
 		pos := p.pos
-		name := p.lit
+		name := p.tok.String()
 		p.next()
 		return &ast.Ident{NamePos: pos, Name: name}
 	case token.LBRACK:

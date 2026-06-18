@@ -1106,6 +1106,33 @@ func f() {
 	}
 }
 
+func TestParseOperatorFuncDeclInc(t *testing.T) {
+	const src = `package p
+
+type Counter int
+
+func ++(c *Counter) *Counter {
+	*c++
+	return c
+}
+`
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+	if len(f.Decls) != 2 {
+		t.Fatalf("got %d decls, want 2", len(f.Decls))
+	}
+	fn, ok := f.Decls[1].(*ast.FuncDecl)
+	if !ok || fn.Name == nil || fn.Name.Name != "++" {
+		t.Fatalf("func decl name: got %#v", f.Decls[1])
+	}
+	if fn.Recv != nil {
+		t.Fatalf("expected no receiver, got %#v", fn.Recv)
+	}
+}
+
 func TestParseEnumMultilineStructVariant(t *testing.T) {
 	const src = `package p
 
