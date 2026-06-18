@@ -27,12 +27,19 @@ var ShorthandTypesAnalyzer = &analysis.Analyzer{
 func shorthandTypes(pass *analysis.Pass) (any, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
+	type candidate struct {
+		pos     token.Pos
+		end     token.Pos
+		newText string
+	}
+
 	nodeFilter := []ast.Node{(*ast.GenDecl)(nil)}
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		gdecl := n.(*ast.GenDecl)
 		if gdecl.Tok != token.TYPE || gdecl.Lparen.IsValid() {
 			return
 		}
+		var cands []candidate
 		for _, spec := range gdecl.Specs {
 			ts, ok := spec.(*ast.TypeSpec)
 			if !ok {
@@ -43,31 +50,42 @@ func shorthandTypes(pass *analysis.Pass) (any, error) {
 			}
 			var (
 				keyword token.Token
-				kwPos   token.Pos
+				opening token.Pos
 			)
 			switch t := ts.Type.(type) {
 			case *ast.StructType:
 				keyword = token.STRUCT
-				kwPos = t.Struct
+				if t.Fields != nil {
+					opening = t.Fields.Opening
+				}
 			case *ast.InterfaceType:
 				keyword = token.INTERFACE
-				kwPos = t.Interface
+				if t.Methods != nil {
+					opening = t.Methods.Opening
+				}
 			default:
 				continue
 			}
-			if !kwPos.IsValid() {
+			if !opening.IsValid() {
 				continue
 			}
+			cands = append(cands, candidate{
+				pos:     gdecl.TokPos,
+				end:     opening,
+				newText: keyword.String() + " " + ts.Name.Name + " ",
+			})
+		}
+		for _, c := range cands {
 			pass.Report(analysis.Diagnostic{
-				Pos:     gdecl.TokPos,
-				End:     kwPos + token.Pos(len(keyword.String())),
+				Pos:     c.pos,
+				End:     c.end,
 				Message: "type declaration can use struct/interface shorthand syntax",
 				SuggestedFixes: []analysis.SuggestedFix{{
 					Message: "Use shorthand syntax",
 					TextEdits: []analysis.TextEdit{{
-						Pos:     gdecl.TokPos,
-						End:     kwPos + token.Pos(len(keyword.String())),
-						NewText: []byte(keyword.String() + " " + ts.Name.Name),
+						Pos:     c.pos,
+						End:     c.end,
+						NewText: []byte(c.newText),
 					}},
 				}},
 			})

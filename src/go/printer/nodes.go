@@ -952,12 +952,12 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.expr(x.Value)
 
 	case *ast.ResultTypeExpr:
-		p.expr1(x.X, token.HighestPrec, depth)
+		p.expr1(x.X, token.LowestPrec, depth)
 		p.setPos(x.Bang)
 		p.print(token.NOT)
 
 	case *ast.NullableTypeExpr:
-		p.expr1(x.X, token.HighestPrec, depth)
+		p.expr1(x.X, token.LowestPrec, depth)
 		p.setPos(x.QPos)
 		p.print(token.QUESTION)
 
@@ -2196,10 +2196,7 @@ func (p *printer) structDecl(d *ast.StructDecl) {
 	if d.TypeParams != nil {
 		p.parameters(d.TypeParams, typeTParam)
 	}
-	p.print(blank)
 	p.fieldList(d.Fields, true, false)
-	p.setPos(d.Rbrace)
-	p.print(token.RBRACE)
 }
 
 func (p *printer) interfaceDecl(d *ast.InterfaceDecl) {
@@ -2213,10 +2210,7 @@ func (p *printer) interfaceDecl(d *ast.InterfaceDecl) {
 	if d.TypeParams != nil {
 		p.parameters(d.TypeParams, typeTParam)
 	}
-	p.print(blank)
 	p.fieldList(d.Methods, false, false)
-	p.setPos(d.Rbrace)
-	p.print(token.RBRACE)
 }
 
 func (p *printer) funcDecl(d *ast.FuncDecl) {
