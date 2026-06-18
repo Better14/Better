@@ -1133,6 +1133,27 @@ func ++(c *Counter) *Counter {
 	}
 }
 
+func TestParseDefaultArgs(t *testing.T) {
+	const src = `package p
+
+func (s string) Truncate(n int = 40, suffix string = "...") string {
+	return s
+}
+`
+	fset := token.NewFileSet()
+	f, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+	fn := f.Decls[0].(*ast.FuncDecl)
+	if len(fn.Type.Params.List) != 2 {
+		t.Fatalf("got %d params, want 2", len(fn.Type.Params.List))
+	}
+	if fn.Type.Params.List[0].Default == nil || fn.Type.Params.List[1].Default == nil {
+		t.Fatalf("expected default values on both params, got %#v", fn.Type.Params.List)
+	}
+}
+
 func TestParseEnumMultilineStructVariant(t *testing.T) {
 	const src = `package p
 

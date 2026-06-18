@@ -221,6 +221,9 @@ func (f *Field) End() token.Pos {
 	if f.Tag != nil {
 		return f.Tag.End()
 	}
+	if f.Default != nil {
+		return f.Default.End()
+	}
 	if f.Type != nil {
 		return f.Type.End()
 	}
