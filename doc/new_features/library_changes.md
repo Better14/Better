@@ -202,6 +202,10 @@ https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-tim
 | Localized long date | `t.FormatCustomLocale("dddd, MMMM dd, yyyy", tag)` |
 | Parse exact pattern | `time.ParseCustom(format, value, loc)` |
 
+## Structured errors in the standard library
+
+Most public custom error types in the stdlib now embed **`errors.Error`** and capture stack traces at construction. See [Structured errors — Standard library integration](errors.md#standard-library-integration) for migrated packages, intentional exclusions, and how to inspect traces from `PathError`, `json.SyntaxError`, `tls.RecordHeaderError`, and similar types.
+
 ## Future library changes
 
 Additional stdlib improvements will be listed here as they are specified or implemented.

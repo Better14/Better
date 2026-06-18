@@ -1027,11 +1027,11 @@ type exported struct {
 }
 
 func TestUnexportedStructField(t *testing.T) {
-	want := StructuralError{"struct contains unexported fields"}
+	const wantMsg = "struct contains unexported fields"
 
 	_, err := Marshal(unexported{X: 5, y: 1})
-	if err != want {
-		t.Errorf("got %v, want %v", err, want)
+	if se, ok := err.(StructuralError); !ok || se.Msg != wantMsg {
+		t.Errorf("got %v, want StructuralError{%q}", err, wantMsg)
 	}
 
 	bs, err := Marshal(exported{X: 5, Y: 1})
@@ -1040,8 +1040,8 @@ func TestUnexportedStructField(t *testing.T) {
 	}
 	var u unexported
 	_, err = Unmarshal(bs, &u)
-	if err != want {
-		t.Errorf("got %v, want %v", err, want)
+	if se, ok := err.(StructuralError); !ok || se.Msg != wantMsg {
+		t.Errorf("got %v, want StructuralError{%q}", err, wantMsg)
 	}
 }
 

@@ -42,12 +42,15 @@ var (
 	errSparseTooLong   = errors.New("archive/tar: sparse map too long")
 )
 
-type headerError []string
+type headerError struct {
+	errors.Error
+	msgs []string
+}
 
-func (he headerError) Error() string {
+func headerErrorMessage(msgs []string) string {
 	const prefix = "archive/tar: cannot encode header"
 	var ss []string
-	for _, s := range he {
+	for _, s := range msgs {
 		if s != "" {
 			ss = append(ss, s)
 		}
@@ -56,6 +59,16 @@ func (he headerError) Error() string {
 		return prefix
 	}
 	return fmt.Sprintf("%s: %v", prefix, strings.Join(ss, "; and "))
+}
+
+func newHeaderError(msgs ...string) headerError {
+	e := headerError{msgs: msgs}
+	errors.InitCustom(&e.Error, "%s", headerErrorMessage(msgs))
+	return e
+}
+
+func (he headerError) Error() string {
+	return headerErrorMessage(he.msgs)
 }
 
 // Type flags for Header.Typeflag.
@@ -447,20 +460,20 @@ func (h Header) allowedFormats() (format Format, paxHdrs map[string]string, err 
 	case TypeReg, TypeChar, TypeBlock, TypeFifo, TypeGNUSparse:
 		// Exclude TypeLink and TypeSymlink, since they may reference directories.
 		if strings.HasSuffix(h.Name, "/") {
-			return FormatUnknown, nil, headerError{"filename may not have trailing slash"}
+			return FormatUnknown, nil, newHeaderError("filename may not have trailing slash")
 		}
 	case TypeXHeader, TypeGNULongName, TypeGNULongLink:
-		return FormatUnknown, nil, headerError{"cannot manually encode TypeXHeader, TypeGNULongName, or TypeGNULongLink headers"}
+		return FormatUnknown, nil, newHeaderError("cannot manually encode TypeXHeader, TypeGNULongName, or TypeGNULongLink headers")
 	case TypeXGlobalHeader:
 		h2 := Header{Name: h.Name, Typeflag: h.Typeflag, Xattrs: h.Xattrs, PAXRecords: h.PAXRecords, Format: h.Format}
 		if !reflect.DeepEqual(h, h2) {
-			return FormatUnknown, nil, headerError{"only PAXRecords should be set for TypeXGlobalHeader"}
+			return FormatUnknown, nil, newHeaderError("only PAXRecords should be set for TypeXGlobalHeader")
 		}
 		whyOnlyPAX = "only PAX supports TypeXGlobalHeader"
 		format.mayOnlyBe(FormatPAX)
 	}
 	if !isHeaderOnlyType(h.Typeflag) && h.Size < 0 {
-		return FormatUnknown, nil, headerError{"negative size on header-only type"}
+		return FormatUnknown, nil, newHeaderError("negative size on header-only type")
 	}
 
 	// Check PAX records.
@@ -487,7 +500,7 @@ func (h Header) allowedFormats() (format Format, paxHdrs map[string]string, err 
 	}
 	for k, v := range paxHdrs {
 		if !validPAXRecord(k, v) {
-			return FormatUnknown, nil, headerError{fmt.Sprintf("invalid PAX record: %q", k+" = "+v)}
+			return FormatUnknown, nil, newHeaderError(fmt.Sprintf("invalid PAX record: %q", k+" = "+v))
 		}
 	}
 
@@ -497,10 +510,10 @@ func (h Header) allowedFormats() (format Format, paxHdrs map[string]string, err 
 		// Check sparse files.
 		if len(h.SparseHoles) > 0 || h.Typeflag == TypeGNUSparse {
 			if isHeaderOnlyType(h.Typeflag) {
-				return FormatUnknown, nil, headerError{"header-only type cannot be sparse"}
+				return FormatUnknown, nil, newHeaderError("header-only type cannot be sparse")
 			}
 			if !validateSparseEntries(h.SparseHoles, h.Size) {
-				return FormatUnknown, nil, headerError{"invalid sparse holes"}
+				return FormatUnknown, nil, newHeaderError("invalid sparse holes")
 			}
 			if h.Typeflag == TypeGNUSparse {
 				whyOnlyGNU = "only GNU supports TypeGNUSparse"
@@ -524,13 +537,13 @@ func (h Header) allowedFormats() (format Format, paxHdrs map[string]string, err 
 	if format == FormatUnknown {
 		switch h.Format {
 		case FormatUSTAR:
-			err = headerError{"Format specifies USTAR", whyNoUSTAR, whyOnlyPAX, whyOnlyGNU}
+			err = newHeaderError("Format specifies USTAR", whyNoUSTAR, whyOnlyPAX, whyOnlyGNU)
 		case FormatPAX:
-			err = headerError{"Format specifies PAX", whyNoPAX, whyOnlyGNU}
+			err = newHeaderError("Format specifies PAX", whyNoPAX, whyOnlyGNU)
 		case FormatGNU:
-			err = headerError{"Format specifies GNU", whyNoGNU, whyOnlyPAX}
+			err = newHeaderError("Format specifies GNU", whyNoGNU, whyOnlyPAX)
 		default:
-			err = headerError{whyNoUSTAR, whyNoPAX, whyNoGNU, whyOnlyPAX, whyOnlyGNU}
+			err = newHeaderError(whyNoUSTAR, whyNoPAX, whyNoGNU, whyOnlyPAX, whyOnlyGNU)
 		}
 	}
 	return format, paxHdrs, err
