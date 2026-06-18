@@ -1776,12 +1776,12 @@ func (p *parser) parseIndexOrSliceOrInstance(x ast.Expr) ast.Expr {
 			}
 		}
 	case token.COMMA:
-		// instance expression
+		// multi-index expression or instance expression
 		args = append(args, index[0])
 		for p.tok == token.COMMA {
 			p.next()
 			if p.tok != token.RBRACK && p.tok != token.EOF {
-				args = append(args, p.parseType())
+				args = append(args, p.parseRhs())
 			}
 		}
 	}

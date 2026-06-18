@@ -409,7 +409,7 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 	}
 
 	// untyped nil assignable to nullable and nil-able types
-	if x.mode() == nilvalue && isNullish(T) {
+	if x.isNil() && isNullish(T) {
 		return true, 0
 	}
 

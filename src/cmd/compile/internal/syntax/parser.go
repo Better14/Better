@@ -3466,10 +3466,16 @@ func (p *parser) typeList(strict bool) (x Expr, comma bool) {
 	}
 	if p.got(_Comma) {
 		comma = true
-		if t := p.typeOrNil(); t != nil {
+		var next func() Expr
+		if strict {
+			next = p.typeOrNil
+		} else {
+			next = p.expr
+		}
+		if t := next(); t != nil {
 			list := []Expr{x, t}
 			for p.got(_Comma) {
-				if t = p.typeOrNil(); t == nil {
+				if t = next(); t == nil {
 					break
 				}
 				list = append(list, t)

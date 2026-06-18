@@ -119,10 +119,10 @@ func (check *Checker) selectOperatorFunc(name string, nargs int, args []*operand
 	return nil
 }
 
-func (check *Checker) indexOperatorCall(pos syntax.Pos, name string, recvExpr, index, value syntax.Expr, fn *Func) *syntax.CallExpr {
+func (check *Checker) indexOperatorCall(pos syntax.Pos, name string, recvExpr syntax.Expr, indices []syntax.Expr, value syntax.Expr, fn *Func) *syntax.CallExpr {
 	sig := fn.typ.(*Signature)
 	if sig.Recv() != nil {
-		args := []syntax.Expr{index}
+		args := append([]syntax.Expr{}, indices...)
 		if value != nil {
 			args = append(args, value)
 		}
@@ -134,7 +134,8 @@ func (check *Checker) indexOperatorCall(pos syntax.Pos, name string, recvExpr, i
 			ArgList: args,
 		}
 	}
-	args := []syntax.Expr{recvExpr, index}
+	args := []syntax.Expr{recvExpr}
+	args = append(args, indices...)
 	if value != nil {
 		args = append(args, value)
 	}
@@ -245,14 +246,18 @@ func (check *Checker) tryIndexOperatorOverload(x *operand, e *syntax.IndexExpr, 
 	if !l.isValid() || supportsBuiltinIndex(l.typ()) {
 		return false
 	}
-	index := check.singleIndex(e)
-	if index == nil {
+	indices := check.overloadIndices(e)
+	if indices == nil {
 		return false
 	}
-	var i operand
-	check.expr(nil, &i, index)
-	if !i.isValid() {
-		return false
+	var indexOps []*operand
+	for _, index := range indices {
+		var i operand
+		check.expr(nil, &i, index)
+		if !i.isValid() {
+			return false
+		}
+		indexOps = append(indexOps, &i)
 	}
 	cands := check.operatorFuncsForRecv("[]", l.typ())
 	if len(cands) == 0 {
@@ -260,16 +265,16 @@ func (check *Checker) tryIndexOperatorOverload(x *operand, e *syntax.IndexExpr, 
 	}
 	var preload []*operand
 	if cands[0].typ.(*Signature).Recv() != nil {
-		preload = []*operand{&i}
+		preload = indexOps
 	} else {
-		preload = []*operand{&l, &i}
+		preload = append([]*operand{&l}, indexOps...)
 	}
-	call := check.indexOperatorCall(e.Pos(), "[]", e.X, index, nil, cands[0])
+	call := check.indexOperatorCall(e.Pos(), "[]", e.X, indices, nil, cands[0])
 	fn := check.selectIndexOperator(cands, call, preload)
 	if fn == nil {
 		return false
 	}
-	call = check.indexOperatorCall(e.Pos(), "[]", e.X, index, nil, fn)
+	call = check.indexOperatorCall(e.Pos(), "[]", e.X, indices, nil, fn)
 	check.expr(nil, x, call)
 	if !x.isValid() {
 		return false
@@ -290,14 +295,18 @@ func (check *Checker) tryIndexAssignOperatorOverload(lhs, rhs syntax.Expr, x *op
 	if !l.isValid() || supportsBuiltinIndex(l.typ()) {
 		return false
 	}
-	index := check.singleIndex(idx)
-	if index == nil {
+	indices := check.overloadIndices(idx)
+	if indices == nil {
 		return false
 	}
-	var i operand
-	check.expr(nil, &i, index)
-	if !i.isValid() {
-		return false
+	var indexOps []*operand
+	for _, index := range indices {
+		var i operand
+		check.expr(nil, &i, index)
+		if !i.isValid() {
+			return false
+		}
+		indexOps = append(indexOps, &i)
 	}
 	var v operand
 	if x != nil {
@@ -314,11 +323,12 @@ func (check *Checker) tryIndexAssignOperatorOverload(lhs, rhs syntax.Expr, x *op
 	}
 	var preload []*operand
 	if cands[0].typ.(*Signature).Recv() != nil {
-		preload = []*operand{&i, &v}
+		preload = append(indexOps, &v)
 	} else {
-		preload = []*operand{&l, &i, &v}
+		preload = append([]*operand{&l}, indexOps...)
+		preload = append(preload, &v)
 	}
-	call := check.indexOperatorCall(lhs.Pos(), "[]=", idx.X, index, rhs, cands[0])
+	call := check.indexOperatorCall(lhs.Pos(), "[]=", idx.X, indices, rhs, cands[0])
 	fn := check.selectIndexOperator(cands, call, preload)
 	if fn == nil {
 		return false
@@ -326,7 +336,7 @@ func (check *Checker) tryIndexAssignOperatorOverload(lhs, rhs syntax.Expr, x *op
 	if x == nil {
 		x = new(operand)
 	}
-	call = check.indexOperatorCall(lhs.Pos(), "[]=", idx.X, index, rhs, fn)
+	call = check.indexOperatorCall(lhs.Pos(), "[]=", idx.X, indices, rhs, fn)
 	check.rawExpr(nil, x, call, nil, true)
 	check.record(x)
 	if !x.isValid() || x.mode() != novalue {

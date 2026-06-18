@@ -417,6 +417,16 @@ L:
 	}
 }
 
+// overloadIndices returns index expressions for []/[]= operator overload resolution.
+// Unlike singleIndex, multiple indices are allowed.
+func (check *Checker) overloadIndices(expr *indexedExpr) []ast.Expr {
+	if len(expr.indices) == 0 {
+		check.errorf(expr.orig, InvalidSyntaxTree, "index expression %v with 0 indices", expr)
+		return nil
+	}
+	return expr.indices
+}
+
 // singleIndex returns the (single) index from the index expression e.
 // If the index is missing, or if there are multiple indices, an error
 // is reported and the result is nil.
