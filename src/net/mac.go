@@ -99,5 +99,5 @@ func ParseMAC(s string) (hw HardwareAddr, err error) {
 	return hw, nil
 
 error:
-	return nil, &AddrError{Err: "invalid MAC address", Addr: s}
+	return nil, NewAddrError("invalid MAC address", s)
 }

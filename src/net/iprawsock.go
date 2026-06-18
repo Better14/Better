@@ -127,7 +127,7 @@ func (c *IPConn) ReadFromIP(b []byte) (int, *IPAddr, error) {
 	}
 	n, addr, err := c.readFrom(b)
 	if err != nil {
-		err = &OpError{Op: "read", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("read", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return n, addr, err
 }
@@ -139,7 +139,7 @@ func (c *IPConn) ReadFrom(b []byte) (int, Addr, error) {
 	}
 	n, addr, err := c.readFrom(b)
 	if err != nil {
-		err = &OpError{Op: "read", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("read", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	if addr == nil {
 		return n, nil, err
@@ -160,7 +160,7 @@ func (c *IPConn) ReadMsgIP(b, oob []byte) (n, oobn, flags int, addr *IPAddr, err
 	}
 	n, oobn, flags, addr, err = c.readMsg(b, oob)
 	if err != nil {
-		err = &OpError{Op: "read", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("read", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return
 }
@@ -172,7 +172,7 @@ func (c *IPConn) WriteToIP(b []byte, addr *IPAddr) (int, error) {
 	}
 	n, err := c.writeTo(b, addr)
 	if err != nil {
-		err = &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: addr.opAddr(), Err: err}
+		err = NewOpError("write", c.fd.net, c.fd.laddr, addr.opAddr(), err)
 	}
 	return n, err
 }
@@ -184,11 +184,11 @@ func (c *IPConn) WriteTo(b []byte, addr Addr) (int, error) {
 	}
 	a, ok := addr.(*IPAddr)
 	if !ok {
-		return 0, &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: addr, Err: syscall.EINVAL}
+		return 0, NewOpError("write", c.fd.net, c.fd.laddr, addr, syscall.EINVAL)
 	}
 	n, err := c.writeTo(b, a)
 	if err != nil {
-		err = &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: a.opAddr(), Err: err}
+		err = NewOpError("write", c.fd.net, c.fd.laddr, a.opAddr(), err)
 	}
 	return n, err
 }
@@ -205,7 +205,7 @@ func (c *IPConn) WriteMsgIP(b, oob []byte, addr *IPAddr) (n, oobn int, err error
 	}
 	n, oobn, err = c.writeMsg(b, oob, addr)
 	if err != nil {
-		err = &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: addr.opAddr(), Err: err}
+		err = NewOpError("write", c.fd.net, c.fd.laddr, addr.opAddr(), err)
 	}
 	return
 }
@@ -225,7 +225,7 @@ func DialIP(network string, laddr, raddr *IPAddr) (*IPConn, error) {
 
 func dialIP(ctx context.Context, dialer *Dialer, network string, laddr, raddr *IPAddr) (*IPConn, error) {
 	if raddr == nil {
-		return nil, &OpError{Op: "dial", Net: network, Source: laddr.opAddr(), Addr: nil, Err: errMissingAddress}
+		return nil, NewOpError("dial", network, laddr.opAddr(), nil, errMissingAddress)
 	}
 	sd := &sysDialer{network: network, address: raddr.String()}
 	if dialer != nil {
@@ -233,7 +233,7 @@ func dialIP(ctx context.Context, dialer *Dialer, network string, laddr, raddr *I
 	}
 	c, err := sd.dialIP(ctx, laddr, raddr)
 	if err != nil {
-		return nil, &OpError{Op: "dial", Net: network, Source: laddr.opAddr(), Addr: raddr.opAddr(), Err: err}
+		return nil, NewOpError("dial", network, laddr.opAddr(), raddr.opAddr(), err)
 	}
 	return c, nil
 }
@@ -252,7 +252,7 @@ func ListenIP(network string, laddr *IPAddr) (*IPConn, error) {
 	sl := &sysListener{network: network, address: laddr.String()}
 	c, err := sl.listenIP(context.Background(), laddr)
 	if err != nil {
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: laddr.opAddr(), Err: err}
+		return nil, NewOpError("listen", network, nil, laddr.opAddr(), err)
 	}
 	return c, nil
 }

@@ -138,7 +138,7 @@ func filterAddrList(filter func(IPAddr) bool, ips []IPAddr, inetaddr func(IPAddr
 		}
 	}
 	if len(addrs) == 0 {
-		return nil, &AddrError{Err: errNoSuitableAddress.Error(), Addr: originalAddr}
+		return nil, NewAddrError(errNoSuitableAddress.Error(), originalAddr)
 	}
 	return addrs, nil
 }
@@ -168,7 +168,7 @@ func SplitHostPort(hostport string) (host, port string, err error) {
 		tooManyColons = "too many colons in address"
 	)
 	addrErr := func(addr, why string) (host, port string, err error) {
-		return "", "", &AddrError{Err: why, Addr: addr}
+		return "", "", NewAddrError(why, addr)
 	}
 	j, k := 0, 0
 

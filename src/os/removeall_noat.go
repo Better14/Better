@@ -23,7 +23,7 @@ func removeAll(path string) error {
 	// so we don't permit it to remain consistent with the
 	// "at" implementation of RemoveAll.
 	if endsWithDot(path) {
-		return &PathError{Op: "RemoveAll", Path: path, Err: syscall.EINVAL}
+		return fs.NewPathError("RemoveAll", path, syscall.EINVAL)
 	}
 
 	// Simple case: if Remove works, we're done.

@@ -15,16 +15,16 @@ func (c *TCPConn) SetKeepAliveConfig(config KeepAliveConfig) error {
 	}
 
 	if err := setKeepAlive(c.fd, config.Enable); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("set", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	if err := setKeepAliveIdle(c.fd, config.Idle); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("set", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	if err := setKeepAliveInterval(c.fd, config.Interval); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("set", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	if err := setKeepAliveCount(c.fd, config.Count); err != nil {
-		return &OpError{Op: "set", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("set", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 
 	return nil

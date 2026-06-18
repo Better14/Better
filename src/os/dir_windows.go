@@ -145,9 +145,9 @@ func (file *File) readdir(n int, mode readdirMode) (names []string, dirents []Di
 					break
 				}
 				if s, _ := file.Stat(); s != nil && !s.IsDir() {
-					err = &PathError{Op: "readdir", Path: file.name, Err: syscall.ENOTDIR}
+					err = fs.NewPathError("readdir", file.name, syscall.ENOTDIR)
 				} else {
-					err = &PathError{Op: "GetFileInformationByHandleEx", Path: file.name, Err: err}
+					err = fs.NewPathError("GetFileInformationByHandleEx", file.name, err)
 				}
 				return
 			}

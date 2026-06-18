@@ -355,7 +355,7 @@ func (ip IP) AppendText(b []byte) ([]byte, error) {
 		return b, nil
 	}
 	if len(ip) != IPv4len && len(ip) != IPv6len {
-		return b, &AddrError{Err: "invalid IP address", Addr: hexString(ip)}
+		return b, NewAddrError("invalid IP address", hexString(ip))
 	}
 
 	return ip.appendTo(b), nil
@@ -383,7 +383,7 @@ func (ip *IP) UnmarshalText(text []byte) error {
 	s := string(text)
 	x := ParseIP(s)
 	if x == nil {
-		return &ParseError{Type: "IP address", Text: s}
+		return NewParseError("IP address", s)
 	}
 	*ip = x
 	return nil
@@ -554,17 +554,17 @@ func parseIP(s string) ([16]byte, bool) {
 func ParseCIDR(s string) (IP, *IPNet, error) {
 	addr, mask, found := stringslite.Cut(s, "/")
 	if !found {
-		return nil, nil, &ParseError{Type: "CIDR address", Text: s}
+		return nil, nil, NewParseError("CIDR address", s)
 	}
 
 	ipAddr, err := netip.ParseAddr(addr)
 	if err != nil || ipAddr.Zone() != "" {
-		return nil, nil, &ParseError{Type: "CIDR address", Text: s}
+		return nil, nil, NewParseError("CIDR address", s)
 	}
 
 	n, i, ok := dtoi(mask)
 	if !ok || i != len(mask) || n < 0 || n > ipAddr.BitLen() {
-		return nil, nil, &ParseError{Type: "CIDR address", Text: s}
+		return nil, nil, NewParseError("CIDR address", s)
 	}
 	m := CIDRMask(n, ipAddr.BitLen())
 	addr16 := ipAddr.As16()

@@ -32,7 +32,7 @@ func (c *rawConn) Control(f func(uintptr)) error {
 	err := c.fd.pfd.RawControl(f)
 	runtime.KeepAlive(c.fd)
 	if err != nil {
-		err = &OpError{Op: "raw-control", Net: c.fd.net, Source: nil, Addr: c.fd.laddr, Err: err}
+		err = NewOpError("raw-control", c.fd.net, nil, c.fd.laddr, err)
 	}
 	return err
 }
@@ -44,7 +44,7 @@ func (c *rawConn) Read(f func(uintptr) bool) error {
 	err := c.fd.pfd.RawRead(f)
 	runtime.KeepAlive(c.fd)
 	if err != nil {
-		err = &OpError{Op: "raw-read", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("raw-read", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return err
 }
@@ -56,7 +56,7 @@ func (c *rawConn) Write(f func(uintptr) bool) error {
 	err := c.fd.pfd.RawWrite(f)
 	runtime.KeepAlive(c.fd)
 	if err != nil {
-		err = &OpError{Op: "raw-write", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("raw-write", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return err
 }

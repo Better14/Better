@@ -179,7 +179,7 @@ func ipToSockaddrInet4(ip IP, port int) (syscall.SockaddrInet4, error) {
 	}
 	ip4 := ip.To4()
 	if ip4 == nil {
-		return syscall.SockaddrInet4{}, &AddrError{Err: "non-IPv4 address", Addr: ip.String()}
+		return syscall.SockaddrInet4{}, NewAddrError("non-IPv4 address", ip.String())
 	}
 	sa := syscall.SockaddrInet4{Port: port}
 	copy(sa.Addr[:], ip4)
@@ -204,7 +204,7 @@ func ipToSockaddrInet6(ip IP, port int, zone string) (syscall.SockaddrInet6, err
 	// IPv6 address.
 	ip6 := ip.To16()
 	if ip6 == nil {
-		return syscall.SockaddrInet6{}, &AddrError{Err: "non-IPv6 address", Addr: ip.String()}
+		return syscall.SockaddrInet6{}, NewAddrError("non-IPv6 address", ip.String())
 	}
 	sa := syscall.SockaddrInet6{Port: port, ZoneId: uint32(zoneCache.index(zone))}
 	copy(sa.Addr[:], ip6)
@@ -237,7 +237,7 @@ func ipToSockaddr(family int, ip IP, port int, zone string) (syscall.Sockaddr, e
 		}
 		return &sa, nil
 	}
-	return nil, &AddrError{Err: "invalid address family", Addr: ip.String()}
+	return nil, NewAddrError("invalid address family", ip.String())
 }
 
 func addrPortToSockaddrInet4(ap netip.AddrPort) (syscall.SockaddrInet4, error) {
@@ -249,7 +249,7 @@ func addrPortToSockaddrInet4(ap netip.AddrPort) (syscall.SockaddrInet4, error) {
 	// The error message is kept consistent with ipToSockaddrInet4.
 	addr := ap.Addr()
 	if !addr.Is4() && !addr.Is4In6() {
-		return syscall.SockaddrInet4{}, &AddrError{Err: "non-IPv4 address", Addr: addr.String()}
+		return syscall.SockaddrInet4{}, NewAddrError("non-IPv4 address", addr.String())
 	}
 	sa := syscall.SockaddrInet4{
 		Addr: addr.As4(),

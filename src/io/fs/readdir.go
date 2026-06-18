@@ -39,7 +39,7 @@ func ReadDir(fsys FS, name string) ([]DirEntry, error) {
 
 	dir, ok := file.(ReadDirFile)
 	if !ok {
-		return nil, &PathError{Op: "readdir", Path: name, Err: errors.New("not implemented")}
+		return nil, NewPathError("readdir", name, errors.New("not implemented"))
 	}
 
 	list, err := dir.ReadDir(-1)

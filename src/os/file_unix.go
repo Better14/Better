@@ -38,16 +38,16 @@ func rename(oldname, newname string) error {
 			if pe, ok := err.(*PathError); ok {
 				err = pe.Err
 			}
-			return &LinkError{"rename", oldname, newname, err}
+			return NewLinkError("rename", oldname, newname, err)
 		} else if newname == oldname || !SameFile(fi, ofi) {
-			return &LinkError{"rename", oldname, newname, syscall.EEXIST}
+			return NewLinkError("rename", oldname, newname, syscall.EEXIST)
 		}
 	}
 	err = ignoringEINTR(func() error {
 		return syscall.Rename(oldname, newname)
 	})
 	if err != nil {
-		return &LinkError{"rename", oldname, newname, err}
+		return NewLinkError("rename", oldname, newname, err)
 	}
 	return nil
 }
@@ -262,7 +262,7 @@ func openFileNolog(name string, flag int, perm FileMode) (*File, error) {
 		return e
 	})
 	if e != nil {
-		return nil, &PathError{Op: "open", Path: name, Err: e}
+		return nil, fs.NewPathError("open", name, e)
 	}
 
 	// open(2) itself won't handle the sticky bit on *BSD and Solaris
@@ -292,7 +292,7 @@ func openDirNolog(name string) (*File, error) {
 		return e
 	})
 	if e != nil {
-		return nil, &PathError{Op: "open", Path: name, Err: e}
+		return nil, fs.NewPathError("open", name, e)
 	}
 
 	if !supportsCloseOnExec {
@@ -316,7 +316,7 @@ func (file *file) close() error {
 		if e == poll.ErrFileClosing {
 			e = ErrClosed
 		}
-		err = &PathError{Op: "close", Path: file.name, Err: e}
+		err = fs.NewPathError("close", file.name, e)
 	}
 
 	// no need for a finalizer anymore
@@ -347,7 +347,7 @@ func Truncate(name string, size int64) error {
 		return syscall.Truncate(name, size)
 	})
 	if e != nil {
-		return &PathError{Op: "truncate", Path: name, Err: e}
+		return fs.NewPathError("truncate", name, e)
 	}
 	return nil
 }
@@ -384,7 +384,7 @@ func Remove(name string) error {
 	if e1 != syscall.ENOTDIR {
 		e = e1
 	}
-	return &PathError{Op: "remove", Path: name, Err: e}
+	return fs.NewPathError("remove", name, e)
 }
 
 func tempDir() string {
@@ -406,7 +406,7 @@ func Link(oldname, newname string) error {
 		return syscall.Link(oldname, newname)
 	})
 	if e != nil {
-		return &LinkError{"link", oldname, newname, e}
+		return NewLinkError("link", oldname, newname, e)
 	}
 	return nil
 }
@@ -420,7 +420,7 @@ func Symlink(oldname, newname string) error {
 		return syscall.Symlink(oldname, newname)
 	})
 	if e != nil {
-		return &LinkError{"symlink", oldname, newname, e}
+		return NewLinkError("symlink", oldname, newname, e)
 	}
 	return nil
 }
@@ -436,7 +436,7 @@ func readlink(name string) (string, error) {
 			continue
 		}
 		if err != nil {
-			return "", &PathError{Op: "readlink", Path: name, Err: err}
+			return "", fs.NewPathError("readlink", name, err)
 		}
 		if n < len {
 			return string(b[0:n]), nil

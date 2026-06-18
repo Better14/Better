@@ -101,14 +101,29 @@ const (
 // LinkError records an error during a link or symlink or rename
 // system call and the paths that caused it.
 type LinkError struct {
+	errors.Error
 	Op  string
 	Old string
 	New string
 	Err error
 }
 
+func linkErrorMessage(op, old, new string, err error) string {
+	if err == nil {
+		return op + " " + old + " " + new + ": <nil>"
+	}
+	return op + " " + old + " " + new + ": " + err.Error()
+}
+
+// NewLinkError returns a LinkError with a stack trace captured at the call site.
+func NewLinkError(op, old, new string, err error) *LinkError {
+	e := &LinkError{Op: op, Old: old, New: new, Err: err}
+	errors.InitCustom(&e.Error, "%s", linkErrorMessage(op, old, new, err))
+	return e
+}
+
 func (e *LinkError) Error() string {
-	return e.Op + " " + e.Old + " " + e.New + ": " + e.Err.Error()
+	return linkErrorMessage(e.Op, e.Old, e.New, e.Err)
 }
 
 func (e *LinkError) Unwrap() error {
@@ -155,7 +170,7 @@ func (f *File) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 
 	if off < 0 {
-		return 0, &PathError{Op: "readat", Path: f.name, Err: errors.New("negative offset")}
+		return 0, fs.NewPathError("readat", f.name, errors.New("negative offset"))
 	}
 
 	for len(b) > 0 {
@@ -245,7 +260,7 @@ func (f *File) WriteAt(b []byte, off int64) (n int, err error) {
 	}
 
 	if off < 0 {
-		return 0, &PathError{Op: "writeat", Path: f.name, Err: errors.New("negative offset")}
+		return 0, fs.NewPathError("writeat", f.name, errors.New("negative offset"))
 	}
 
 	for len(b) > 0 {
@@ -331,7 +346,7 @@ func Mkdir(name string, perm FileMode) error {
 	})
 
 	if e != nil {
-		return &PathError{Op: "mkdir", Path: name, Err: e}
+		return fs.NewPathError("mkdir", name, e)
 	}
 
 	// mkdir(2) itself won't handle the sticky bit on *BSD and Solaris
@@ -361,7 +376,7 @@ func setStickyBit(name string) error {
 func Chdir(dir string) error {
 	if e := syscall.Chdir(dir); e != nil {
 		testlog.Open(dir) // observe likely non-existent directory
-		return &PathError{Op: "chdir", Path: dir, Err: e}
+		return fs.NewPathError("chdir", dir, e)
 	}
 	if runtime.GOOS == "windows" {
 		abs := filepathlite.IsAbs(dir)
@@ -472,7 +487,7 @@ func (f *File) wrapErr(op string, err error) error {
 	} else if checkWrapErr && errors.Is(err, poll.ErrFileClosing) {
 		panic("unexpected error wrapping poll.ErrFileClosing: " + err.Error())
 	}
-	return &PathError{Op: op, Path: f.name, Err: err}
+	return fs.NewPathError(op, f.name, err)
 }
 
 // TempDir returns the default directory to use for temporary files.
@@ -754,7 +769,7 @@ type dirFS string
 func (dir dirFS) Open(name string) (fs.File, error) {
 	fullname, err := dir.join(name)
 	if err != nil {
-		return nil, &PathError{Op: "open", Path: name, Err: err}
+		return nil, fs.NewPathError("open", name, err)
 	}
 	f, err := Open(fullname)
 	if err != nil {
@@ -775,7 +790,7 @@ func (dir dirFS) Open(name string) (fs.File, error) {
 func (dir dirFS) ReadFile(name string) ([]byte, error) {
 	fullname, err := dir.join(name)
 	if err != nil {
-		return nil, &PathError{Op: "readfile", Path: name, Err: err}
+		return nil, fs.NewPathError("readfile", name, err)
 	}
 	b, err := ReadFile(fullname)
 	if err != nil {
@@ -793,7 +808,7 @@ func (dir dirFS) ReadFile(name string) ([]byte, error) {
 func (dir dirFS) ReadDir(name string) ([]DirEntry, error) {
 	fullname, err := dir.join(name)
 	if err != nil {
-		return nil, &PathError{Op: "readdir", Path: name, Err: err}
+		return nil, fs.NewPathError("readdir", name, err)
 	}
 	entries, err := ReadDir(fullname)
 	if err != nil {
@@ -809,7 +824,7 @@ func (dir dirFS) ReadDir(name string) ([]DirEntry, error) {
 func (dir dirFS) Stat(name string) (fs.FileInfo, error) {
 	fullname, err := dir.join(name)
 	if err != nil {
-		return nil, &PathError{Op: "stat", Path: name, Err: err}
+		return nil, fs.NewPathError("stat", name, err)
 	}
 	f, err := Stat(fullname)
 	if err != nil {
@@ -823,7 +838,7 @@ func (dir dirFS) Stat(name string) (fs.FileInfo, error) {
 func (dir dirFS) Lstat(name string) (fs.FileInfo, error) {
 	fullname, err := dir.join(name)
 	if err != nil {
-		return nil, &PathError{Op: "lstat", Path: name, Err: err}
+		return nil, fs.NewPathError("lstat", name, err)
 	}
 	f, err := Lstat(fullname)
 	if err != nil {
@@ -837,7 +852,7 @@ func (dir dirFS) Lstat(name string) (fs.FileInfo, error) {
 func (dir dirFS) ReadLink(name string) (string, error) {
 	fullname, err := dir.join(name)
 	if err != nil {
-		return "", &PathError{Op: "readlink", Path: name, Err: err}
+		return "", fs.NewPathError("readlink", name, err)
 	}
 	return Readlink(fullname)
 }

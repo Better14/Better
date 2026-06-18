@@ -533,12 +533,12 @@ func TestDialerLocalAddr(t *testing.T) {
 		{"tcp4", "127.0.0.1", &TCPAddr{}, nil},
 		{"tcp4", "127.0.0.1", &TCPAddr{IP: ParseIP("0.0.0.0")}, nil},
 		{"tcp4", "127.0.0.1", &TCPAddr{IP: ParseIP("0.0.0.0").To4()}, nil},
-		{"tcp4", "127.0.0.1", &TCPAddr{IP: ParseIP("::")}, &AddrError{Err: "some error"}},
+		{"tcp4", "127.0.0.1", &TCPAddr{IP: ParseIP("::")}, NewAddrError("some error", "")},
 		{"tcp4", "127.0.0.1", &TCPAddr{IP: ParseIP("127.0.0.1").To4()}, nil},
 		{"tcp4", "127.0.0.1", &TCPAddr{IP: ParseIP("127.0.0.1").To16()}, nil},
 		{"tcp4", "127.0.0.1", &TCPAddr{IP: IPv6loopback}, errNoSuitableAddress},
-		{"tcp4", "127.0.0.1", &UDPAddr{}, &AddrError{Err: "some error"}},
-		{"tcp4", "127.0.0.1", &UnixAddr{}, &AddrError{Err: "some error"}},
+		{"tcp4", "127.0.0.1", &UDPAddr{}, NewAddrError("some error", "")},
+		{"tcp4", "127.0.0.1", &UnixAddr{}, NewAddrError("some error", "")},
 
 		{"tcp6", "::1", nil, nil},
 		{"tcp6", "::1", &TCPAddr{}, nil},
@@ -548,8 +548,8 @@ func TestDialerLocalAddr(t *testing.T) {
 		{"tcp6", "::1", &TCPAddr{IP: ParseIP("127.0.0.1").To4()}, errNoSuitableAddress},
 		{"tcp6", "::1", &TCPAddr{IP: ParseIP("127.0.0.1").To16()}, errNoSuitableAddress},
 		{"tcp6", "::1", &TCPAddr{IP: IPv6loopback}, nil},
-		{"tcp6", "::1", &UDPAddr{}, &AddrError{Err: "some error"}},
-		{"tcp6", "::1", &UnixAddr{}, &AddrError{Err: "some error"}},
+		{"tcp6", "::1", &UDPAddr{}, NewAddrError("some error", "")},
+		{"tcp6", "::1", &UnixAddr{}, NewAddrError("some error", "")},
 
 		{"tcp", "127.0.0.1", nil, nil},
 		{"tcp", "127.0.0.1", &TCPAddr{}, nil},
@@ -558,8 +558,8 @@ func TestDialerLocalAddr(t *testing.T) {
 		{"tcp", "127.0.0.1", &TCPAddr{IP: ParseIP("127.0.0.1").To4()}, nil},
 		{"tcp", "127.0.0.1", &TCPAddr{IP: ParseIP("127.0.0.1").To16()}, nil},
 		{"tcp", "127.0.0.1", &TCPAddr{IP: IPv6loopback}, errNoSuitableAddress},
-		{"tcp", "127.0.0.1", &UDPAddr{}, &AddrError{Err: "some error"}},
-		{"tcp", "127.0.0.1", &UnixAddr{}, &AddrError{Err: "some error"}},
+		{"tcp", "127.0.0.1", &UDPAddr{}, NewAddrError("some error", "")},
+		{"tcp", "127.0.0.1", &UnixAddr{}, NewAddrError("some error", "")},
 
 		{"tcp", "::1", nil, nil},
 		{"tcp", "::1", &TCPAddr{}, nil},
@@ -569,8 +569,8 @@ func TestDialerLocalAddr(t *testing.T) {
 		{"tcp", "::1", &TCPAddr{IP: ParseIP("127.0.0.1").To4()}, errNoSuitableAddress},
 		{"tcp", "::1", &TCPAddr{IP: ParseIP("127.0.0.1").To16()}, errNoSuitableAddress},
 		{"tcp", "::1", &TCPAddr{IP: IPv6loopback}, nil},
-		{"tcp", "::1", &UDPAddr{}, &AddrError{Err: "some error"}},
-		{"tcp", "::1", &UnixAddr{}, &AddrError{Err: "some error"}},
+		{"tcp", "::1", &UDPAddr{}, NewAddrError("some error", "")},
+		{"tcp", "::1", &UnixAddr{}, NewAddrError("some error", "")},
 	}
 
 	issue34264Index := -1
@@ -581,7 +581,7 @@ func TestDialerLocalAddr(t *testing.T) {
 		})
 	} else {
 		tests = append(tests, test{
-			"tcp", "127.0.0.1", &TCPAddr{IP: ParseIP("::")}, &AddrError{Err: "some error"},
+			"tcp", "127.0.0.1", &TCPAddr{IP: ParseIP("::")}, NewAddrError("some error", ""),
 		})
 	}
 

@@ -301,7 +301,7 @@ func (r *Resolver) tryOneName(ctx context.Context, cfg *dnsConfig, name string, 
 
 	n, err := dnsmessage.NewName(name)
 	if err != nil {
-		return dnsmessage.Parser{}, "", &DNSError{Err: errCannotMarshalDNSMessage.Error(), Name: name}
+		return dnsmessage.Parser{}, "", dnsError(errCannotMarshalDNSMessage.Error(), name)
 	}
 	q := dnsmessage.Question{
 		Name:  n,
@@ -741,11 +741,7 @@ func (r *Resolver) goLookupIPCNAMEOrder(ctx context.Context, network, name strin
 			for {
 				h, err := result.p.AnswerHeader()
 				if err != nil && err != dnsmessage.ErrSectionDone {
-					lastErr = &DNSError{
-						Err:    errCannotUnmarshalDNSMessage.Error(),
-						Name:   name,
-						Server: result.server,
-					}
+					lastErr = dnsErrorWithServer(errCannotUnmarshalDNSMessage.Error(), name, result.server)
 				}
 				if err != nil {
 					break
@@ -754,11 +750,7 @@ func (r *Resolver) goLookupIPCNAMEOrder(ctx context.Context, network, name strin
 				case dnsmessage.TypeA:
 					a, err := result.p.AResource()
 					if err != nil {
-						lastErr = &DNSError{
-							Err:    errCannotUnmarshalDNSMessage.Error(),
-							Name:   name,
-							Server: result.server,
-						}
+						lastErr = dnsErrorWithServer(errCannotUnmarshalDNSMessage.Error(), name, result.server)
 						break loop
 					}
 					addrs = append(addrs, IPAddr{IP: IP(a.A[:])})
@@ -769,11 +761,7 @@ func (r *Resolver) goLookupIPCNAMEOrder(ctx context.Context, network, name strin
 				case dnsmessage.TypeAAAA:
 					aaaa, err := result.p.AAAAResource()
 					if err != nil {
-						lastErr = &DNSError{
-							Err:    errCannotUnmarshalDNSMessage.Error(),
-							Name:   name,
-							Server: result.server,
-						}
+						lastErr = dnsErrorWithServer(errCannotUnmarshalDNSMessage.Error(), name, result.server)
 						break loop
 					}
 					addrs = append(addrs, IPAddr{IP: IP(aaaa.AAAA[:])})
@@ -784,11 +772,7 @@ func (r *Resolver) goLookupIPCNAMEOrder(ctx context.Context, network, name strin
 				case dnsmessage.TypeCNAME:
 					c, err := result.p.CNAMEResource()
 					if err != nil {
-						lastErr = &DNSError{
-							Err:    errCannotUnmarshalDNSMessage.Error(),
-							Name:   name,
-							Server: result.server,
-						}
+						lastErr = dnsErrorWithServer(errCannotUnmarshalDNSMessage.Error(), name, result.server)
 						break loop
 					}
 					if cname.Length == 0 && c.CNAME.Length > 0 {
@@ -797,11 +781,7 @@ func (r *Resolver) goLookupIPCNAMEOrder(ctx context.Context, network, name strin
 
 				default:
 					if err := result.p.SkipAnswer(); err != nil {
-						lastErr = &DNSError{
-							Err:    errCannotUnmarshalDNSMessage.Error(),
-							Name:   name,
-							Server: result.server,
-						}
+						lastErr = dnsErrorWithServer(errCannotUnmarshalDNSMessage.Error(), name, result.server)
 						break loop
 					}
 					continue
@@ -888,30 +868,18 @@ func (r *Resolver) goLookupPTR(ctx context.Context, addr string, order hostLooku
 			break
 		}
 		if err != nil {
-			return nil, &DNSError{
-				Err:    errCannotUnmarshalDNSMessage.Error(),
-				Name:   addr,
-				Server: server,
-			}
+			return nil, dnsErrorWithServer(errCannotUnmarshalDNSMessage.Error(), addr, server)
 		}
 		if h.Type != dnsmessage.TypePTR {
 			err := p.SkipAnswer()
 			if err != nil {
-				return nil, &DNSError{
-					Err:    errCannotUnmarshalDNSMessage.Error(),
-					Name:   addr,
-					Server: server,
-				}
+				return nil, dnsErrorWithServer(errCannotUnmarshalDNSMessage.Error(), addr, server)
 			}
 			continue
 		}
 		ptr, err := p.PTRResource()
 		if err != nil {
-			return nil, &DNSError{
-				Err:    errCannotUnmarshalDNSMessage.Error(),
-				Name:   addr,
-				Server: server,
-			}
+			return nil, dnsErrorWithServer(errCannotUnmarshalDNSMessage.Error(), addr, server)
 		}
 		ptrs = append(ptrs, ptr.PTR.String())
 

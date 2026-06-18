@@ -85,12 +85,12 @@ type sysfdType = syscall.Handle
 // openRootNolog is OpenRoot.
 func openRootNolog(name string) (*Root, error) {
 	if name == "" {
-		return nil, &PathError{Op: "open", Path: name, Err: syscall.ENOENT}
+		return nil, fs.NewPathError("open", name, syscall.ENOENT)
 	}
 	path := fixLongPath(name)
 	fd, err := syscall.Open(path, syscall.O_RDONLY|syscall.O_CLOEXEC, 0)
 	if err != nil {
-		return nil, &PathError{Op: "open", Path: name, Err: err}
+		return nil, fs.NewPathError("open", name, err)
 	}
 	return newRoot(fd, name)
 }
@@ -106,7 +106,7 @@ func newRoot(fd syscall.Handle, name string) (*Root, error) {
 	err := syscall.GetFileInformationByHandle(fd, &fi)
 	if err == nil && fi.FileAttributes&syscall.FILE_ATTRIBUTE_DIRECTORY == 0 {
 		syscall.CloseHandle(fd)
-		return nil, &PathError{Op: "open", Path: name, Err: errors.New("not a directory")}
+		return nil, fs.NewPathError("open", name, errors.New("not a directory"))
 	}
 
 	r := &Root{&root{
@@ -121,7 +121,7 @@ func newRoot(fd syscall.Handle, name string) (*Root, error) {
 func openRootInRoot(r *Root, name string) (*Root, error) {
 	fd, err := doInRoot(r, name, nil, rootOpenDir)
 	if err != nil {
-		return nil, &PathError{Op: "openat", Path: name, Err: err}
+		return nil, fs.NewPathError("openat", name, err)
 	}
 	return newRoot(fd, joinPath(r.Name(), name))
 }
@@ -132,7 +132,7 @@ func rootOpenFileNolog(root *Root, name string, flag int, perm FileMode) (*File,
 		return openat(parent, name, uint64(flag), perm)
 	})
 	if err != nil {
-		return nil, &PathError{Op: "openat", Path: name, Err: err}
+		return nil, fs.NewPathError("openat", name, err)
 	}
 	nonblocking := flag&windows.O_FILE_FLAG_OVERLAPPED != 0
 	return newFile(fd, joinPath(root.Name(), name), kindOpenFile, nonblocking), nil
@@ -232,7 +232,7 @@ func rootStat(r *Root, name string, lstat bool) (FileInfo, error) {
 		return fi, nil
 	})
 	if err != nil {
-		return nil, &PathError{Op: "statat", Path: name, Err: err}
+		return nil, fs.NewPathError("statat", name, err)
 	}
 	return fi, nil
 }
@@ -278,7 +278,7 @@ func rootSymlink(r *Root, oldname, newname string) error {
 		return struct{}{}, windows.Symlinkat(oldname, parent, name, flags)
 	})
 	if err != nil {
-		return &LinkError{"symlinkat", oldname, newname, err}
+		return NewLinkError("symlinkat", oldname, newname, err)
 	}
 	return nil
 }

@@ -132,7 +132,7 @@ func (c *UDPConn) writeTo(b []byte, addr *UDPAddr) (int, error) {
 		}
 		return c.fd.writeToInet6(b, &sa)
 	default:
-		return 0, &AddrError{Err: "invalid address family", Addr: addr.IP.String()}
+		return 0, NewAddrError("invalid address family", addr.IP.String())
 	}
 }
 
@@ -158,7 +158,7 @@ func (c *UDPConn) writeToAddrPort(b []byte, addr netip.AddrPort) (int, error) {
 		}
 		return c.fd.writeToInet6(b, &sa)
 	default:
-		return 0, &AddrError{Err: "invalid address family", Addr: addr.Addr().String()}
+		return 0, NewAddrError("invalid address family", addr.Addr().String())
 	}
 }
 
@@ -206,7 +206,7 @@ func (c *UDPConn) writeMsgAddrPort(b, oob []byte, addr netip.AddrPort) (n, oobn 
 		}
 		return c.fd.writeMsgInet6(b, oob, sap)
 	default:
-		return 0, 0, &AddrError{Err: "invalid address family", Addr: addr.Addr().String()}
+		return 0, 0, NewAddrError("invalid address family", addr.Addr().String())
 	}
 }
 

@@ -116,7 +116,7 @@ func (r *Root) Create(name string) (*File, error) {
 // OpenFile returns an error.
 func (r *Root) OpenFile(name string, flag int, perm FileMode) (*File, error) {
 	if perm&0o777 != perm {
-		return nil, &PathError{Op: "openat", Path: name, Err: errors.New("unsupported file mode")}
+		return nil, fs.NewPathError("openat", name, errors.New("unsupported file mode"))
 	}
 	r.logOpen(name)
 	rf, err := rootOpenFileNolog(r, name, flag, perm)
@@ -148,7 +148,7 @@ func (r *Root) Chmod(name string, mode FileMode) error {
 // Mkdir returns an error.
 func (r *Root) Mkdir(name string, perm FileMode) error {
 	if perm&0o777 != perm {
-		return &PathError{Op: "mkdirat", Path: name, Err: errors.New("unsupported file mode")}
+		return fs.NewPathError("mkdirat", name, errors.New("unsupported file mode"))
 	}
 	return rootMkdir(r, name, perm)
 }
@@ -160,7 +160,7 @@ func (r *Root) Mkdir(name string, perm FileMode) error {
 // MkdirAll returns an error.
 func (r *Root) MkdirAll(name string, perm FileMode) error {
 	if perm&0o777 != perm {
-		return &PathError{Op: "mkdirat", Path: name, Err: errors.New("unsupported file mode")}
+		return fs.NewPathError("mkdirat", name, errors.New("unsupported file mode"))
 	}
 	return rootMkdirAll(r, name, perm)
 }
@@ -363,7 +363,7 @@ type rootFS Root
 func (rfs *rootFS) Open(name string) (fs.File, error) {
 	r := (*Root)(rfs)
 	if !isValidRootFSPath(name) {
-		return nil, &PathError{Op: "open", Path: name, Err: ErrInvalid}
+		return nil, fs.NewPathError("open", name, ErrInvalid)
 	}
 	f, err := r.Open(name)
 	if err != nil {
@@ -375,7 +375,7 @@ func (rfs *rootFS) Open(name string) (fs.File, error) {
 func (rfs *rootFS) ReadDir(name string) ([]DirEntry, error) {
 	r := (*Root)(rfs)
 	if !isValidRootFSPath(name) {
-		return nil, &PathError{Op: "readdir", Path: name, Err: ErrInvalid}
+		return nil, fs.NewPathError("readdir", name, ErrInvalid)
 	}
 
 	// This isn't efficient: We just open a regular file and ReadDir it.
@@ -399,7 +399,7 @@ func (rfs *rootFS) ReadDir(name string) ([]DirEntry, error) {
 func (rfs *rootFS) ReadFile(name string) ([]byte, error) {
 	r := (*Root)(rfs)
 	if !isValidRootFSPath(name) {
-		return nil, &PathError{Op: "readfile", Path: name, Err: ErrInvalid}
+		return nil, fs.NewPathError("readfile", name, ErrInvalid)
 	}
 	f, err := r.Open(name)
 	if err != nil {
@@ -412,7 +412,7 @@ func (rfs *rootFS) ReadFile(name string) ([]byte, error) {
 func (rfs *rootFS) ReadLink(name string) (string, error) {
 	r := (*Root)(rfs)
 	if !isValidRootFSPath(name) {
-		return "", &PathError{Op: "readlink", Path: name, Err: ErrInvalid}
+		return "", fs.NewPathError("readlink", name, ErrInvalid)
 	}
 	return r.Readlink(name)
 }
@@ -420,7 +420,7 @@ func (rfs *rootFS) ReadLink(name string) (string, error) {
 func (rfs *rootFS) Stat(name string) (FileInfo, error) {
 	r := (*Root)(rfs)
 	if !isValidRootFSPath(name) {
-		return nil, &PathError{Op: "stat", Path: name, Err: ErrInvalid}
+		return nil, fs.NewPathError("stat", name, ErrInvalid)
 	}
 	return r.Stat(name)
 }
@@ -428,7 +428,7 @@ func (rfs *rootFS) Stat(name string) (FileInfo, error) {
 func (rfs *rootFS) Lstat(name string) (FileInfo, error) {
 	r := (*Root)(rfs)
 	if !isValidRootFSPath(name) {
-		return nil, &PathError{Op: "lstat", Path: name, Err: ErrInvalid}
+		return nil, fs.NewPathError("lstat", name, ErrInvalid)
 	}
 	return r.Lstat(name)
 }

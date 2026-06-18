@@ -33,7 +33,7 @@ func startProcess(name string, argv []string, attr *ProcAttr) (p *Process, err e
 
 	pid, _, e := syscall.StartProcess(name, argv, sysattr)
 	if e != nil {
-		return nil, &PathError{Op: "fork/exec", Path: name, Err: e}
+		return nil, fs.NewPathError("fork/exec", name, e)
 	}
 
 	return newPIDProcess(pid), nil

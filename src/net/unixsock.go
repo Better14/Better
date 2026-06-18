@@ -93,7 +93,7 @@ func (c *UnixConn) CloseRead() error {
 		return syscall.EINVAL
 	}
 	if err := c.fd.closeRead(); err != nil {
-		return &OpError{Op: "close", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("close", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return nil
 }
@@ -105,7 +105,7 @@ func (c *UnixConn) CloseWrite() error {
 		return syscall.EINVAL
 	}
 	if err := c.fd.closeWrite(); err != nil {
-		return &OpError{Op: "close", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		return NewOpError("close", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return nil
 }
@@ -117,7 +117,7 @@ func (c *UnixConn) ReadFromUnix(b []byte) (int, *UnixAddr, error) {
 	}
 	n, addr, err := c.readFrom(b)
 	if err != nil && err != io.EOF {
-		err = &OpError{Op: "read", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("read", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return n, addr, err
 }
@@ -129,7 +129,7 @@ func (c *UnixConn) ReadFrom(b []byte) (int, Addr, error) {
 	}
 	n, addr, err := c.readFrom(b)
 	if err != nil && err != io.EOF {
-		err = &OpError{Op: "read", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("read", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	if addr == nil {
 		return n, nil, err
@@ -150,7 +150,7 @@ func (c *UnixConn) ReadMsgUnix(b, oob []byte) (n, oobn, flags int, addr *UnixAdd
 	}
 	n, oobn, flags, addr, err = c.readMsg(b, oob)
 	if err != nil && err != io.EOF {
-		err = &OpError{Op: "read", Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err}
+		err = NewOpError("read", c.fd.net, c.fd.laddr, c.fd.raddr, err)
 	}
 	return
 }
@@ -162,7 +162,7 @@ func (c *UnixConn) WriteToUnix(b []byte, addr *UnixAddr) (int, error) {
 	}
 	n, err := c.writeTo(b, addr)
 	if err != nil {
-		err = &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: addr.opAddr(), Err: err}
+		err = NewOpError("write", c.fd.net, c.fd.laddr, addr.opAddr(), err)
 	}
 	return n, err
 }
@@ -174,11 +174,11 @@ func (c *UnixConn) WriteTo(b []byte, addr Addr) (int, error) {
 	}
 	a, ok := addr.(*UnixAddr)
 	if !ok {
-		return 0, &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: addr, Err: syscall.EINVAL}
+		return 0, NewOpError("write", c.fd.net, c.fd.laddr, addr, syscall.EINVAL)
 	}
 	n, err := c.writeTo(b, a)
 	if err != nil {
-		err = &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: a.opAddr(), Err: err}
+		err = NewOpError("write", c.fd.net, c.fd.laddr, a.opAddr(), err)
 	}
 	return n, err
 }
@@ -195,7 +195,7 @@ func (c *UnixConn) WriteMsgUnix(b, oob []byte, addr *UnixAddr) (n, oobn int, err
 	}
 	n, oobn, err = c.writeMsg(b, oob, addr)
 	if err != nil {
-		err = &OpError{Op: "write", Net: c.fd.net, Source: c.fd.laddr, Addr: addr.opAddr(), Err: err}
+		err = NewOpError("write", c.fd.net, c.fd.laddr, addr.opAddr(), err)
 	}
 	return
 }
@@ -216,7 +216,7 @@ func dialUnix(ctx context.Context, dialer *Dialer, network string, laddr, raddr 
 	switch network {
 	case "unix", "unixgram", "unixpacket":
 	default:
-		return nil, &OpError{Op: "dial", Net: network, Source: laddr.opAddr(), Addr: raddr.opAddr(), Err: UnknownNetworkError(network)}
+		return nil, NewOpError("dial", network, laddr.opAddr(), raddr.opAddr(), UnknownNetworkError(network))
 	}
 	sd := &sysDialer{network: network, address: raddr.String()}
 	if dialer != nil {
@@ -224,7 +224,7 @@ func dialUnix(ctx context.Context, dialer *Dialer, network string, laddr, raddr 
 	}
 	c, err := sd.dialUnix(ctx, laddr, raddr)
 	if err != nil {
-		return nil, &OpError{Op: "dial", Net: network, Source: laddr.opAddr(), Addr: raddr.opAddr(), Err: err}
+		return nil, NewOpError("dial", network, laddr.opAddr(), raddr.opAddr(), err)
 	}
 	return c, nil
 }
@@ -261,7 +261,7 @@ func (l *UnixListener) AcceptUnix() (*UnixConn, error) {
 	}
 	c, err := l.accept()
 	if err != nil {
-		return nil, &OpError{Op: "accept", Net: l.fd.net, Source: nil, Addr: l.fd.laddr, Err: err}
+		return nil, NewOpError("accept", l.fd.net, nil, l.fd.laddr, err)
 	}
 	return c, nil
 }
@@ -274,7 +274,7 @@ func (l *UnixListener) Accept() (Conn, error) {
 	}
 	c, err := l.accept()
 	if err != nil {
-		return nil, &OpError{Op: "accept", Net: l.fd.net, Source: nil, Addr: l.fd.laddr, Err: err}
+		return nil, NewOpError("accept", l.fd.net, nil, l.fd.laddr, err)
 	}
 	return c, nil
 }
@@ -286,7 +286,7 @@ func (l *UnixListener) Close() error {
 		return syscall.EINVAL
 	}
 	if err := l.close(); err != nil {
-		return &OpError{Op: "close", Net: l.fd.net, Source: nil, Addr: l.fd.laddr, Err: err}
+		return NewOpError("close", l.fd.net, nil, l.fd.laddr, err)
 	}
 	return nil
 }
@@ -321,7 +321,7 @@ func (l *UnixListener) File() (f *os.File, err error) {
 	}
 	f, err = l.file()
 	if err != nil {
-		err = &OpError{Op: "file", Net: l.fd.net, Source: nil, Addr: l.fd.laddr, Err: err}
+		err = NewOpError("file", l.fd.net, nil, l.fd.laddr, err)
 	}
 	return
 }
@@ -333,15 +333,15 @@ func ListenUnix(network string, laddr *UnixAddr) (*UnixListener, error) {
 	switch network {
 	case "unix", "unixpacket":
 	default:
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: laddr.opAddr(), Err: UnknownNetworkError(network)}
+		return nil, NewOpError("listen", network, nil, laddr.opAddr(), UnknownNetworkError(network))
 	}
 	if laddr == nil {
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: laddr.opAddr(), Err: errMissingAddress}
+		return nil, NewOpError("listen", network, nil, laddr.opAddr(), errMissingAddress)
 	}
 	sl := &sysListener{network: network, address: laddr.String()}
 	ln, err := sl.listenUnix(context.Background(), laddr)
 	if err != nil {
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: laddr.opAddr(), Err: err}
+		return nil, NewOpError("listen", network, nil, laddr.opAddr(), err)
 	}
 	return ln, nil
 }
@@ -353,15 +353,15 @@ func ListenUnixgram(network string, laddr *UnixAddr) (*UnixConn, error) {
 	switch network {
 	case "unixgram":
 	default:
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: laddr.opAddr(), Err: UnknownNetworkError(network)}
+		return nil, NewOpError("listen", network, nil, laddr.opAddr(), UnknownNetworkError(network))
 	}
 	if laddr == nil {
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: nil, Err: errMissingAddress}
+		return nil, NewOpError("listen", network, nil, nil, errMissingAddress)
 	}
 	sl := &sysListener{network: network, address: laddr.String()}
 	c, err := sl.listenUnixgram(context.Background(), laddr)
 	if err != nil {
-		return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: laddr.opAddr(), Err: err}
+		return nil, NewOpError("listen", network, nil, laddr.opAddr(), err)
 	}
 	return c, nil
 }

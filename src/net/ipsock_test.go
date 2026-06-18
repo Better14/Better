@@ -206,13 +206,13 @@ var addrListTests = []struct {
 		nil,
 	},
 
-	{nil, nil, testInetaddr, nil, nil, nil, &AddrError{errNoSuitableAddress.Error(), "ADDR"}},
+	{nil, nil, testInetaddr, nil, nil, nil, NewAddrError(errNoSuitableAddress.Error(), "ADDR")},
 
-	{ipv4only, nil, testInetaddr, nil, nil, nil, &AddrError{errNoSuitableAddress.Error(), "ADDR"}},
-	{ipv4only, []IPAddr{{IP: IPv6loopback}}, testInetaddr, nil, nil, nil, &AddrError{errNoSuitableAddress.Error(), "ADDR"}},
+	{ipv4only, nil, testInetaddr, nil, nil, nil, NewAddrError(errNoSuitableAddress.Error(), "ADDR")},
+	{ipv4only, []IPAddr{{IP: IPv6loopback}}, testInetaddr, nil, nil, nil, NewAddrError(errNoSuitableAddress.Error(), "ADDR")},
 
-	{ipv6only, nil, testInetaddr, nil, nil, nil, &AddrError{errNoSuitableAddress.Error(), "ADDR"}},
-	{ipv6only, []IPAddr{{IP: IPv4(127, 0, 0, 1)}}, testInetaddr, nil, nil, nil, &AddrError{errNoSuitableAddress.Error(), "ADDR"}},
+	{ipv6only, nil, testInetaddr, nil, nil, nil, NewAddrError(errNoSuitableAddress.Error(), "ADDR")},
+	{ipv6only, []IPAddr{{IP: IPv4(127, 0, 0, 1)}}, testInetaddr, nil, nil, nil, NewAddrError(errNoSuitableAddress.Error(), "ADDR")},
 }
 
 func TestAddrList(t *testing.T) {

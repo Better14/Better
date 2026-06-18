@@ -5,6 +5,7 @@
 package os
 
 import (
+	"errors"
 	"internal/poll"
 	"io/fs"
 )
@@ -47,11 +48,19 @@ type PathError = fs.PathError
 
 // SyscallError records an error from a specific system call.
 type SyscallError struct {
+	errors.Error
 	Syscall string
 	Err     error
 }
 
-func (e *SyscallError) Error() string { return e.Syscall + ": " + e.Err.Error() }
+func syscallErrorMessage(syscall string, err error) string {
+	if err == nil {
+		return syscall + ": <nil>"
+	}
+	return syscall + ": " + err.Error()
+}
+
+func (e *SyscallError) Error() string { return syscallErrorMessage(e.Syscall, e.Err) }
 
 func (e *SyscallError) Unwrap() error { return e.Err }
 
@@ -68,7 +77,9 @@ func NewSyscallError(syscall string, err error) error {
 	if err == nil {
 		return nil
 	}
-	return &SyscallError{syscall, err}
+	e := &SyscallError{Syscall: syscall, Err: err}
+	errors.InitCustom(&e.Error, "%s", syscallErrorMessage(syscall, err))
+	return e
 }
 
 // IsExist returns a boolean indicating whether its argument is known to report

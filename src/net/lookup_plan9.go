@@ -217,7 +217,7 @@ func (r *Resolver) lookupPort(ctx context.Context, network, service string) (por
 	case "udp", "udp4", "udp6":
 		return r.lookupPortWithNetwork(ctx, "udp", "udp", service)
 	default:
-		return 0, &DNSError{Err: "unknown network", Name: network + "/" + service}
+		return 0, dnsError("unknown network", network + "/" + service)
 	}
 }
 
@@ -265,7 +265,7 @@ func (r *Resolver) lookupCNAME(ctx context.Context, name string) (cname string, 
 			return f[2] + ".", nil
 		}
 	}
-	return "", &DNSError{Err: "bad response from ndb/dns", Name: name}
+	return "", dnsError("bad response from ndb/dns", name)
 }
 
 func (r *Resolver) lookupSRV(ctx context.Context, service, proto, name string) (cname string, addrs []*SRV, err error) {
