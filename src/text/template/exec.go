@@ -119,6 +119,7 @@ func doublePercent(str string) string {
 // error evaluating its template. (If a write error occurs, the actual
 // error is returned; it will not be of type ExecError.)
 type ExecError struct {
+	errors.Error
 	Name string // Name of template.
 	Err  error  // Pre-formatted error.
 }
@@ -131,6 +132,12 @@ func (e ExecError) Unwrap() error {
 	return e.Err
 }
 
+func newExecError(name string, err error) ExecError {
+	e := ExecError{Name: name, Err: err}
+	errors.InitCustom(&e.Error, "%s", err.Error())
+	return e
+}
+
 // errorf records an ExecError and terminates processing.
 func (s *state) errorf(format string, args ...any) {
 	name := doublePercent(s.tmpl.Name())
@@ -140,10 +147,7 @@ func (s *state) errorf(format string, args ...any) {
 		location, context := s.tmpl.ErrorContext(s.node)
 		format = fmt.Sprintf("template: %s: executing %q at <%s>: %s", location, name, doublePercent(context), format)
 	}
-	panic(ExecError{
-		Name: s.tmpl.Name(),
-		Err:  fmt.Errorf(format, args...),
-	})
+	panic(newExecError(s.tmpl.Name(), fmt.Errorf(format, args...)))
 }
 
 // writeError is the wrapper type used internally when Execute has an
@@ -151,13 +155,18 @@ func (s *state) errorf(format string, args ...any) {
 // Note that this is not an implementation of error, so it cannot escape
 // from the package as an error value.
 type writeError struct {
+	errors.Error
 	Err error // Original error.
 }
 
+func newWriteError(err error) writeError {
+	w := writeError{Err: err}
+	errors.InitCustom(&w.Error, "%s", err.Error())
+	return w
+}
+
 func (s *state) writeError(err error) {
-	panic(writeError{
-		Err: err,
-	})
+	panic(newWriteError(err))
 }
 
 // errRecover is the handler that turns panics into returns from the top

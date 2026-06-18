@@ -12,7 +12,7 @@ import (
 // It panics if v's Kind is not Struct or i is out of range.
 func Field(v Value, i int) Value {
 	if v.kind() != Struct {
-		panic(&ValueError{"reflect.Value.Field", v.kind()})
+		panic(newValueError("reflect.Value.Field", v.kind()))
 	}
 	tt := (*structType)(unsafe.Pointer(v.typ()))
 	if uint(i) >= uint(len(tt.Fields)) {

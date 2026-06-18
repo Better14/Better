@@ -520,7 +520,7 @@ func (p *printer) marshalValue(val reflect.Value, finfo *fieldInfo, startTemplat
 			name = name[:i]
 		}
 		if name == "" {
-			return &UnsupportedTypeError{typ}
+			return newUnsupportedTypeError(typ)
 		}
 		start.Name.Local = name
 	}
@@ -823,7 +823,7 @@ func (p *printer) marshalSimple(typ reflect.Type, val reflect.Value) (string, []
 		// []byte
 		return "", val.Bytes(), nil
 	}
-	return "", nil, &UnsupportedTypeError{typ}
+	return "", nil, newUnsupportedTypeError(typ)
 }
 
 var ddBytes = []byte("--")
@@ -1126,12 +1126,21 @@ func (s *parentStack) push(parents []string) error {
 // UnsupportedTypeError is returned when [Marshal] encounters a type
 // that cannot be converted into XML.
 type UnsupportedTypeError struct {
+	errors.Error
 	Type reflect.Type
 }
 
-func (e *UnsupportedTypeError) Error() string {
-	return "xml: unsupported type: " + e.Type.String()
+func unsupportedTypeErrorMessage(typ reflect.Type) string {
+	return "xml: unsupported type: " + typ.String()
 }
+
+func newUnsupportedTypeError(typ reflect.Type) *UnsupportedTypeError {
+	ue := &UnsupportedTypeError{Type: typ}
+	errors.InitCustom(&ue.Error, "%s", unsupportedTypeErrorMessage(typ))
+	return ue
+}
+
+func (e *UnsupportedTypeError) Error() string { return unsupportedTypeErrorMessage(e.Type) }
 
 func isEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {

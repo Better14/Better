@@ -22,7 +22,7 @@ func init() {
 	internal.TransformMarshalError = transformMarshalError
 	internal.TransformUnmarshalError = transformUnmarshalError
 	internal.NewMarshalerError = func(val any, err error, funcName string) error {
-		return &MarshalerError{reflect.TypeOf(val), err, funcName}
+		return newMarshalerError(reflect.TypeOf(val), err, funcName)
 	}
 
 	internal.NewRawNumber = func() any { return new(Number) }
@@ -40,7 +40,7 @@ func transformMarshalError(root any, err error) error {
 		if err.Err == nil {
 			// Historically, this was only reported for unserializable types
 			// like complex numbers, channels, functions, and unsafe.Pointers.
-			return &UnsupportedTypeError{Type: err.GoType}
+			return newUnsupportedTypeError(err.GoType)
 		} else {
 			// Historically, this was only reported for NaN or ±Inf values
 			// and cycles detected in the value.
@@ -51,7 +51,7 @@ func transformMarshalError(root any, err error) error {
 				errStr += " via " + err.GoType.String()
 			}
 			errStr = strings.TrimPrefix(errStr, "unsupported value: ")
-			return &UnsupportedValueError{Str: errStr}
+			return newUnsupportedValueError(errStr)
 		}
 	} else if ok {
 		return (*UnsupportedValueError)(nil)
@@ -68,7 +68,7 @@ func transformUnmarshalError(root any, err error) error {
 	// returned verbatim while operating under [ReportErrorsWithLegacySemantics].
 	if err, ok := err.(*jsonv2.SemanticError); err != nil {
 		if err.Err == internal.ErrNonNilReference {
-			return &InvalidUnmarshalError{err.GoType}
+			return newInvalidUnmarshalError(err.GoType)
 		}
 		if err.Err == jsonv2.ErrUnknownName {
 			return fmt.Errorf("json: unknown field %q", err.JSONPointer.LastToken())
@@ -141,14 +141,14 @@ func transformUnmarshalError(root any, err error) error {
 		fieldPath := string(err.JSONPointer)
 		fieldPath = strings.TrimPrefix(fieldPath, "/")
 		fieldPath = strings.ReplaceAll(fieldPath, "/", ".")
-		return &UnmarshalTypeError{
-			Value:  value,
-			Type:   err.GoType,
-			Offset: err.ByteOffset,
-			Struct: rootName,
-			Field:  fieldPath,
-			Err:    transformSyntacticError(err.Err),
-		}
+		return newUnmarshalTypeError(
+			value,
+			err.GoType,
+			err.ByteOffset,
+			rootName,
+			fieldPath,
+			transformSyntacticError(err.Err),
+		)
 	} else if ok {
 		return (*UnmarshalTypeError)(nil)
 	}

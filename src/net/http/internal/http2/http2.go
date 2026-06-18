@@ -140,19 +140,19 @@ func (s Setting) Valid() error {
 	switch s.ID {
 	case SettingEnablePush:
 		if s.Val != 1 && s.Val != 0 {
-			return ConnectionError(ErrCodeProtocol)
+			return NewConnectionError(ErrCodeProtocol)
 		}
 	case SettingInitialWindowSize:
 		if s.Val > 1<<31-1 {
-			return ConnectionError(ErrCodeFlowControl)
+			return NewConnectionError(ErrCodeFlowControl)
 		}
 	case SettingMaxFrameSize:
 		if s.Val < 16384 || s.Val > 1<<24-1 {
-			return ConnectionError(ErrCodeProtocol)
+			return NewConnectionError(ErrCodeProtocol)
 		}
 	case SettingEnableConnectProtocol:
 		if s.Val != 1 && s.Val != 0 {
-			return ConnectionError(ErrCodeProtocol)
+			return NewConnectionError(ErrCodeProtocol)
 		}
 	}
 	return nil
@@ -362,16 +362,23 @@ func bodyAllowedForStatus(status int) bool {
 }
 
 type httpError struct {
+	errors.Error
 	_       incomparable
 	msg     string
 	timeout bool
+}
+
+func newHTTPError(msg string, timeout bool) *httpError {
+	e := &httpError{msg: msg, timeout: timeout}
+	errors.InitCustom(&e.Error, "%s", msg)
+	return e
 }
 
 func (e *httpError) Error() string   { return e.msg }
 func (e *httpError) Timeout() bool   { return e.timeout }
 func (e *httpError) Temporary() bool { return true }
 
-var errTimeout error = &httpError{msg: "http2: timeout awaiting response headers", timeout: true}
+var errTimeout error = newHTTPError("http2: timeout awaiting response headers", true)
 
 type connectionStater interface {
 	ConnectionState() tls.ConnectionState

@@ -8,6 +8,7 @@ package jsontext
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"strconv"
 
@@ -17,8 +18,15 @@ import (
 const errorPrefix = "jsontext: "
 
 type ioError struct {
+	errors.Error
 	action string // either "read" or "write"
 	err    error
+}
+
+func newIOError(action string, err error) *ioError {
+	e := &ioError{action: action, err: err}
+	errors.InitCustom(&e.Error, "%s", e.Error())
+	return e
 }
 
 func (e *ioError) Error() string {
@@ -29,9 +37,16 @@ func (e *ioError) Unwrap() error {
 }
 
 type numError struct {
+	errors.Error
 	accessor string // either "Int", "Uint", or "Float"
 	value    string // e.g., "1e1000"
 	err      error  // either [strconv.ErrSyntax] or [strconv.ErrRange]
+}
+
+func newNumError(accessor, value string, err error) *numError {
+	e := &numError{accessor: accessor, value: value, err: err}
+	errors.InitCustom(&e.Error, "%s", e.Error())
+	return e
 }
 
 func (e *numError) Error() string {
@@ -49,6 +64,8 @@ type SyntacticError struct {
 	requireKeyedLiterals
 	nonComparable
 
+	errors.Error
+
 	// ByteOffset indicates that an error occurred after this byte offset.
 	ByteOffset int64
 	// JSONPointer indicates that an error occurred within this JSON value
@@ -57,6 +74,17 @@ type SyntacticError struct {
 
 	// Err is the underlying error.
 	Err error
+}
+
+// NewSyntacticError returns a SyntacticError with a stack trace captured at the call site.
+func NewSyntacticError(offset int64, ptr Pointer, err error) *SyntacticError {
+	return newSyntacticError(offset, ptr, err)
+}
+
+func newSyntacticError(offset int64, ptr Pointer, err error) *SyntacticError {
+	e := &SyntacticError{ByteOffset: offset, JSONPointer: ptr, Err: err}
+	errors.InitCustom(&e.Error, "%s", e.Error())
+	return e
 }
 
 // wrapSyntacticError wraps an error and annotates it with a precise location
@@ -80,7 +108,7 @@ func wrapSyntacticError(state interface {
 	ptr := state.AppendStackPointer(nil, where)
 	if serr, ok := err.(*pointerSuffixError); ok {
 		ptr = serr.appendPointer(ptr)
-		err = serr.error
+		err = serr.err
 	}
 	if d, ok := state.(*decoderState); ok && err == errMismatchDelim {
 		where := "at start of value"
@@ -96,7 +124,7 @@ func wrapSyntacticError(state interface {
 		}
 		err = jsonwire.NewInvalidCharacterError(d.buf[pos:], where)
 	}
-	return &SyntacticError{ByteOffset: offset, JSONPointer: Pointer(ptr), Err: err}
+	return newSyntacticError(offset, Pointer(ptr), err)
 }
 
 func (e *SyntacticError) Error() string {
@@ -154,18 +182,29 @@ func (e *SyntacticError) Unwrap() error {
 // These tokens are reversed and concatenated to "/alpha/bravo/charlie"
 // to form the full pointer.
 type pointerSuffixError struct {
-	error
+	errors.Error
+	err error
 
 	// reversePointer is a JSON pointer, but with each token in reverse order.
 	reversePointer []byte
 }
+
+func newPointerSuffixError(err error) *pointerSuffixError {
+	e := &pointerSuffixError{err: err}
+	errors.InitCustom(&e.Error, "%s", err.Error())
+	return e
+}
+
+func (e *pointerSuffixError) Error() string { return e.err.Error() }
+
+func (e *pointerSuffixError) Unwrap() error { return e.err }
 
 // wrapWithObjectName wraps err with a JSON object name access,
 // which must be a valid quoted JSON string.
 func wrapWithObjectName(err error, quotedName []byte) error {
 	serr, _ := err.(*pointerSuffixError)
 	if serr == nil {
-		serr = &pointerSuffixError{error: err}
+		serr = newPointerSuffixError(err)
 	}
 	name := jsonwire.UnquoteMayCopy(quotedName, false)
 	serr.reversePointer = appendEscapePointerName(append(serr.reversePointer, '/'), name)
@@ -176,7 +215,7 @@ func wrapWithObjectName(err error, quotedName []byte) error {
 func wrapWithArrayIndex(err error, index int64) error {
 	serr, _ := err.(*pointerSuffixError)
 	if serr == nil {
-		serr = &pointerSuffixError{error: err}
+		serr = newPointerSuffixError(err)
 	}
 	serr.reversePointer = strconv.AppendUint(append(serr.reversePointer, '/'), uint64(index), 10)
 	return serr

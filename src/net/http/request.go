@@ -45,7 +45,15 @@ var ErrMissingFile = errors.New("http: no such file")
 // Deprecated: Not all errors in the http package related to protocol errors
 // are of type ProtocolError.
 type ProtocolError struct {
+	errors.Error
 	ErrorString string
+}
+
+// NewProtocolError returns a ProtocolError with a stack trace captured at the call site.
+func NewProtocolError(errorString string) *ProtocolError {
+	pe := &ProtocolError{ErrorString: errorString}
+	errors.InitCustom(&pe.Error, "%s", errorString)
+	return pe
 }
 
 func (pe *ProtocolError) Error() string { return pe.ErrorString }
@@ -62,35 +70,35 @@ var (
 	// the handler does not support the method, and by the Push method
 	// of Pusher implementations to indicate that HTTP/2 Push support
 	// is not available.
-	ErrNotSupported = &ProtocolError{"feature not supported"}
+	ErrNotSupported = NewProtocolError("feature not supported")
 
 	// Deprecated: ErrUnexpectedTrailer is no longer returned by
 	// anything in the net/http package. Callers should not
 	// compare errors against this variable.
-	ErrUnexpectedTrailer = &ProtocolError{"trailer header without chunked transfer encoding"}
+	ErrUnexpectedTrailer = NewProtocolError("trailer header without chunked transfer encoding")
 
 	// ErrMissingBoundary is returned by Request.MultipartReader when the
 	// request's Content-Type does not include a "boundary" parameter.
-	ErrMissingBoundary = &ProtocolError{"no multipart boundary param in Content-Type"}
+	ErrMissingBoundary = NewProtocolError("no multipart boundary param in Content-Type")
 
 	// ErrNotMultipart is returned by Request.MultipartReader when the
 	// request's Content-Type is not multipart/form-data.
-	ErrNotMultipart = &ProtocolError{"request Content-Type isn't multipart/form-data"}
+	ErrNotMultipart = NewProtocolError("request Content-Type isn't multipart/form-data")
 
 	// Deprecated: ErrHeaderTooLong is no longer returned by
 	// anything in the net/http package. Callers should not
 	// compare errors against this variable.
-	ErrHeaderTooLong = &ProtocolError{"header too long"}
+	ErrHeaderTooLong = NewProtocolError("header too long")
 
 	// Deprecated: ErrShortBody is no longer returned by
 	// anything in the net/http package. Callers should not
 	// compare errors against this variable.
-	ErrShortBody = &ProtocolError{"entity body too short"}
+	ErrShortBody = NewProtocolError("entity body too short")
 
 	// Deprecated: ErrMissingContentLength is no longer returned by
 	// anything in the net/http package. Callers should not
 	// compare errors against this variable.
-	ErrMissingContentLength = &ProtocolError{"missing ContentLength in HEAD response"}
+	ErrMissingContentLength = NewProtocolError("missing ContentLength in HEAD response")
 )
 
 func badStringError(what, val string) error { return fmt.Errorf("%s %q", what, val) }
@@ -767,7 +775,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 	err = tw.writeBody(w)
 	if err != nil {
 		if tw.bodyReadError == err {
-			err = requestBodyReadError{err}
+			err = newRequestBodyReadError(err)
 		}
 		return err
 	}
@@ -781,7 +789,20 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 // requestBodyReadError wraps an error from (*Request).write to indicate
 // that the error came from a Read call on the Request.Body.
 // This error type should not escape the net/http package to users.
-type requestBodyReadError struct{ error }
+type requestBodyReadError struct {
+	errors.Error
+	Err error
+}
+
+func newRequestBodyReadError(err error) requestBodyReadError {
+	e := requestBodyReadError{Err: err}
+	errors.InitCustom(&e.Error, "%s", err.Error())
+	return e
+}
+
+func (e requestBodyReadError) Error() string { return e.Err.Error() }
+
+func (e requestBodyReadError) Unwrap() error { return e.Err }
 
 func idnaASCII(v string) (string, error) {
 	// TODO: Consider removing this check after verifying performance is okay.
@@ -1197,7 +1218,15 @@ func MaxBytesReader(w ResponseWriter, r io.ReadCloser, n int64) io.ReadCloser {
 
 // MaxBytesError is returned by [MaxBytesReader] when its read limit is exceeded.
 type MaxBytesError struct {
+	errors.Error
 	Limit int64
+}
+
+// NewMaxBytesError returns a MaxBytesError with a stack trace captured at the call site.
+func NewMaxBytesError(limit int64) *MaxBytesError {
+	e := &MaxBytesError{Limit: limit}
+	errors.InitCustom(&e.Error, "http: request body too large")
+	return e
 }
 
 func (e *MaxBytesError) Error() string {
@@ -1251,7 +1280,7 @@ func (l *maxBytesReader) Read(p []byte) (n int, err error) {
 	if res, ok := l.w.(requestTooLarger); ok {
 		res.requestTooLarge()
 	}
-	l.err = &MaxBytesError{l.i}
+	l.err = NewMaxBytesError(l.i)
 	return n, l.err
 }
 

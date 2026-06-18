@@ -58,7 +58,7 @@ func findExecutable(file string, exts []string) (string, error) {
 
 func lookPath(file string) (string, error) {
 	if err := validateLookPath(file); err != nil {
-		return "", &Error{file, err}
+		return "", NewError(file, err)
 	}
 
 	return lookPathExts(file, pathExt())
@@ -75,7 +75,7 @@ func lookPath(file string) (string, error) {
 // program is actually "C:\foo\example.com.exe".
 func lookExtensions(path, dir string) (string, error) {
 	if err := validateLookPath(path); err != nil {
-		return "", &Error{path, err}
+		return "", NewError(path, err)
 	}
 
 	if filepath.Base(path) == path {
@@ -135,7 +135,7 @@ func lookPathExts(file string, exts []string) (string, error) {
 		if err == nil {
 			return f, nil
 		}
-		return "", &Error{file, err}
+		return "", NewError(file, err)
 	}
 
 	// On Windows, creating the NoDefaultCurrentDirectoryInExePath
@@ -157,7 +157,7 @@ func lookPathExts(file string, exts []string) (string, error) {
 				execerrdot.IncNonDefault()
 				return f, nil
 			}
-			dotf, dotErr = f, &Error{file, ErrDot}
+			dotf, dotErr = f, NewError(file, ErrDot)
 		}
 	}
 
@@ -192,7 +192,7 @@ func lookPathExts(file string, exts []string) (string, error) {
 					// Otherwise, record this path as the one to which we must resolve,
 					// with or without a dotErr.
 					if dotErr == nil {
-						dotf, dotErr = f, &Error{file, ErrDot}
+						dotf, dotErr = f, NewError(file, ErrDot)
 					}
 					continue
 				}
@@ -205,5 +205,5 @@ func lookPathExts(file string, exts []string) (string, error) {
 	if dotErr != nil {
 		return dotf, dotErr
 	}
-	return "", &Error{file, ErrNotFound}
+	return "", NewError(file, ErrNotFound)
 }

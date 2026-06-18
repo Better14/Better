@@ -352,7 +352,15 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 // from a user's x/net/http2. As such, as it has a unique method name
 // (IsHTTP2NoCachedConnError) that net/http sniffs for via func
 // isNoCachedConnError.
-type noCachedConnError struct{}
+type noCachedConnError struct {
+	errors.Error
+}
+
+func newNoCachedConnError() noCachedConnError {
+	e := noCachedConnError{}
+	errors.InitCustom(&e.Error, "http2: no cached connection was available")
+	return e
+}
 
 func (noCachedConnError) IsHTTP2NoCachedConnError() {}
 func (noCachedConnError) Error() string             { return "http2: no cached connection was available" }
@@ -365,7 +373,7 @@ func isNoCachedConnError(err error) bool {
 	return ok
 }
 
-var ErrNoCachedConn error = noCachedConnError{}
+var ErrNoCachedConn error = newNoCachedConnError()
 
 // RoundTripOpt are options for the Transport.RoundTripOpt method.
 type RoundTripOpt struct {
@@ -1921,14 +1929,25 @@ func (cc *ClientConn) readLoop() {
 // GoAwayError is returned by the Transport when the server closes the
 // TCP connection after sending a GOAWAY frame.
 type GoAwayError struct {
+	errors.Error
 	LastStreamID uint32
 	ErrCode      ErrCode
 	DebugData    string
 }
 
-func (e GoAwayError) Error() string {
+func goAwayErrorMessage(lastStreamID uint32, errCode ErrCode, debugData string) string {
 	return fmt.Sprintf("http2: server sent GOAWAY and closed the connection; LastStreamID=%v, ErrCode=%v, debug=%q",
-		e.LastStreamID, e.ErrCode, e.DebugData)
+		lastStreamID, errCode, debugData)
+}
+
+func NewGoAwayError(lastStreamID uint32, errCode ErrCode, debugData string) GoAwayError {
+	e := GoAwayError{LastStreamID: lastStreamID, ErrCode: errCode, DebugData: debugData}
+	errors.InitCustom(&e.Error, "%s", goAwayErrorMessage(lastStreamID, errCode, debugData))
+	return e
+}
+
+func (e GoAwayError) Error() string {
+	return goAwayErrorMessage(e.LastStreamID, e.ErrCode, e.DebugData)
 }
 
 func isEOFOrNetReadError(err error) bool {
@@ -1954,11 +1973,11 @@ func (rl *clientConnReadLoop) cleanup() {
 	err := cc.readerErr
 	cc.mu.Lock()
 	if cc.goAway != nil && isEOFOrNetReadError(err) {
-		err = GoAwayError{
-			LastStreamID: cc.goAway.LastStreamID,
-			ErrCode:      cc.goAway.ErrCode,
-			DebugData:    cc.goAwayDebug,
-		}
+		err = NewGoAwayError(
+			cc.goAway.LastStreamID,
+			cc.goAway.ErrCode,
+			cc.goAwayDebug,
+		)
 	} else if err == io.EOF {
 		err = io.ErrUnexpectedEOF
 	}
@@ -2069,7 +2088,7 @@ func (rl *clientConnReadLoop) run() error {
 		if !gotSettings {
 			if _, ok := f.(*SettingsFrame); !ok {
 				cc.logf("protocol error: received %T before a SETTINGS frame", f)
-				return ConnectionError(ErrCodeProtocol)
+				return NewConnectionError(ErrCodeProtocol)
 			}
 			gotSettings = true
 		}
@@ -2112,11 +2131,11 @@ func (rl *clientConnReadLoop) processHeaders(f *MetaHeadersFrame) error {
 		return nil
 	}
 	if cs.readClosed {
-		rl.endStreamError(cs, StreamError{
-			StreamID: f.StreamID,
-			Code:     ErrCodeProtocol,
-			Cause:    errors.New("protocol error: headers after END_STREAM"),
-		})
+		rl.endStreamError(cs, NewStreamError(
+			f.StreamID,
+			ErrCodeProtocol,
+			errors.New("protocol error: headers after END_STREAM"),
+		))
 		return nil
 	}
 	if !cs.firstByte {
@@ -2141,11 +2160,7 @@ func (rl *clientConnReadLoop) processHeaders(f *MetaHeadersFrame) error {
 			return err
 		}
 		// Any other error type is a stream error.
-		rl.endStreamError(cs, StreamError{
-			StreamID: f.StreamID,
-			Code:     ErrCodeProtocol,
-			Cause:    err,
-		})
+		rl.endStreamError(cs, NewStreamError(f.StreamID, ErrCodeProtocol, err))
 		return nil // return nil from process* funcs to keep conn alive
 	}
 	if res == nil {
@@ -2306,18 +2321,18 @@ func (rl *clientConnReadLoop) handleResponse(cs *clientStream, f *MetaHeadersFra
 func (rl *clientConnReadLoop) processTrailers(cs *clientStream, f *MetaHeadersFrame) error {
 	if cs.pastTrailers {
 		// Too many HEADERS frames for this stream.
-		return ConnectionError(ErrCodeProtocol)
+		return NewConnectionError(ErrCodeProtocol)
 	}
 	cs.pastTrailers = true
 	if !f.StreamEnded() {
 		// We expect that any headers for trailers also
 		// has END_STREAM.
-		return ConnectionError(ErrCodeProtocol)
+		return NewConnectionError(ErrCodeProtocol)
 	}
 	if len(f.PseudoFields()) > 0 {
 		// No pseudo header fields are defined for trailers.
 		// TODO: ConnectionError might be overly harsh? Check.
-		return ConnectionError(ErrCodeProtocol)
+		return NewConnectionError(ErrCodeProtocol)
 	}
 
 	trailer := make(Header)
@@ -2440,7 +2455,7 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 		if f.StreamID >= neverSent {
 			// We never asked for this.
 			cc.logf("http2: Transport received unsolicited DATA frame; closing connection")
-			return ConnectionError(ErrCodeProtocol)
+			return NewConnectionError(ErrCodeProtocol)
 		}
 		// We probably did ask for this, but canceled. Just ignore it.
 		// TODO: be stricter here? only silently ignore things which
@@ -2454,7 +2469,7 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 			connAdd := cc.inflow.add(int(f.Length))
 			cc.mu.Unlock()
 			if !ok {
-				return ConnectionError(ErrCodeFlowControl)
+				return NewConnectionError(ErrCodeFlowControl)
 			}
 			if connAdd > 0 {
 				cc.wmu.Lock()
@@ -2467,34 +2482,25 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 	}
 	if cs.readClosed {
 		cc.logf("protocol error: received DATA after END_STREAM")
-		rl.endStreamError(cs, StreamError{
-			StreamID: f.StreamID,
-			Code:     ErrCodeProtocol,
-		})
+		rl.endStreamError(cs, streamError(f.StreamID, ErrCodeProtocol))
 		return nil
 	}
 	if !cs.pastHeaders {
 		cc.logf("protocol error: received DATA before a HEADERS frame")
-		rl.endStreamError(cs, StreamError{
-			StreamID: f.StreamID,
-			Code:     ErrCodeProtocol,
-		})
+		rl.endStreamError(cs, streamError(f.StreamID, ErrCodeProtocol))
 		return nil
 	}
 	if f.Length > 0 {
 		if cs.isHead && len(data) > 0 {
 			cc.logf("protocol error: received DATA on a HEAD request")
-			rl.endStreamError(cs, StreamError{
-				StreamID: f.StreamID,
-				Code:     ErrCodeProtocol,
-			})
+			rl.endStreamError(cs, streamError(f.StreamID, ErrCodeProtocol))
 			return nil
 		}
 		// Check connection-level flow control.
 		cc.mu.Lock()
 		if !takeInflows(&cc.inflow, &cs.inflow, f.Length) {
 			cc.mu.Unlock()
-			return ConnectionError(ErrCodeFlowControl)
+			return NewConnectionError(ErrCodeFlowControl)
 		}
 		// Return any padded flow control now, since we won't
 		// refund it later on body reads.
@@ -2683,7 +2689,7 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 			cc.wantSettingsAck = false
 			return nil
 		}
-		return ConnectionError(ErrCodeProtocol)
+		return NewConnectionError(ErrCodeProtocol)
 	}
 
 	var seenMaxConcurrentStreams bool
@@ -2705,7 +2711,7 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 			// connection error (Section 5.4.1) of type
 			// FLOW_CONTROL_ERROR.
 			if s.Val > math.MaxInt32 {
-				return ConnectionError(ErrCodeFlowControl)
+				return NewConnectionError(ErrCodeFlowControl)
 			}
 
 			// Adjust flow control of currently-open
@@ -2774,14 +2780,11 @@ func (rl *clientConnReadLoop) processWindowUpdate(f *WindowUpdateFrame) error {
 	if !fl.add(int32(f.Increment)) {
 		// For stream, the sender sends RST_STREAM with an error code of FLOW_CONTROL_ERROR
 		if cs != nil {
-			rl.endStreamErrorLocked(cs, StreamError{
-				StreamID: f.StreamID,
-				Code:     ErrCodeFlowControl,
-			})
+			rl.endStreamErrorLocked(cs, streamError(f.StreamID, ErrCodeFlowControl))
 			return nil
 		}
 
-		return ConnectionError(ErrCodeFlowControl)
+		return NewConnectionError(ErrCodeFlowControl)
 	}
 	cc.cond.Broadcast()
 	return nil
@@ -2793,8 +2796,7 @@ func (rl *clientConnReadLoop) processResetStream(f *RSTStreamFrame) error {
 		// TODO: return error if server tries to RST_STREAM an idle stream
 		return nil
 	}
-	serr := streamError(cs.ID, f.ErrCode)
-	serr.Cause = errFromPeer
+	serr := NewStreamError(cs.ID, f.ErrCode, errFromPeer)
 	if f.ErrCode == ErrCodeProtocol {
 		rl.cc.SetDoNotReuse()
 	}
@@ -2888,7 +2890,7 @@ func (rl *clientConnReadLoop) processPushPromise(f *PushPromiseFrame) error {
 	// has set this setting and has received acknowledgement MUST
 	// treat the receipt of a PUSH_PROMISE frame as a connection
 	// error (Section 5.4.1) of type PROTOCOL_ERROR."
-	return ConnectionError(ErrCodeProtocol)
+	return NewConnectionError(ErrCodeProtocol)
 }
 
 // writeStreamReset sends a RST_STREAM frame.

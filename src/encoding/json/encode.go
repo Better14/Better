@@ -49,6 +49,7 @@ import (
 	"cmp"
 	"encoding"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -239,6 +240,7 @@ type Marshaler interface {
 // An UnsupportedTypeError is returned by [Marshal] when attempting
 // to encode an unsupported value type.
 type UnsupportedTypeError struct {
+	errors.Error
 	Type reflect.Type
 }
 
@@ -249,6 +251,7 @@ func (e *UnsupportedTypeError) Error() string {
 // An UnsupportedValueError is returned by [Marshal] when attempting
 // to encode an unsupported value.
 type UnsupportedValueError struct {
+	errors.Error
 	Value reflect.Value
 	Str   string
 }
@@ -274,6 +277,7 @@ func (e *InvalidUTF8Error) Error() string {
 // A MarshalerError represents an error from calling a
 // [Marshaler.MarshalJSON] or [encoding.TextMarshaler.MarshalText] method.
 type MarshalerError struct {
+	errors.Error
 	Type       reflect.Type
 	Err        error
 	sourceFunc string
@@ -327,13 +331,16 @@ func newEncodeState() *encodeState {
 // jsonError is an error wrapper type for internal use only.
 // Panics with errors are wrapped in jsonError so that the top-level recover
 // can distinguish intentional panics from this package.
-type jsonError struct{ error }
+type jsonError struct {
+	errors.Error
+	err error
+}
 
 func (e *encodeState) marshal(v any, opts encOpts) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if je, ok := r.(jsonError); ok {
-				err = je.error
+				err = je.err
 			} else {
 				panic(r)
 			}
@@ -345,7 +352,7 @@ func (e *encodeState) marshal(v any, opts encOpts) (err error) {
 
 // error aborts the encoding by panicking with err wrapped in jsonError.
 func (e *encodeState) error(err error) {
-	panic(jsonError{err})
+	panic(newJsonError(err))
 }
 
 func isEmptyValue(v reflect.Value) bool {
@@ -487,7 +494,7 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		e.Buffer.Write(out)
 	}
 	if err != nil {
-		e.error(&MarshalerError{v.Type(), err, "MarshalJSON"})
+		e.error(newMarshalerError(v.Type(), err, "MarshalJSON"))
 	}
 }
 
@@ -506,7 +513,7 @@ func addrMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		e.Buffer.Write(out)
 	}
 	if err != nil {
-		e.error(&MarshalerError{v.Type(), err, "MarshalJSON"})
+		e.error(newMarshalerError(v.Type(), err, "MarshalJSON"))
 	}
 }
 
@@ -522,7 +529,7 @@ func textMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	}
 	b, err := m.MarshalText()
 	if err != nil {
-		e.error(&MarshalerError{v.Type(), err, "MarshalText"})
+		e.error(newMarshalerError(v.Type(), err, "MarshalText"))
 	}
 	e.Write(appendString(e.AvailableBuffer(), b, opts.escapeHTML))
 }
@@ -536,7 +543,7 @@ func addrTextMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	m, _ := reflect.TypeAssert[encoding.TextMarshaler](va)
 	b, err := m.MarshalText()
 	if err != nil {
-		e.error(&MarshalerError{v.Type(), err, "MarshalText"})
+		e.error(newMarshalerError(v.Type(), err, "MarshalText"))
 	}
 	e.Write(appendString(e.AvailableBuffer(), b, opts.escapeHTML))
 }
@@ -570,7 +577,7 @@ type floatEncoder int // number of bits
 func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 	f := v.Float()
 	if math.IsInf(f, 0) || math.IsNaN(f) {
-		e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, int(bits))})
+		e.error(newUnsupportedValueError(v, strconv.FormatFloat(f, 'g', -1, int(bits))))
 	}
 
 	// Convert as if by ES6 number to string conversion.
@@ -700,7 +707,7 @@ func interfaceEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 }
 
 func unsupportedTypeEncoder(e *encodeState, v reflect.Value, _ encOpts) {
-	e.error(&UnsupportedTypeError{v.Type()})
+	e.error(newUnsupportedTypeError(v.Type()))
 }
 
 type structEncoder struct {
@@ -771,7 +778,7 @@ func (me mapEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 		// start checking if we've run into a pointer cycle.
 		ptr := v.UnsafePointer()
 		if _, ok := e.ptrSeen[ptr]; ok {
-			e.error(&UnsupportedValueError{v, fmt.Sprintf("encountered a cycle via %s", v.Type())})
+			e.error(newUnsupportedValueError(v, fmt.Sprintf("encountered a cycle via %s", v.Type())))
 		}
 		e.ptrSeen[ptr] = struct{}{}
 		defer delete(e.ptrSeen, ptr)
@@ -854,7 +861,7 @@ func (se sliceEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 			len int
 		}{v.UnsafePointer(), v.Len()}
 		if _, ok := e.ptrSeen[ptr]; ok {
-			e.error(&UnsupportedValueError{v, fmt.Sprintf("encountered a cycle via %s", v.Type())})
+			e.error(newUnsupportedValueError(v, fmt.Sprintf("encountered a cycle via %s", v.Type())))
 		}
 		e.ptrSeen[ptr] = struct{}{}
 		defer delete(e.ptrSeen, ptr)
@@ -910,7 +917,7 @@ func (pe ptrEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 		// start checking if we've run into a pointer cycle.
 		ptr := v.Interface()
 		if _, ok := e.ptrSeen[ptr]; ok {
-			e.error(&UnsupportedValueError{v, fmt.Sprintf("encountered a cycle via %s", v.Type())})
+			e.error(newUnsupportedValueError(v, fmt.Sprintf("encountered a cycle via %s", v.Type())))
 		}
 		e.ptrSeen[ptr] = struct{}{}
 		defer delete(e.ptrSeen, ptr)

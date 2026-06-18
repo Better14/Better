@@ -24,13 +24,16 @@ import (
 
 // A SyntaxError represents a syntax error in the XML input stream.
 type SyntaxError struct {
+	errors.Error
 	Msg  string
 	Line int
 }
 
-func (e *SyntaxError) Error() string {
-	return "XML syntax error on line " + strconv.Itoa(e.Line) + ": " + e.Msg
+func syntaxErrorMessage(msg string, line int) string {
+	return "XML syntax error on line " + strconv.Itoa(line) + ": " + msg
 }
+
+func (e *SyntaxError) Error() string { return syntaxErrorMessage(e.Msg, e.Line) }
 
 // A Name represents an XML name (Local) annotated
 // with a name space identifier (Space).
@@ -466,7 +469,9 @@ func (d *Decoder) pushNs(local string, url string, ok bool) {
 
 // Creates a SyntaxError with the current line number.
 func (d *Decoder) syntaxError(msg string) error {
-	return &SyntaxError{Msg: msg, Line: d.line}
+	se := &SyntaxError{Msg: msg, Line: d.line}
+	errors.InitCustom(&se.Error, "%s", syntaxErrorMessage(msg, d.line))
+	return se
 }
 
 // Record that we are ending an element with the given name.

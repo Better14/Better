@@ -5,6 +5,7 @@
 package syscall
 
 import (
+	"errors"
 	"internal/syscall/windows/sysdll"
 	"sync"
 	"sync/atomic"
@@ -22,9 +23,16 @@ var (
 
 // DLLError describes reasons for DLL load failures.
 type DLLError struct {
+	errors.Error
 	Err     error
 	ObjName string
 	Msg     string
+}
+
+func newDLLError(err error, objName, msg string) *DLLError {
+	e := &DLLError{Err: err, ObjName: objName, Msg: msg}
+	errors.InitCustom(&e.Error, "%s", msg)
+	return e
 }
 
 func (e *DLLError) Error() string { return e.Msg }
@@ -164,11 +172,7 @@ func LoadDLL(name string) (*DLL, error) {
 		h, e = loadlibrary(namep)
 	}
 	if e != 0 {
-		return nil, &DLLError{
-			Err:     e,
-			ObjName: name,
-			Msg:     "Failed to load " + name + ": " + e.Error(),
-		}
+		return nil, newDLLError(e, name, "Failed to load "+name+": "+e.Error())
 	}
 	d := &DLL{
 		Name:   name,
@@ -195,11 +199,7 @@ func (d *DLL) FindProc(name string) (proc *Proc, err error) {
 	}
 	a, e := getprocaddress(uintptr(d.Handle), namep)
 	if e != 0 {
-		return nil, &DLLError{
-			Err:     e,
-			ObjName: name,
-			Msg:     "Failed to find " + name + " procedure in " + d.Name + ": " + e.Error(),
-		}
+		return nil, newDLLError(e, name, "Failed to find "+name+" procedure in "+d.Name+": "+e.Error())
 	}
 	p := &Proc{
 		Dll:  d,

@@ -1099,7 +1099,14 @@ var (
 // the user's custom net.Conn.Read error too, so we carry it along for
 // them to return from Transport.RoundTrip.
 type transportReadFromServerError struct {
+	errors.Error
 	err error
+}
+
+func newTransportReadFromServerError(err error) transportReadFromServerError {
+	e := transportReadFromServerError{err: err}
+	errors.InitCustom(&e.Error, "net/http: Transport failed to read from server: %v", err)
+	return e
 }
 
 func (e transportReadFromServerError) Unwrap() error { return e.err }
@@ -1793,7 +1800,7 @@ func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptr
 	var timer *time.Timer // for canceling TLS handshake
 	if d := pconn.t.TLSHandshakeTimeout; d != 0 {
 		timer = time.AfterFunc(d, func() {
-			errc <- tlsHandshakeTimeoutError{}
+			errc <- newTLSHandshakeTimeoutError()
 		})
 	}
 	go func() {
@@ -1808,7 +1815,7 @@ func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptr
 	}()
 	if err := <-errc; err != nil {
 		plainConn.Close()
-		if err == (tlsHandshakeTimeoutError{}) {
+		if _, ok := err.(tlsHandshakeTimeoutError); ok {
 			// Now that we have closed the connection,
 			// wait for the call to HandshakeContext to return.
 			<-errc
@@ -2395,14 +2402,14 @@ func (pc *persistConn) mapRoundTripError(req *transportRequest, startBytesWritte
 
 	if _, ok := err.(transportReadFromServerError); ok {
 		if pc.nwrite == startBytesWritten {
-			return nothingWrittenError{err}
+			return newNothingWrittenError(err)
 		}
 		// Don't decorate
 		return err
 	}
 	if pc.isBroken() {
 		if pc.nwrite == startBytesWritten {
-			return nothingWrittenError{err}
+			return newNothingWrittenError(err)
 		}
 		return fmt.Errorf("net/http: HTTP/1.x transport connection broken: %w", err)
 	}
@@ -2497,7 +2504,7 @@ func (pc *persistConn) readLoop() {
 		if err == nil {
 			resp, err = pc.readResponse(rc, trace)
 		} else {
-			err = transportReadFromServerError{err}
+			err = newTransportReadFromServerError(err)
 			closeErr = err
 		}
 
@@ -2797,11 +2804,22 @@ func (b *readWriteCloserBody) CloseWrite() error {
 
 // nothingWrittenError wraps a write errors which ended up writing zero bytes.
 type nothingWrittenError struct {
-	error
+	errors.Error
+	Err error
+}
+
+func newNothingWrittenError(err error) nothingWrittenError {
+	e := nothingWrittenError{Err: err}
+	errors.InitCustom(&e.Error, "%s", err.Error())
+	return e
 }
 
 func (nwe nothingWrittenError) Unwrap() error {
-	return nwe.error
+	return nwe.Err
+}
+
+func (nwe nothingWrittenError) Error() string {
+	return nwe.Err.Error()
 }
 
 func (pc *persistConn) writeLoop() {
@@ -2812,7 +2830,7 @@ func (pc *persistConn) writeLoop() {
 			startBytesWritten := pc.nwrite
 			err := wr.req.Request.write(pc.bw, pc.isProxy, wr.req.extra, pc.waitForContinue(wr.continueCh))
 			if bre, ok := err.(requestBodyReadError); ok {
-				err = bre.error
+				err = bre.Err
 				// Errors reading from the user's
 				// Request.Body are high priority.
 				// Set it here before sending on the
@@ -2827,7 +2845,7 @@ func (pc *persistConn) writeLoop() {
 			}
 			if err != nil {
 				if pc.nwrite == startBytesWritten {
-					err = nothingWrittenError{err}
+					err = newNothingWrittenError(err)
 				}
 			}
 			pc.writeErrCh <- err // to the body reader, which might recycle us
@@ -2924,7 +2942,14 @@ type writeRequest struct {
 // httpTimeoutError represents a timeout.
 // It implements net.Error and wraps context.DeadlineExceeded.
 type timeoutError struct {
+	errors.Error
 	err string
+}
+
+func newTimeoutError(msg string) *timeoutError {
+	e := &timeoutError{err: msg}
+	errors.InitCustom(&e.Error, "%s", msg)
+	return e
 }
 
 func (e *timeoutError) Error() string     { return e.err }
@@ -2932,7 +2957,7 @@ func (e *timeoutError) Timeout() bool     { return true }
 func (e *timeoutError) Temporary() bool   { return true }
 func (e *timeoutError) Is(err error) bool { return err == context.DeadlineExceeded }
 
-var errTimeout error = &timeoutError{"net/http: timeout awaiting response headers"}
+var errTimeout error = newTimeoutError("net/http: timeout awaiting response headers")
 
 // errRequestCanceled is set to be identical to the one from h2 to facilitate
 // testing.
@@ -3367,7 +3392,15 @@ func (gz *gzipReader) Close() error {
 	return gz.body.Close()
 }
 
-type tlsHandshakeTimeoutError struct{}
+type tlsHandshakeTimeoutError struct {
+	errors.Error
+}
+
+func newTLSHandshakeTimeoutError() tlsHandshakeTimeoutError {
+	e := tlsHandshakeTimeoutError{}
+	errors.InitCustom(&e.Error, "net/http: TLS handshake timeout")
+	return e
+}
 
 func (tlsHandshakeTimeoutError) Timeout() bool   { return true }
 func (tlsHandshakeTimeoutError) Temporary() bool { return true }

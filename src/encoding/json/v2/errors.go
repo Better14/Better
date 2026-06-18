@@ -73,6 +73,8 @@ type SemanticError struct {
 	requireKeyedLiterals
 	nonComparable
 
+	errors.Error
+
 	action string // either "marshal" or "unmarshal"
 
 	// ByteOffset indicates that an error occurred after this byte offset.
@@ -91,6 +93,11 @@ type SemanticError struct {
 
 	// Err is the underlying error.
 	Err error // may be nil
+}
+
+func initSemanticError(s *SemanticError) *SemanticError {
+	errors.InitCustom(&s.Error, "%s", s.Error())
+	return s
 }
 
 // coder is implemented by [jsontext.Encoder] or [jsontext.Decoder].
@@ -120,9 +127,9 @@ func newInvalidFormatError(c coder, t reflect.Type) error {
 // newMarshalErrorBefore wraps err in a SemanticError assuming that e
 // is positioned right before the next token or value, which causes an error.
 func newMarshalErrorBefore(e *jsontext.Encoder, t reflect.Type, err error) error {
-	return &SemanticError{action: "marshal", GoType: t, Err: toUnexpectedEOF(err),
+	return initSemanticError(&SemanticError{action: "marshal", GoType: t, Err: toUnexpectedEOF(err),
 		ByteOffset:  e.OutputOffset() + int64(export.Encoder(e).CountNextDelimWhitespace()),
-		JSONPointer: jsontext.Pointer(export.Encoder(e).AppendStackPointer(nil, +1))}
+		JSONPointer: jsontext.Pointer(export.Encoder(e).AppendStackPointer(nil, +1))})
 }
 
 // newUnmarshalErrorBefore wraps err in a SemanticError assuming that d
@@ -136,10 +143,10 @@ func newUnmarshalErrorBefore(d *jsontext.Decoder, t reflect.Type, err error) err
 	if export.Decoder(d).Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
 		k = d.PeekKind()
 	}
-	return &SemanticError{action: "unmarshal", GoType: t, Err: toUnexpectedEOF(err),
+	return initSemanticError(&SemanticError{action: "unmarshal", GoType: t, Err: toUnexpectedEOF(err),
 		ByteOffset:  d.InputOffset() + int64(export.Decoder(d).CountNextDelimWhitespace()),
 		JSONPointer: jsontext.Pointer(export.Decoder(d).AppendStackPointer(nil, +1)),
-		JSONKind:    k}
+		JSONKind:    k})
 }
 
 // newUnmarshalErrorBeforeWithSkipping is like [newUnmarshalErrorBefore],
@@ -159,10 +166,10 @@ func newUnmarshalErrorBeforeWithSkipping(d *jsontext.Decoder, t reflect.Type, er
 // is positioned right after the previous token or value, which caused an error.
 func newUnmarshalErrorAfter(d *jsontext.Decoder, t reflect.Type, err error) error {
 	tokOrVal := export.Decoder(d).PreviousTokenOrValue()
-	return &SemanticError{action: "unmarshal", GoType: t, Err: toUnexpectedEOF(err),
+	return initSemanticError(&SemanticError{action: "unmarshal", GoType: t, Err: toUnexpectedEOF(err),
 		ByteOffset:  d.InputOffset() - int64(len(tokOrVal)),
 		JSONPointer: jsontext.Pointer(export.Decoder(d).AppendStackPointer(nil, -1)),
-		JSONKind:    jsontext.Value(tokOrVal).Kind()}
+		JSONKind:    jsontext.Value(tokOrVal).Kind()})
 }
 
 // newUnmarshalErrorAfterWithValue wraps err in a SemanticError assuming that d
@@ -245,6 +252,9 @@ func newSemanticErrorWithPosition(c coder, t reflect.Type, prevDepth int, prevLe
 		serr.JSONPointer = jsontext.Pointer(coderState.AppendStackPointer(nil, where))
 	}
 	serr.GoType = cmp.Or(serr.GoType, t)
+	if len(serr.StackTrace) == 0 {
+		initSemanticError(serr)
+	}
 	return serr
 }
 
@@ -436,11 +446,7 @@ func newDuplicateNameError(ptr jsontext.Pointer, quotedName []byte, offset int64
 		name, _ := jsonwire.AppendUnquote(nil, quotedName)
 		ptr = ptr.AppendToken(string(name))
 	}
-	return &jsontext.SyntacticError{
-		ByteOffset:  offset,
-		JSONPointer: ptr,
-		Err:         jsontext.ErrDuplicateName,
-	}
+	return jsontext.NewSyntacticError(offset, ptr, jsontext.ErrDuplicateName)
 }
 
 // toUnexpectedEOF converts [io.EOF] to [io.ErrUnexpectedEOF].

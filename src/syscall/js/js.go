@@ -12,6 +12,7 @@
 package js
 
 import (
+	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -77,8 +78,15 @@ func floatValue(f float64) Value {
 
 // Error wraps a JavaScript error.
 type Error struct {
+	errors.Error
 	// Value is the underlying JavaScript error value.
 	Value
+}
+
+func newJSError(v Value) Error {
+	e := Error{Value: v}
+	errors.InitCustom(&e.Error, "%s", "JavaScript error: "+v.Get("message").String())
+	return e
 }
 
 // Error implements the error interface.
@@ -293,7 +301,7 @@ func (v Value) Type() Type {
 // It panics if v is not a JavaScript object.
 func (v Value) Get(p string) Value {
 	if vType := v.Type(); !vType.isObject() {
-		panic(&ValueError{"Value.Get", vType})
+		panic(newValueError("Value.Get", vType))
 	}
 	r := makeValue(valueGet(v.ref, p))
 	runtime.KeepAlive(v)
@@ -313,7 +321,7 @@ func valueGet(v ref, p string) ref
 // It panics if v is not a JavaScript object.
 func (v Value) Set(p string, x any) {
 	if vType := v.Type(); !vType.isObject() {
-		panic(&ValueError{"Value.Set", vType})
+		panic(newValueError("Value.Set", vType))
 	}
 	xv := ValueOf(x)
 	valueSet(v.ref, p, xv.ref)
@@ -334,7 +342,7 @@ func valueSet(v ref, p string, x ref)
 // It panics if v is not a JavaScript object.
 func (v Value) Delete(p string) {
 	if vType := v.Type(); !vType.isObject() {
-		panic(&ValueError{"Value.Delete", vType})
+		panic(newValueError("Value.Delete", vType))
 	}
 	valueDelete(v.ref, p)
 	runtime.KeepAlive(v)
@@ -353,7 +361,7 @@ func valueDelete(v ref, p string)
 // It panics if v is not a JavaScript object.
 func (v Value) Index(i int) Value {
 	if vType := v.Type(); !vType.isObject() {
-		panic(&ValueError{"Value.Index", vType})
+		panic(newValueError("Value.Index", vType))
 	}
 	r := makeValue(valueIndex(v.ref, i))
 	runtime.KeepAlive(v)
@@ -367,7 +375,7 @@ func valueIndex(v ref, i int) ref
 // It panics if v is not a JavaScript object.
 func (v Value) SetIndex(i int, x any) {
 	if vType := v.Type(); !vType.isObject() {
-		panic(&ValueError{"Value.SetIndex", vType})
+		panic(newValueError("Value.SetIndex", vType))
 	}
 	xv := ValueOf(x)
 	valueSetIndex(v.ref, i, xv.ref)
@@ -414,7 +422,7 @@ func storeArgs(args []any, argValsDst []Value, argRefsDst []ref) {
 // It panics if v is not a JavaScript object.
 func (v Value) Length() int {
 	if vType := v.Type(); !vType.isObject() {
-		panic(&ValueError{"Value.Length", vType})
+		panic(newValueError("Value.Length", vType))
 	}
 	r := valueLength(v.ref)
 	runtime.KeepAlive(v)
@@ -435,12 +443,12 @@ func (v Value) Call(m string, args ...any) Value {
 	runtime.KeepAlive(argVals)
 	if !ok {
 		if vType := v.Type(); !vType.isObject() { // check here to avoid overhead in success case
-			panic(&ValueError{"Value.Call", vType})
+			panic(newValueError("Value.Call", vType))
 		}
 		if propType := v.Get(m).Type(); propType != TypeFunction {
 			panic("syscall/js: Value.Call: property " + m + " is not a function, got " + propType.String())
 		}
-		panic(Error{makeValue(res)})
+		panic(newJSError(makeValue(res)))
 	}
 	return makeValue(res)
 }
@@ -468,9 +476,9 @@ func (v Value) Invoke(args ...any) Value {
 	runtime.KeepAlive(argVals)
 	if !ok {
 		if vType := v.Type(); vType != TypeFunction { // check here to avoid overhead in success case
-			panic(&ValueError{"Value.Invoke", vType})
+			panic(newValueError("Value.Invoke", vType))
 		}
-		panic(Error{makeValue(res)})
+		panic(newJSError(makeValue(res)))
 	}
 	return makeValue(res)
 }
@@ -496,9 +504,9 @@ func (v Value) New(args ...any) Value {
 	runtime.KeepAlive(argVals)
 	if !ok {
 		if vType := v.Type(); vType != TypeFunction { // check here to avoid overhead in success case
-			panic(&ValueError{"Value.New", vType})
+			panic(newValueError("Value.New", vType))
 		}
-		panic(Error{makeValue(res)})
+		panic(newJSError(makeValue(res)))
 	}
 	return makeValue(res)
 }
@@ -520,7 +528,7 @@ func (v Value) isNumber() bool {
 
 func (v Value) float(method string) float64 {
 	if !v.isNumber() {
-		panic(&ValueError{method, v.Type()})
+		panic(newValueError(method, v.Type()))
 	}
 	if v.ref == valueZero.ref {
 		return 0
@@ -549,7 +557,7 @@ func (v Value) Bool() bool {
 	case valueFalse.ref:
 		return false
 	default:
-		panic(&ValueError{"Value.Bool", v.Type()})
+		panic(newValueError("Value.Bool", v.Type()))
 	}
 }
 
@@ -636,8 +644,15 @@ func valueInstanceOf(v ref, t ref) bool
 // a Value that does not support it. Such cases are documented
 // in the description of each method.
 type ValueError struct {
+	errors.Error
 	Method string
 	Type   Type
+}
+
+func newValueError(method string, typ Type) *ValueError {
+	e := &ValueError{Method: method, Type: typ}
+	errors.InitCustom(&e.Error, "%s", "syscall/js: call of "+method+" on "+typ.String())
+	return e
 }
 
 func (e *ValueError) Error() string {

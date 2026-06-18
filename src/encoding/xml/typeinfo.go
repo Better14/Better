@@ -5,6 +5,7 @@
 package xml
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -310,7 +311,7 @@ Loop:
 		if len(oldf.idx) == len(newf.idx) {
 			f1 := typ.FieldByIndex(oldf.idx)
 			f2 := typ.FieldByIndex(newf.idx)
-			return &TagPathError{typ, f1.Name, f1.Tag.Get("xml"), f2.Name, f2.Tag.Get("xml")}
+			return newTagPathError(typ, f1.Name, f1.Tag.Get("xml"), f2.Name, f2.Tag.Get("xml"))
 		}
 	}
 
@@ -328,13 +329,24 @@ Loop:
 // A TagPathError represents an error in the unmarshaling process
 // caused by the use of field tags with conflicting paths.
 type TagPathError struct {
+	errors.Error
 	Struct       reflect.Type
 	Field1, Tag1 string
 	Field2, Tag2 string
 }
 
+func tagPathErrorMessage(structType reflect.Type, field1, tag1, field2, tag2 string) string {
+	return fmt.Sprintf("%s field %q with tag %q conflicts with field %q with tag %q", structType, field1, tag1, field2, tag2)
+}
+
+func newTagPathError(structType reflect.Type, field1, tag1, field2, tag2 string) *TagPathError {
+	te := &TagPathError{Struct: structType, Field1: field1, Tag1: tag1, Field2: field2, Tag2: tag2}
+	errors.InitCustom(&te.Error, "%s", tagPathErrorMessage(structType, field1, tag1, field2, tag2))
+	return te
+}
+
 func (e *TagPathError) Error() string {
-	return fmt.Sprintf("%s field %q with tag %q conflicts with field %q with tag %q", e.Struct, e.Field1, e.Tag1, e.Field2, e.Tag2)
+	return tagPathErrorMessage(e.Struct, e.Field1, e.Tag1, e.Field2, e.Tag2)
 }
 
 const (

@@ -63,13 +63,28 @@ func (e ErrCode) stringToken() string {
 
 // ConnectionError is an error that results in the termination of the
 // entire connection.
-type ConnectionError ErrCode
+type ConnectionError struct {
+	errors.Error
+	Code ErrCode
+}
 
-func (e ConnectionError) Error() string { return fmt.Sprintf("connection error: %s", ErrCode(e)) }
+func connectionErrorMessage(code ErrCode) string {
+	return fmt.Sprintf("connection error: %s", code)
+}
+
+// NewConnectionError returns a ConnectionError with a stack trace captured at the call site.
+func NewConnectionError(code ErrCode) ConnectionError {
+	e := ConnectionError{Code: code}
+	errors.InitCustom(&e.Error, "%s", connectionErrorMessage(code))
+	return e
+}
+
+func (e ConnectionError) Error() string { return connectionErrorMessage(e.Code) }
 
 // StreamError is an error that only affects one stream within an
 // HTTP/2 connection.
 type StreamError struct {
+	errors.Error
 	StreamID uint32
 	Code     ErrCode
 	Cause    error // optional additional detail
@@ -80,15 +95,26 @@ type StreamError struct {
 // and wasn't locally generated in the Transport.
 var errFromPeer = errors.New("received from peer")
 
+func streamErrorMessage(id uint32, code ErrCode, cause error) string {
+	if cause != nil {
+		return fmt.Sprintf("stream error: stream ID %d; %v; %v", id, code, cause)
+	}
+	return fmt.Sprintf("stream error: stream ID %d; %v", id, code)
+}
+
 func streamError(id uint32, code ErrCode) StreamError {
-	return StreamError{StreamID: id, Code: code}
+	return NewStreamError(id, code, nil)
+}
+
+// NewStreamError returns a StreamError with a stack trace captured at the call site.
+func NewStreamError(id uint32, code ErrCode, cause error) StreamError {
+	e := StreamError{StreamID: id, Code: code, Cause: cause}
+	errors.InitCustom(&e.Error, "%s", streamErrorMessage(id, code, cause))
+	return e
 }
 
 func (e StreamError) Error() string {
-	if e.Cause != nil {
-		return fmt.Sprintf("stream error: stream ID %d; %v; %v", e.StreamID, e.Code, e.Cause)
-	}
-	return fmt.Sprintf("stream error: stream ID %d; %v", e.StreamID, e.Code)
+	return streamErrorMessage(e.StreamID, e.Code, e.Cause)
 }
 
 // This As function permits converting a StreamError into a x/net/http2.StreamError.
@@ -100,20 +126,16 @@ func (e StreamError) As(target any) bool {
 	}
 	src := reflect.ValueOf(e)
 	srcType := src.Type()
-	numField := srcType.NumField()
-	if dstType.NumField() != numField {
-		return false
-	}
-	for i := range numField {
-		sf := srcType.Field(i)
+	for i := range dstType.NumField() {
 		df := dstType.Field(i)
-		if sf.Name != df.Name || !sf.Type.ConvertibleTo(df.Type) {
+		sf, ok := srcType.FieldByName(df.Name)
+		if !ok || !src.FieldByIndex(sf.Index).Type().ConvertibleTo(df.Type) {
 			return false
 		}
 	}
-	for i := range numField {
-		df := dst.Field(i)
-		df.Set(src.Field(i).Convert(df.Type()))
+	for i := range dstType.NumField() {
+		df := dstType.Field(i)
+		dst.Field(i).Set(src.FieldByName(df.Name).Convert(df.Type))
 	}
 	return true
 }
@@ -123,7 +145,15 @@ func (e StreamError) As(target any) bool {
 // window to exceed this maximum it MUST terminate either the stream
 // or the connection, as appropriate. For streams, [...]; for the
 // connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code."
-type goAwayFlowError struct{}
+type goAwayFlowError struct {
+	errors.Error
+}
+
+func newGoAwayFlowError() goAwayFlowError {
+	e := goAwayFlowError{}
+	errors.InitCustom(&e.Error, "connection exceeded flow control window size")
+	return e
+}
 
 func (goAwayFlowError) Error() string { return "connection exceeded flow control window size" }
 
@@ -135,36 +165,83 @@ func (goAwayFlowError) Error() string { return "connection exceeded flow control
 // the Reason into the Framer's errDetail field, accessible via
 // the (*Framer).ErrorDetail method.
 type connError struct {
+	errors.Error
 	Code   ErrCode // the ConnectionError error code
 	Reason string  // additional reason
 }
 
-func (e connError) Error() string {
-	return fmt.Sprintf("http2: connection error: %v: %v", e.Code, e.Reason)
+func connErrorMessage(code ErrCode, reason string) string {
+	return fmt.Sprintf("http2: connection error: %v: %v", code, reason)
 }
 
-type pseudoHeaderError string
+func newConnError(code ErrCode, reason string) connError {
+	e := connError{Code: code, Reason: reason}
+	errors.InitCustom(&e.Error, "%s", connErrorMessage(code, reason))
+	return e
+}
+
+func (e connError) Error() string {
+	return connErrorMessage(e.Code, e.Reason)
+}
+
+type pseudoHeaderError struct {
+	errors.Error
+	name string
+}
+
+func newPseudoHeaderError(name string) pseudoHeaderError {
+	e := pseudoHeaderError{name: name}
+	errors.InitCustom(&e.Error, "invalid pseudo-header %q", name)
+	return e
+}
 
 func (e pseudoHeaderError) Error() string {
-	return fmt.Sprintf("invalid pseudo-header %q", string(e))
+	return fmt.Sprintf("invalid pseudo-header %q", e.name)
 }
 
-type duplicatePseudoHeaderError string
+type duplicatePseudoHeaderError struct {
+	errors.Error
+	name string
+}
+
+func newDuplicatePseudoHeaderError(name string) duplicatePseudoHeaderError {
+	e := duplicatePseudoHeaderError{name: name}
+	errors.InitCustom(&e.Error, "duplicate pseudo-header %q", name)
+	return e
+}
 
 func (e duplicatePseudoHeaderError) Error() string {
-	return fmt.Sprintf("duplicate pseudo-header %q", string(e))
+	return fmt.Sprintf("duplicate pseudo-header %q", e.name)
 }
 
-type headerFieldNameError string
+type headerFieldNameError struct {
+	errors.Error
+	name string
+}
+
+func newHeaderFieldNameError(name string) headerFieldNameError {
+	e := headerFieldNameError{name: name}
+	errors.InitCustom(&e.Error, "invalid header field name %q", name)
+	return e
+}
 
 func (e headerFieldNameError) Error() string {
-	return fmt.Sprintf("invalid header field name %q", string(e))
+	return fmt.Sprintf("invalid header field name %q", e.name)
 }
 
-type headerFieldValueError string
+type headerFieldValueError struct {
+	errors.Error
+	name string
+}
+
+func newHeaderFieldValueError(name string) headerFieldValueError {
+	e := headerFieldValueError{name: name}
+	errors.InitCustom(&e.Error, "invalid header field value for %q", name)
+	return e
+}
 
 func (e headerFieldValueError) Error() string {
-	return fmt.Sprintf("invalid header field value for %q", string(e))
+	return fmt.Sprintf("invalid header field value for %q", e.name)
 }
 
 var (

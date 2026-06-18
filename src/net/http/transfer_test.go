@@ -291,27 +291,27 @@ func TestParseTransferEncoding(t *testing.T) {
 	}{
 		{
 			hdr:     Header{"Transfer-Encoding": {"fugazi"}},
-			wantErr: &unsupportedTEError{`unsupported transfer encoding: "fugazi"`},
+			wantErr: newUnsupportedTEError(`unsupported transfer encoding: "fugazi"`),
 		},
 		{
 			hdr:     Header{"Transfer-Encoding": {"chunked, chunked", "identity", "chunked"}},
-			wantErr: &unsupportedTEError{`too many transfer encodings: ["chunked, chunked" "identity" "chunked"]`},
+			wantErr: newUnsupportedTEError(`too many transfer encodings: ["chunked, chunked" "identity" "chunked"]`),
 		},
 		{
 			hdr:     Header{"Transfer-Encoding": {""}},
-			wantErr: &unsupportedTEError{`unsupported transfer encoding: ""`},
+			wantErr: newUnsupportedTEError(`unsupported transfer encoding: ""`),
 		},
 		{
 			hdr:     Header{"Transfer-Encoding": {"chunked, identity"}},
-			wantErr: &unsupportedTEError{`unsupported transfer encoding: "chunked, identity"`},
+			wantErr: newUnsupportedTEError(`unsupported transfer encoding: "chunked, identity"`),
 		},
 		{
 			hdr:     Header{"Transfer-Encoding": {"chunked", "identity"}},
-			wantErr: &unsupportedTEError{`too many transfer encodings: ["chunked" "identity"]`},
+			wantErr: newUnsupportedTEError(`too many transfer encodings: ["chunked" "identity"]`),
 		},
 		{
 			hdr:     Header{"Transfer-Encoding": {"\x0bchunked"}},
-			wantErr: &unsupportedTEError{`unsupported transfer encoding: "\vchunked"`},
+			wantErr: newUnsupportedTEError(`unsupported transfer encoding: "\vchunked"`),
 		},
 		{
 			hdr:     Header{"Transfer-Encoding": {"chunked"}},

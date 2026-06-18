@@ -1429,7 +1429,7 @@ func (sc *serverConn) processFrame(f Frame) error {
 	// First frame received must be SETTINGS.
 	if !sc.sawFirstSettings {
 		if _, ok := f.(*SettingsFrame); !ok {
-			return sc.countError("first_settings", ConnectionError(ErrCodeProtocol))
+			return sc.countError("first_settings", NewConnectionError(ErrCodeProtocol))
 		}
 		sc.sawFirstSettings = true
 	}
@@ -1469,7 +1469,7 @@ func (sc *serverConn) processFrame(f Frame) error {
 	case *PushPromiseFrame:
 		// A client cannot push. Thus, servers MUST treat the receipt of a PUSH_PROMISE
 		// frame as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
-		return sc.countError("push_promise", ConnectionError(ErrCodeProtocol))
+		return sc.countError("push_promise", NewConnectionError(ErrCodeProtocol))
 	case *PriorityUpdateFrame:
 		return sc.processPriorityUpdate(f)
 	default:
@@ -1496,7 +1496,7 @@ func (sc *serverConn) processPing(f *PingFrame) error {
 		// identifier field value other than 0x0, the recipient MUST
 		// respond with a connection error (Section 5.4.1) of type
 		// PROTOCOL_ERROR."
-		return sc.countError("ping_on_stream", ConnectionError(ErrCodeProtocol))
+		return sc.countError("ping_on_stream", NewConnectionError(ErrCodeProtocol))
 	}
 	sc.writeFrame(FrameWriteRequest{write: writePingAck{f}})
 	return nil
@@ -1512,7 +1512,7 @@ func (sc *serverConn) processWindowUpdate(f *WindowUpdateFrame) error {
 			// or PRIORITY on a stream in this state MUST be
 			// treated as a connection error (Section 5.4.1) of
 			// type PROTOCOL_ERROR."
-			return sc.countError("stream_idle", ConnectionError(ErrCodeProtocol))
+			return sc.countError("stream_idle", NewConnectionError(ErrCodeProtocol))
 		}
 		if st == nil {
 			// "WINDOW_UPDATE can be sent by a peer that has sent a
@@ -1527,7 +1527,7 @@ func (sc *serverConn) processWindowUpdate(f *WindowUpdateFrame) error {
 		}
 	default: // connection-level flow control
 		if !sc.flow.add(int32(f.Increment)) {
-			return goAwayFlowError{}
+			return newGoAwayFlowError()
 		}
 	}
 	sc.scheduleFrameWrite()
@@ -1544,7 +1544,7 @@ func (sc *serverConn) processResetStream(f *RSTStreamFrame) error {
 		// identifying an idle stream is received, the
 		// recipient MUST treat this as a connection error
 		// (Section 5.4.1) of type PROTOCOL_ERROR.
-		return sc.countError("reset_idle_stream", ConnectionError(ErrCodeProtocol))
+		return sc.countError("reset_idle_stream", NewConnectionError(ErrCodeProtocol))
 	}
 	if st != nil {
 		st.cancelCtx()
@@ -1609,7 +1609,7 @@ func (sc *serverConn) processSettings(f *SettingsFrame) error {
 			// Why is the peer ACKing settings we never sent?
 			// The spec doesn't mention this case, but
 			// hang up on them anyway.
-			return sc.countError("ack_mystery", ConnectionError(ErrCodeProtocol))
+			return sc.countError("ack_mystery", NewConnectionError(ErrCodeProtocol))
 		}
 		return nil
 	}
@@ -1617,7 +1617,7 @@ func (sc *serverConn) processSettings(f *SettingsFrame) error {
 		// This isn't actually in the spec, but hang up on
 		// suspiciously large settings frames or those with
 		// duplicate entries.
-		return sc.countError("settings_big_or_dups", ConnectionError(ErrCodeProtocol))
+		return sc.countError("settings_big_or_dups", NewConnectionError(ErrCodeProtocol))
 	}
 	if err := f.ForeachSetting(sc.processSetting); err != nil {
 		return err
@@ -1655,7 +1655,7 @@ func (sc *serverConn) processSetting(s Setting) error {
 		// have any impact
 	case SettingNoRFC7540Priorities:
 		if s.Val > 1 {
-			return ConnectionError(ErrCodeProtocol)
+			return NewConnectionError(ErrCodeProtocol)
 		}
 	default:
 		// Unknown setting: "An endpoint that receives a SETTINGS
@@ -1690,7 +1690,7 @@ func (sc *serverConn) processSettingInitialWindowSize(val uint32) error {
 			// control window to exceed the maximum size as a
 			// connection error (Section 5.4.1) of type
 			// FLOW_CONTROL_ERROR."
-			return sc.countError("setting_win_size", ConnectionError(ErrCodeFlowControl))
+			return sc.countError("setting_win_size", NewConnectionError(ErrCodeFlowControl))
 		}
 	}
 	return nil
@@ -1713,7 +1713,7 @@ func (sc *serverConn) processData(f *DataFrame) error {
 		// or PRIORITY on a stream in this state MUST be
 		// treated as a connection error (Section 5.4.1) of
 		// type PROTOCOL_ERROR."
-		return sc.countError("data_on_idle", ConnectionError(ErrCodeProtocol))
+		return sc.countError("data_on_idle", NewConnectionError(ErrCodeProtocol))
 	}
 
 	// "If a DATA frame is received whose stream is not in "open"
@@ -1852,11 +1852,11 @@ func (st *stream) onReadTimeout() {
 // onWriteTimeout is run on its own goroutine (from time.AfterFunc)
 // when the stream's WriteTimeout has fired.
 func (st *stream) onWriteTimeout() {
-	st.sc.writeFrameFromHandler(FrameWriteRequest{write: StreamError{
-		StreamID: st.id,
-		Code:     ErrCodeInternal,
-		Cause:    os.ErrDeadlineExceeded,
-	}})
+	st.sc.writeFrameFromHandler(FrameWriteRequest{write: NewStreamError(
+		st.id,
+		ErrCodeInternal,
+		os.ErrDeadlineExceeded,
+	)})
 }
 
 func (sc *serverConn) processHeaders(f *MetaHeadersFrame) error {
@@ -1868,7 +1868,7 @@ func (sc *serverConn) processHeaders(f *MetaHeadersFrame) error {
 	// stream identifier MUST respond with a connection error
 	// (Section 5.4.1) of type PROTOCOL_ERROR.
 	if id%2 != 1 {
-		return sc.countError("headers_even", ConnectionError(ErrCodeProtocol))
+		return sc.countError("headers_even", NewConnectionError(ErrCodeProtocol))
 	}
 	// A HEADERS frame can be used to create a new stream or
 	// send a trailer for an open one. If we already have a stream
@@ -1896,7 +1896,7 @@ func (sc *serverConn) processHeaders(f *MetaHeadersFrame) error {
 	// receives an unexpected stream identifier MUST respond with
 	// a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
 	if id <= sc.maxClientStreamID {
-		return sc.countError("stream_went_down", ConnectionError(ErrCodeProtocol))
+		return sc.countError("stream_went_down", NewConnectionError(ErrCodeProtocol))
 	}
 	sc.maxClientStreamID = id
 
@@ -2020,7 +2020,7 @@ func (st *stream) processTrailerHeaders(f *MetaHeadersFrame) error {
 	sc := st.sc
 	sc.serveG.check()
 	if st.gotTrailerHeader {
-		return sc.countError("dup_trailers", ConnectionError(ErrCodeProtocol))
+		return sc.countError("dup_trailers", NewConnectionError(ErrCodeProtocol))
 	}
 	st.gotTrailerHeader = true
 	if !f.StreamEnded() {
@@ -2257,7 +2257,7 @@ func (sc *serverConn) scheduleHandler(streamID uint32, rw *responseWriter, req *
 		return nil
 	}
 	if len(sc.unstartedHandlers) > int(4*sc.advMaxStreams) {
-		return sc.countError("too_many_early_resets", ConnectionError(ErrCodeEnhanceYourCalm))
+		return sc.countError("too_many_early_resets", NewConnectionError(ErrCodeEnhanceYourCalm))
 	}
 	sc.unstartedHandlers = append(sc.unstartedHandlers, unstartedHandler{
 		streamID: streamID,

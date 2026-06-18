@@ -1036,7 +1036,7 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 	}
 
 	if !http1ServerSupportsRequest(req) {
-		return nil, statusError{StatusHTTPVersionNotSupported, "unsupported protocol version"}
+		return nil, newStatusError(StatusHTTPVersionNotSupported, "unsupported protocol version")
 	}
 
 	c.lastMethod = req.Method
@@ -1881,13 +1881,20 @@ func (c *conn) getState() (state ConnState, unixSec int64) {
 // badRequestError is a literal string (used by in the server in HTML,
 // unescaped) to tell the user why their request was bad. It should
 // be plain text without user info or other embedded errors.
-func badRequestError(e string) error { return statusError{StatusBadRequest, e} }
+func badRequestError(e string) error { return newStatusError(StatusBadRequest, e) }
 
 // statusError is an error used to respond to a request with an HTTP status.
 // The text should be plain text without user info or other embedded errors.
 type statusError struct {
+	errors.Error
 	code int
 	text string
+}
+
+func newStatusError(code int, text string) statusError {
+	e := statusError{code: code, text: text}
+	errors.InitCustom(&e.Error, "%s", StatusText(code)+": "+text)
+	return e
 }
 
 func (e statusError) Error() string { return StatusText(e.code) + ": " + e.text }

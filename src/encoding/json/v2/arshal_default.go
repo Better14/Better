@@ -224,7 +224,7 @@ func makeStringArshaler(t reflect.Type) *arshaler {
 		if mo.Flags.Get(jsonflags.StringifyBoolsAndStrings) {
 			b, err := jsonwire.AppendQuote(nil, []byte(s), &mo.Flags)
 			if err != nil {
-				return newMarshalErrorBefore(enc, t, &jsontext.SyntacticError{Err: err})
+				return newMarshalErrorBefore(enc, t, jsontext.NewSyntacticError(0, "", err))
 			}
 			q, err := jsontext.AppendQuote(nil, b)
 			if err != nil {
