@@ -421,7 +421,7 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 		return nil, nil, InvalidUntypedConversion
 	}
 
-	if x.isNil() {
+	if isTypes2 && x.isNil() {
 		assert(isUntyped(x.typ()))
 		if hasNil(target) {
 			return target, nil, 0

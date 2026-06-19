@@ -474,6 +474,9 @@ func (v Value) append(dst []byte) []byte {
 	case KindGroup:
 		return fmt.Append(dst, v.group())
 	case KindAny, KindLogValuer:
+		if err, ok := v.any.(error); ok {
+			return append(dst, err.Error()...)
+		}
 		return fmt.Append(dst, v.any)
 	default:
 		panic(fmt.Sprintf("bad kind: %s", v.Kind()))

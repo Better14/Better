@@ -100,6 +100,10 @@ func appendTextValue(s *handleState, v Value) error {
 	case KindTime:
 		s.appendTime(v.time())
 	case KindAny:
+		if err, ok := v.any.(error); ok {
+			s.appendString(err.Error())
+			return nil
+		}
 		if tm, ok := v.any.(encoding.TextMarshaler); ok {
 			data, err := tm.MarshalText()
 			if err != nil {
