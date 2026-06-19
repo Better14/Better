@@ -13,6 +13,26 @@ import (
 	. "internal/types/errors"
 )
 
+// typeOperandsComplete reports whether t is complete enough for index checking
+// to call Underlying on t without panicking.
+func (check *Checker) typeOperandsComplete(t Type) bool {
+	switch t := Unalias(t).(type) {
+	case *Named:
+		if i, found := check.objPathIdx[t.obj]; found {
+			cycle := check.objPath[i:]
+			check.cycleError(cycle, firstInSrc(cycle))
+			return false
+		}
+		if t.fromRHS == nil {
+			return false
+		}
+		return check.typeOperandsComplete(t.fromRHS)
+	case *Pointer:
+		return check.typeOperandsComplete(t.base)
+	}
+	return true
+}
+
 // supportsBuiltinIndex reports whether typ supports ordinary Go index syntax.
 func supportsBuiltinIndex(typ Type) bool {
 	switch typ.Underlying().(type) {
@@ -63,23 +83,16 @@ func (check *Checker) indexExpr(x *operand, e *indexedExpr) (isFuncInst bool) {
 		return false
 	}
 
+	if !check.typeOperandsComplete(x.typ()) {
+		x.invalidate()
+		return false
+	}
+
 	if (x.mode() == value || x.mode() == variable) && !supportsBuiltinIndex(x.typ()) && check.tryIndexOperatorOverload(x, e, x) {
 		return false
 	}
 
-	// We cannot index on an incomplete type; make sure it's complete.
-	if !check.isComplete(x.typ()) {
-		x.invalidate()
-		return false
-	}
 	switch typ := x.typ().Underlying().(type) {
-	case *Pointer:
-		// Additionally, if x.typ is a pointer to an array type, indexing implicitly dereferences the value, meaning
-		// its base type must also be complete.
-		if !check.isComplete(typ.base) {
-			x.invalidate()
-			return false
-		}
 	case *Map:
 		// Lastly, if x.typ is a map type, indexing must produce a value of a complete type, meaning
 		// its element type must also be complete.

@@ -19,17 +19,17 @@ func f() {
 				time.Sleep(1e8)
 				m.Lock()
 				defer
-				if /* ERROR "expected ';', found 'if'" */ percent == 100 {
-					m.Unlock()
-					break
+				if percent == 100 {
+					m.Unlock() /* ERROR AFTER "expected '}', found newline" */
+					break /* ERROR "expected ';', found 'break'" */
 				}
 				percent++
 				if percent % step == 0 {
 					//c.Signal()
 				}
 				m.Unlock()
-			}
-		}()
+			} /* ERROR HERE "expression in go must be function call" */
+		} ( /* ERROR "expected ';', found ." */ )
 	}
 	for {
 		m.Lock()

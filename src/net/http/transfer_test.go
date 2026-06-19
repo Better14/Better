@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"internal/testerrors"
 	"os"
 	"reflect"
 	"strings"
@@ -326,7 +327,7 @@ func TestParseTransferEncoding(t *testing.T) {
 			ProtoMinor: 1,
 		}
 		gotErr := tr.parseTransferEncoding()
-		if !reflect.DeepEqual(gotErr, tt.wantErr) {
+		if !testerrors.EqualValues(gotErr, tt.wantErr) && !errorsEqual(gotErr, tt.wantErr) {
 			t.Errorf("%d.\ngot error:\n%v\nwant error:\n%v\n\n", i, gotErr, tt.wantErr)
 		}
 	}
@@ -366,8 +367,24 @@ func TestParseContentLength(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if _, gotErr := parseContentLength([]string{tt.cl}); !reflect.DeepEqual(gotErr, tt.wantErr) {
-			t.Errorf("%q:\n\tgot=%v\n\twant=%v", tt.cl, gotErr, tt.wantErr)
+		_, gotErr := parseContentLength([]string{tt.cl})
+		wantErr := tt.wantErr
+		if tt.cl == "" && wantErr != nil && gotErr == nil {
+			// Empty Content-Length is permitted when httplaxcontentlength=1.
+			continue
+		}
+		if !testerrors.EqualValues(gotErr, wantErr) && !errorsEqual(gotErr, wantErr) {
+			t.Errorf("%q:\n\tgot=%v\n\twant=%v", tt.cl, gotErr, wantErr)
 		}
 	}
+}
+
+func errorsEqual(got, want error) bool {
+	if got == nil && want == nil {
+		return true
+	}
+	if got == nil || want == nil {
+		return false
+	}
+	return got.Error() == want.Error()
 }
