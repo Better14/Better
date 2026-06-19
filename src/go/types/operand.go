@@ -312,7 +312,10 @@ func (x *operand) setConst(k token.Token, lit string) {
 
 // isNil reports whether x is the (untyped) nil value.
 func (x *operand) isNil() bool {
-	return x.mode() == nilvalue
+	if isTypes2 {
+		return x.mode() == nilvalue
+	}
+	return x.mode() == value && x.typ() == Typ[UntypedNil]
 }
 
 // assignableTo reports whether x is assignable to a variable of type T. If the

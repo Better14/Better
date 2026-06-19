@@ -880,6 +880,24 @@ var depsRules = `
 
 	FMT
 	< math/big/internal/asmgen;
+
+	# Fork stdlib extensions
+	cmp, iter, slices, math/rand
+	< list, maxheap, minheap, set, tree;
+
+	list, maxheap, minheap, set, tree
+	< linq;
+
+	< person;
+
+	person
+	< personext;
+
+	errors, reflect
+	< internal/testerrors;
+
+	internal/testerrors
+	< encoding/csv, encoding/json, encoding/xml, net, net/http/internal/http2;
 `
 
 // listStdPkgs returns the same list of packages as "go list std".

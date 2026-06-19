@@ -325,7 +325,8 @@ type BadPathEmbeddedB struct {
 }
 
 var badPathTests = []struct {
-	v, e any
+	v any
+	e error
 }{
 	{&BadPathTestA{}, &TagPathError{Struct: reflect.TypeFor[BadPathTestA](), Field1: "First", Tag1: "items>item1", Field2: "Second", Tag2: "items"}},
 	{&BadPathTestB{}, &TagPathError{Struct: reflect.TypeFor[BadPathTestB](), Field1: "First", Tag1: "items>item1", Field2: "Second", Tag2: "items>item1>value"}},

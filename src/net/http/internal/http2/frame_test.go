@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"internal/testerrors"
 	"io"
 	"reflect"
 	"strings"
@@ -1296,7 +1297,7 @@ func TestMetaFrameHeader(t *testing.T) {
 				got = se
 			}
 		}
-		if !reflect.DeepEqual(got, tt.want) {
+		if !reflect.DeepEqual(got, tt.want) && !errorsEqual(got, tt.want) {
 			if mhg, ok := got.(*MetaHeadersFrame); ok {
 				if mhw, ok := tt.want.(*MetaHeadersFrame); ok {
 					hg := mhg.HeadersFrame
@@ -1609,4 +1610,22 @@ func TestTypeFrameParserHolePanic(t *testing.T) {
 	if _, ok := f.(*UnknownFrame); !ok {
 		t.Errorf("got %T; want *UnknownFrame", f)
 	}
+}
+
+func errorsEqual(got, want any) bool {
+	ge, ok1 := got.(error)
+	we, ok2 := want.(error)
+	if !ok1 || !ok2 {
+		return false
+	}
+	if ge == nil && we == nil {
+		return true
+	}
+	if ge == nil || we == nil {
+		return false
+	}
+	if ge.Error() == we.Error() {
+		return true
+	}
+	return testerrors.EqualValues(ge, we)
 }

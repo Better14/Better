@@ -16,7 +16,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -43,7 +42,7 @@ func vetPath(t testing.TB) string {
 }
 
 func vetCmd(t *testing.T, arg, pkg string) *exec.Cmd {
-	cmd := testenv.Command(t, testenv.GoToolPath(t), "vet", "-vettool="+vetPath(t), arg, path.Join("cmd/vet/testdata", pkg))
+	cmd := testenv.Command(t, testenv.GoToolPath(t), "vet", "-vettool="+vetPath(t), arg, filepath.Join("testdata", pkg))
 	cmd.Env = os.Environ()
 	return cmd
 }
