@@ -1569,6 +1569,7 @@ func TestReadFrameHeaderBadFrameOrder(t *testing.T) {
 		t.Fatalf("ReadFrameForHeader failed: %v", err)
 	}
 
+	_, err = fr.ReadFrameHeader()
 	var ce ConnectionError
 	if !errors.As(err, &ce) || ce.Code != ErrCodeProtocol {
 		t.Fatalf("ReadFrameHeader returned error %v; want ConnectionError(ErrCodeProtocol)", err)

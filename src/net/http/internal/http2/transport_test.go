@@ -16,6 +16,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"internal/testerrors"
 	"log"
 	"math/rand"
 	"net"
@@ -1135,7 +1136,7 @@ func testInvalidTrailerBubble(t testing.TB, mode headerType, wantErr error, trai
 	rt.wantStatus(200)
 	body, err := rt.readBody()
 	se, ok := err.(StreamError)
-	if !ok || se.Cause != wantErr {
+	if !ok || !streamCauseEqual(se.Cause, wantErr) {
 		t.Fatalf("res.Body ReadAll error = %q, %#v; want StreamError with cause %T, %#v", body, err, wantErr, wantErr)
 	}
 	if len(body) > 0 {
@@ -2210,7 +2211,7 @@ func testTransportUsesGoAwayDebugError(t testing.TB, failMidBody bool) {
 		ErrCode:      goAwayErrCode,
 		DebugData:    goAwayDebugData,
 	}
-	if !reflect.DeepEqual(err, want) {
+	if !testerrors.EqualValues(err, want) {
 		t.Errorf("%v error = %T: %#v, want %T (%#v)", whence, err, err, want, want)
 	}
 }
@@ -2433,7 +2434,7 @@ func testTransportReturnsErrorOnBadResponseHeaders(t testing.TB) {
 
 	err := rt.err()
 	want := NewStreamError(1, ErrCodeProtocol, NewHeaderFieldNameError("  content-type"))
-	if !reflect.DeepEqual(err, want) {
+	if !testerrors.EqualValues(err, want) {
 		t.Fatalf("RoundTrip error = %#v; want %#v", err, want)
 	}
 
@@ -5537,4 +5538,17 @@ func testExtendedConnectReadFrameError(t testing.TB) {
 	if rt.err() == nil {
 		t.Fatalf("after connection closed: RoundTrip succeeded; want error")
 	}
+}
+
+func streamCauseEqual(got, want error) bool {
+	if got == nil && want == nil {
+		return true
+	}
+	if got == nil || want == nil {
+		return false
+	}
+	if got.Error() == want.Error() {
+		return true
+	}
+	return testerrors.EqualValues(got, want)
 }

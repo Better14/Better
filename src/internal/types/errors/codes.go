@@ -337,12 +337,13 @@ const (
 	DuplicateFieldAndMethod
 
 	// DuplicateMethod occurs when two methods on the same receiver type have
-	// the same name.
+	// the same name and signature. Method overloading with different signatures
+	// is permitted in this fork.
 	//
-	// Example:
+	// For example, duplicate methods:
 	//  type T struct {}
 	//  func (T) m() {}
-	//  func (T) m(i int) int { return i }
+	//  func (T) m() {}
 	DuplicateMethod
 
 	// InvalidBlank occurs when a blank identifier is used as a value or type.

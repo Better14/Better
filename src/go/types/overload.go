@@ -139,9 +139,6 @@ func (check *Checker) assignOverloadSuffixes() {
 	for name, cands := range check.overloadFuncs {
 		check.checkOverloadDuplicates(name, cands, "function")
 	}
-	for key, cands := range check.overloadMeths {
-		check.checkOverloadDuplicates(key.name, cands, "method")
-	}
 
 	check.buildCheckerIndexes()
 

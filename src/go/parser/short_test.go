@@ -41,7 +41,7 @@ var valids = []string{
 	`package p; func _(x []int) { for range x {} }`,
 	`package p; func _() { if [T{}.n]int{} {} }`,
 	`package p; func _() { map[int]int{}[0]++; map[int]int{}[0] += 1 }`,
-	`package p; func _(x interface{f()}) { interface{f()}(x).f() }`,
+	`package p; func _(x interface{f()}) { x.(interface{f()}).f() }`,
 	`package p; func _(x chan int) { chan int(x) <- 0 }`,
 	`package p; const (x = 0; y; z)`, // go.dev/issue/9639
 	`package p; var _ = map[P]int{P{}:0, {}:1}`,
