@@ -5532,7 +5532,7 @@ func rewriteValue386_Op386MULLconst(v *Value) bool {
 	for {
 		c := auxIntToInt32(v.AuxInt)
 		x := v_0
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(Op386SHLLconst)
@@ -5548,7 +5548,7 @@ func rewriteValue386_Op386MULLconst(v *Value) bool {
 	for {
 		c := auxIntToInt32(v.AuxInt)
 		x := v_0
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(Op386SHLLconst)
@@ -5564,7 +5564,7 @@ func rewriteValue386_Op386MULLconst(v *Value) bool {
 	for {
 		c := auxIntToInt32(v.AuxInt)
 		x := v_0
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(Op386SHLLconst)
@@ -9238,11 +9238,11 @@ func rewriteValue386_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(s > 8 && s%4 != 0) {
+		if !(s > 8 && s % 4 != 0) {
 			break
 		}
 		v.reset(OpMove)
-		v.AuxInt = int64ToAuxInt(s - s%4)
+		v.AuxInt = int64ToAuxInt(s - s % 4)
 		v0 := b.NewValue0(v.Pos, Op386ADDLconst, dst.Type)
 		v0.AuxInt = int32ToAuxInt(int32(s % 4))
 		v0.AddArg(dst)
@@ -9264,7 +9264,7 @@ func rewriteValue386_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(s > 8 && s <= 4*128 && s%4 == 0 && logLargeCopy(v, s)) {
+		if !(s > 8 && s <= 4*128 && s % 4 == 0 && logLargeCopy(v, s)) {
 			break
 		}
 		v.reset(Op386DUFFCOPY)
@@ -9280,7 +9280,7 @@ func rewriteValue386_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(s > 4*128 && s%4 == 0 && logLargeCopy(v, s)) {
+		if !(s > 4*128 && s % 4 == 0 && logLargeCopy(v, s)) {
 			break
 		}
 		v.reset(Op386REPMOVSL)
@@ -10728,11 +10728,11 @@ func rewriteValue386_OpZero(v *Value) bool {
 		s := auxIntToInt64(v.AuxInt)
 		destptr := v_0
 		mem := v_1
-		if !(s%4 != 0 && s > 4) {
+		if !(s % 4 != 0 && s > 4) {
 			break
 		}
 		v.reset(OpZero)
-		v.AuxInt = int64ToAuxInt(s - s%4)
+		v.AuxInt = int64ToAuxInt(s - s % 4)
 		v0 := b.NewValue0(v.Pos, Op386ADDLconst, typ.UInt32)
 		v0.AuxInt = int32ToAuxInt(int32(s % 4))
 		v0.AddArg(destptr)
@@ -10806,7 +10806,7 @@ func rewriteValue386_OpZero(v *Value) bool {
 		s := auxIntToInt64(v.AuxInt)
 		destptr := v_0
 		mem := v_1
-		if !(s > 16 && s <= 4*128 && s%4 == 0) {
+		if !(s > 16 && s <= 4*128 && s % 4 == 0) {
 			break
 		}
 		v.reset(Op386DUFFZERO)
@@ -10823,7 +10823,7 @@ func rewriteValue386_OpZero(v *Value) bool {
 		s := auxIntToInt64(v.AuxInt)
 		destptr := v_0
 		mem := v_1
-		if !(s > 4*128 && s%4 == 0) {
+		if !(s > 4*128 && s % 4 == 0) {
 			break
 		}
 		v.reset(Op386REPSTOSL)

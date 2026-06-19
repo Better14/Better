@@ -6795,7 +6795,7 @@ func rewriteValuePPC64_OpPPC64ISEL(v *Value) bool {
 			break
 		}
 		bool := v_2.Args[0]
-		if !(n%4 == 0) {
+		if !(n % 4 == 0) {
 			break
 		}
 		v.reset(OpPPC64ISEL)
@@ -6814,7 +6814,7 @@ func rewriteValuePPC64_OpPPC64ISEL(v *Value) bool {
 			break
 		}
 		bool := v_2.Args[0]
-		if !(n%4 == 1) {
+		if !(n % 4 == 1) {
 			break
 		}
 		v.reset(OpPPC64ISEL)
@@ -6833,7 +6833,7 @@ func rewriteValuePPC64_OpPPC64ISEL(v *Value) bool {
 			break
 		}
 		bool := v_2.Args[0]
-		if !(n%4 == 2) {
+		if !(n % 4 == 2) {
 			break
 		}
 		v.reset(OpPPC64ISEL)
@@ -8573,7 +8573,7 @@ func rewriteValuePPC64_OpPPC64MOVDloadidx(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		mem := v_2
-		if !((is16Bit(c) && c%4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
+		if !((is16Bit(c) && c % 4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
 			break
 		}
 		v.reset(OpPPC64MOVDload)
@@ -8591,7 +8591,7 @@ func rewriteValuePPC64_OpPPC64MOVDloadidx(v *Value) bool {
 		c := auxIntToInt64(v_0.AuxInt)
 		ptr := v_1
 		mem := v_2
-		if !((is16Bit(c) && c%4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
+		if !((is16Bit(c) && c % 4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
 			break
 		}
 		v.reset(OpPPC64MOVDload)
@@ -8769,7 +8769,7 @@ func rewriteValuePPC64_OpPPC64MOVDstoreidx(v *Value) bool {
 		c := auxIntToInt64(v_1.AuxInt)
 		val := v_2
 		mem := v_3
-		if !((is16Bit(c) && c%4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
+		if !((is16Bit(c) && c % 4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
 			break
 		}
 		v.reset(OpPPC64MOVDstore)
@@ -8788,7 +8788,7 @@ func rewriteValuePPC64_OpPPC64MOVDstoreidx(v *Value) bool {
 		ptr := v_1
 		val := v_2
 		mem := v_3
-		if !((is16Bit(c) && c%4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
+		if !((is16Bit(c) && c % 4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
 			break
 		}
 		v.reset(OpPPC64MOVDstore)
@@ -10919,7 +10919,7 @@ func rewriteValuePPC64_OpPPC64MOVWloadidx(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		mem := v_2
-		if !((is16Bit(c) && c%4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
+		if !((is16Bit(c) && c % 4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
 			break
 		}
 		v.reset(OpPPC64MOVWload)
@@ -10937,7 +10937,7 @@ func rewriteValuePPC64_OpPPC64MOVWloadidx(v *Value) bool {
 		c := auxIntToInt64(v_0.AuxInt)
 		ptr := v_1
 		mem := v_2
-		if !((is16Bit(c) && c%4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
+		if !((is16Bit(c) && c % 4 == 0) || (buildcfg.GOPPC64 >= 10 && is32Bit(c))) {
 			break
 		}
 		v.reset(OpPPC64MOVWload)

@@ -7255,7 +7255,7 @@ func rewriteValueARM_OpARMMUL(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt32(v_1.AuxInt)
-			if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+			if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 				continue
 			}
 			v.reset(OpARMSLLconst)
@@ -7278,7 +7278,7 @@ func rewriteValueARM_OpARMMUL(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt32(v_1.AuxInt)
-			if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+			if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 				continue
 			}
 			v.reset(OpARMSLLconst)
@@ -7301,7 +7301,7 @@ func rewriteValueARM_OpARMMUL(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt32(v_1.AuxInt)
-			if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+			if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 				continue
 			}
 			v.reset(OpARMSLLconst)
@@ -7324,7 +7324,7 @@ func rewriteValueARM_OpARMMUL(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt32(v_1.AuxInt)
-			if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+			if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 				continue
 			}
 			v.reset(OpARMSLLconst)
@@ -7471,7 +7471,7 @@ func rewriteValueARM_OpARMMULA(v *Value) bool {
 		}
 		c := auxIntToInt32(v_1.AuxInt)
 		a := v_2
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(OpARMADD)
@@ -7494,7 +7494,7 @@ func rewriteValueARM_OpARMMULA(v *Value) bool {
 		}
 		c := auxIntToInt32(v_1.AuxInt)
 		a := v_2
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(OpARMADD)
@@ -7517,7 +7517,7 @@ func rewriteValueARM_OpARMMULA(v *Value) bool {
 		}
 		c := auxIntToInt32(v_1.AuxInt)
 		a := v_2
-		if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 			break
 		}
 		v.reset(OpARMADD)
@@ -7540,7 +7540,7 @@ func rewriteValueARM_OpARMMULA(v *Value) bool {
 		}
 		c := auxIntToInt32(v_1.AuxInt)
 		a := v_2
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(OpARMADD)
@@ -7662,7 +7662,7 @@ func rewriteValueARM_OpARMMULA(v *Value) bool {
 		c := auxIntToInt32(v_0.AuxInt)
 		x := v_1
 		a := v_2
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(OpARMADD)
@@ -7685,7 +7685,7 @@ func rewriteValueARM_OpARMMULA(v *Value) bool {
 		c := auxIntToInt32(v_0.AuxInt)
 		x := v_1
 		a := v_2
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(OpARMADD)
@@ -7708,7 +7708,7 @@ func rewriteValueARM_OpARMMULA(v *Value) bool {
 		c := auxIntToInt32(v_0.AuxInt)
 		x := v_1
 		a := v_2
-		if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 			break
 		}
 		v.reset(OpARMADD)
@@ -7731,7 +7731,7 @@ func rewriteValueARM_OpARMMULA(v *Value) bool {
 		c := auxIntToInt32(v_0.AuxInt)
 		x := v_1
 		a := v_2
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(OpARMADD)
@@ -7925,7 +7925,7 @@ func rewriteValueARM_OpARMMULS(v *Value) bool {
 		}
 		c := auxIntToInt32(v_1.AuxInt)
 		a := v_2
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(OpARMRSB)
@@ -7948,7 +7948,7 @@ func rewriteValueARM_OpARMMULS(v *Value) bool {
 		}
 		c := auxIntToInt32(v_1.AuxInt)
 		a := v_2
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(OpARMRSB)
@@ -7971,7 +7971,7 @@ func rewriteValueARM_OpARMMULS(v *Value) bool {
 		}
 		c := auxIntToInt32(v_1.AuxInt)
 		a := v_2
-		if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 			break
 		}
 		v.reset(OpARMRSB)
@@ -7994,7 +7994,7 @@ func rewriteValueARM_OpARMMULS(v *Value) bool {
 		}
 		c := auxIntToInt32(v_1.AuxInt)
 		a := v_2
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(OpARMRSB)
@@ -8116,7 +8116,7 @@ func rewriteValueARM_OpARMMULS(v *Value) bool {
 		c := auxIntToInt32(v_0.AuxInt)
 		x := v_1
 		a := v_2
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(OpARMRSB)
@@ -8139,7 +8139,7 @@ func rewriteValueARM_OpARMMULS(v *Value) bool {
 		c := auxIntToInt32(v_0.AuxInt)
 		x := v_1
 		a := v_2
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(OpARMRSB)
@@ -8162,7 +8162,7 @@ func rewriteValueARM_OpARMMULS(v *Value) bool {
 		c := auxIntToInt32(v_0.AuxInt)
 		x := v_1
 		a := v_2
-		if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 			break
 		}
 		v.reset(OpARMRSB)
@@ -8185,7 +8185,7 @@ func rewriteValueARM_OpARMMULS(v *Value) bool {
 		c := auxIntToInt32(v_0.AuxInt)
 		x := v_1
 		a := v_2
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(OpARMRSB)
@@ -14759,7 +14759,7 @@ func rewriteValueARM_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpARMMOVHstore)
@@ -14800,7 +14800,7 @@ func rewriteValueARM_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%4 == 0) {
+		if !(t.Alignment() % 4 == 0) {
 			break
 		}
 		v.reset(OpARMMOVWstore)
@@ -14820,7 +14820,7 @@ func rewriteValueARM_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpARMMOVHstore)
@@ -14904,7 +14904,7 @@ func rewriteValueARM_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(s%4 == 0 && s > 4 && s <= 512 && t.Alignment()%4 == 0 && logLargeCopy(v, s)) {
+		if !(s % 4 == 0 && s > 4 && s <= 512 && t.Alignment() % 4 == 0 && logLargeCopy(v, s)) {
 			break
 		}
 		v.reset(OpARMDUFFCOPY)
@@ -14921,7 +14921,7 @@ func rewriteValueARM_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !((s > 512 || t.Alignment()%4 != 0) && logLargeCopy(v, s)) {
+		if !((s > 512 || t.Alignment() % 4 != 0) && logLargeCopy(v, s)) {
 			break
 		}
 		v.reset(OpARMLoweredMove)
@@ -16093,7 +16093,7 @@ func rewriteValueARM_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpARMMOVHstore)
@@ -16130,7 +16130,7 @@ func rewriteValueARM_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%4 == 0) {
+		if !(t.Alignment() % 4 == 0) {
 			break
 		}
 		v.reset(OpARMMOVWstore)
@@ -16149,7 +16149,7 @@ func rewriteValueARM_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpARMMOVHstore)
@@ -16215,7 +16215,7 @@ func rewriteValueARM_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(s%4 == 0 && s > 4 && s <= 512 && t.Alignment()%4 == 0) {
+		if !(s % 4 == 0 && s > 4 && s <= 512 && t.Alignment() % 4 == 0) {
 			break
 		}
 		v.reset(OpARMDUFFZERO)
@@ -16233,7 +16233,7 @@ func rewriteValueARM_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(s > 512 || t.Alignment()%4 != 0) {
+		if !(s > 512 || t.Alignment() % 4 != 0) {
 			break
 		}
 		v.reset(OpARMLoweredZero)

@@ -4,6 +4,5 @@
 
 package p
 
-func (x string) /* ERROR syntax error: unexpected \[, expected name */ []byte {
-        return []byte(x)
+func (x string) [] /* ERROR unexpected name byte, expected \( */ byte /* ERROR unexpected \{, expected \) */ {
 }

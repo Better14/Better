@@ -152,7 +152,7 @@ func (c *Cache) freeSparseMapPos(s *sparseMapPos) {
 func (c *Cache) allocBlockSlice(n int) []*Block {
 	var base *Value
 	var derived *Block
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
@@ -178,7 +178,7 @@ func (c *Cache) freeBlockSlice(s []*Block) {
 func (c *Cache) allocInt64(n int) []int64 {
 	var base limit
 	var derived int64
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
@@ -204,7 +204,7 @@ func (c *Cache) freeInt64(s []int64) {
 func (c *Cache) allocIntSlice(n int) []int {
 	var base limit
 	var derived int
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
@@ -230,7 +230,7 @@ func (c *Cache) freeIntSlice(s []int) {
 func (c *Cache) allocInt32Slice(n int) []int32 {
 	var base limit
 	var derived int32
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
@@ -256,7 +256,7 @@ func (c *Cache) freeInt32Slice(s []int32) {
 func (c *Cache) allocInt8Slice(n int) []int8 {
 	var base limit
 	var derived int8
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
@@ -282,7 +282,7 @@ func (c *Cache) freeInt8Slice(s []int8) {
 func (c *Cache) allocBoolSlice(n int) []bool {
 	var base limit
 	var derived bool
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
@@ -308,7 +308,7 @@ func (c *Cache) freeBoolSlice(s []bool) {
 func (c *Cache) allocIDSlice(n int) []ID {
 	var base limit
 	var derived ID
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
@@ -334,7 +334,7 @@ func (c *Cache) freeIDSlice(s []ID) {
 func (c *Cache) allocUintSlice(n int) []uint {
 	var base limit
 	var derived uint
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
@@ -360,7 +360,7 @@ func (c *Cache) freeUintSlice(s []uint) {
 func (c *Cache) allocKnownBitsEntriesSlice(n int) []knownBitsEntry {
 	var base limit
 	var derived knownBitsEntry
-	if unsafe.Sizeof(base)%unsafe.Sizeof(derived) != 0 {
+	if unsafe.Sizeof(base) % unsafe.Sizeof(derived) != 0 {
 		panic("bad")
 	}
 	scale := unsafe.Sizeof(base) / unsafe.Sizeof(derived)
