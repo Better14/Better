@@ -110,7 +110,7 @@ import (
 // Error is returned by [LookPath] when it fails to classify a file as an
 // executable.
 type Error struct {
-	errors.Layer
+	errors.Info
 	// Name is the file name for which the error occurred.
 	Name string
 	// Err is the underlying error.
@@ -124,7 +124,7 @@ func execErrorMessage(name string, err error) string {
 // NewError returns an Error with a stack trace captured at the call site.
 func NewError(name string, err error) *Error {
 	e := &Error{Name: name, Err: err}
-	errors.InitCustom(&e.Layer, "%s", execErrorMessage(name, err))
+	errors.InitCustom(&e.Info, "%s", execErrorMessage(name, err))
 	return e
 }
 
@@ -141,7 +141,7 @@ var ErrWaitDelay = errors.New("exec: WaitDelay expired before I/O complete")
 
 // wrappedError wraps an error without relying on fmt.Errorf.
 type wrappedError struct {
-	errors.Layer
+	errors.Info
 	prefix string
 	err    error
 }
@@ -152,7 +152,7 @@ func wrappedErrorMessage(prefix string, err error) string {
 
 func newWrappedError(prefix string, err error) wrappedError {
 	w := wrappedError{prefix: prefix, err: err}
-	errors.InitCustom(&w.Layer, "%s", wrappedErrorMessage(prefix, err))
+	errors.InitCustom(&w.Info, "%s", wrappedErrorMessage(prefix, err))
 	return w
 }
 
@@ -911,7 +911,7 @@ func (c *Cmd) watchCtx(resultc chan<- ctxResult) {
 
 // An ExitError reports an unsuccessful exit by a command.
 type ExitError struct {
-	errors.Layer
+	errors.Info
 	*os.ProcessState
 
 	// Stderr holds a subset of the standard error output from the
@@ -929,7 +929,7 @@ type ExitError struct {
 
 func newExitError(state *os.ProcessState) *ExitError {
 	e := &ExitError{ProcessState: state}
-	errors.InitCustom(&e.Layer, "%s", state.String())
+	errors.InitCustom(&e.Info, "%s", state.String())
 	return e
 }
 

@@ -37,7 +37,7 @@ import (
 // A StructuralError suggests that the ASN.1 data is valid, but the Go type
 // which is receiving it doesn't match.
 type StructuralError struct {
-	errors.Layer
+	errors.Info
 	Msg string
 }
 
@@ -45,7 +45,7 @@ func (e StructuralError) Error() string { return structuralErrorMessage(e.Msg) }
 
 // A SyntaxError suggests that the ASN.1 data is invalid.
 type SyntaxError struct {
-	errors.Layer
+	errors.Info
 	Msg string
 }
 
@@ -1146,7 +1146,7 @@ func Unmarshal(b []byte, val any) (rest []byte, err error) {
 // An invalidUnmarshalError describes an invalid argument passed to Unmarshal.
 // (The argument to Unmarshal must be a non-nil pointer.)
 type invalidUnmarshalError struct {
-	errors.Layer
+	errors.Info
 	Type reflect.Type
 }
 

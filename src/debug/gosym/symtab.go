@@ -750,7 +750,7 @@ func (e UnknownFileError) Error() string { return "unknown file: " + string(e) }
 // counter, either because the line is beyond the bounds of the file
 // or because there is no code on the given line.
 type UnknownLineError struct {
-	errors.Layer
+	errors.Info
 	File string
 	Line int
 }
@@ -761,7 +761,7 @@ func unknownLineErrorMessage(file string, line int) string {
 
 func newUnknownLineError(file string, line int) *UnknownLineError {
 	e := &UnknownLineError{File: file, Line: line}
-	errors.InitCustom(&e.Layer, "%s", unknownLineErrorMessage(file, line))
+	errors.InitCustom(&e.Info, "%s", unknownLineErrorMessage(file, line))
 	return e
 }
 
@@ -772,7 +772,7 @@ func (e *UnknownLineError) Error() string {
 // DecodingError represents an error during the decoding of
 // the symbol table.
 type DecodingError struct {
-	errors.Layer
+	errors.Info
 	off int
 	msg string
 	val any
@@ -788,7 +788,7 @@ func decodingErrorMessage(off int, msg string, val any) string {
 
 func newDecodingError(off int, msg string, val any) *DecodingError {
 	e := &DecodingError{off: off, msg: msg, val: val}
-	errors.InitCustom(&e.Layer, "%s", decodingErrorMessage(off, msg, val))
+	errors.InitCustom(&e.Info, "%s", decodingErrorMessage(off, msg, val))
 	return e
 }
 

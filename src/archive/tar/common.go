@@ -43,7 +43,7 @@ var (
 )
 
 type headerError struct {
-	errors.Layer
+	errors.Info
 	msgs []string
 }
 
@@ -63,7 +63,7 @@ func headerErrorMessage(msgs []string) string {
 
 func newHeaderError(msgs ...string) headerError {
 	e := headerError{msgs: msgs}
-	errors.InitCustom(&e.Layer, "%s", headerErrorMessage(msgs))
+	errors.InitCustom(&e.Info, "%s", headerErrorMessage(msgs))
 	return e
 }
 

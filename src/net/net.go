@@ -470,7 +470,7 @@ func mapErr(err error) error {
 // package. It describes the operation, network type, and address of
 // an error.
 type OpError struct {
-	errors.Layer
+	errors.Info
 	// Op is the operation which caused the error, such as
 	// "read" or "write".
 	Op string
@@ -520,7 +520,7 @@ func opErrorMessage(op, net string, source, addr Addr, err error) string {
 // NewOpError returns an OpError with a stack trace captured at the call site.
 func NewOpError(op, net string, source, addr Addr, err error) *OpError {
 	e := &OpError{Op: op, Net: net, Source: source, Addr: addr, Err: err}
-	errors.InitCustom(&e.Layer, "%s", opErrorMessage(op, net, source, addr, err))
+	errors.InitCustom(&e.Info, "%s", opErrorMessage(op, net, source, addr, err))
 	return e
 }
 
@@ -578,7 +578,7 @@ func (e *OpError) Temporary() bool {
 
 // A ParseError is the error type of literal network address parsers.
 type ParseError struct {
-	errors.Layer
+	errors.Info
 	// Type is the type of string that was expected, such as
 	// "IP address", "CIDR address".
 	Type string
@@ -594,7 +594,7 @@ func parseErrorMessage(typ, text string) string {
 // NewParseError returns a ParseError with a stack trace captured at the call site.
 func NewParseError(typ, text string) *ParseError {
 	e := &ParseError{Type: typ, Text: text}
-	errors.InitCustom(&e.Layer, "%s", parseErrorMessage(typ, text))
+	errors.InitCustom(&e.Info, "%s", parseErrorMessage(typ, text))
 	return e
 }
 
@@ -604,7 +604,7 @@ func (e *ParseError) Timeout() bool   { return false }
 func (e *ParseError) Temporary() bool { return false }
 
 type AddrError struct {
-	errors.Layer
+	errors.Info
 	Err  string
 	Addr string
 }
@@ -619,7 +619,7 @@ func addrErrorMessage(err, addr string) string {
 // NewAddrError returns an AddrError with a stack trace captured at the call site.
 func NewAddrError(err, addr string) *AddrError {
 	e := &AddrError{Err: err, Addr: addr}
-	errors.InitCustom(&e.Layer, "%s", addrErrorMessage(err, addr))
+	errors.InitCustom(&e.Info, "%s", addrErrorMessage(err, addr))
 	return e
 }
 
@@ -671,7 +671,7 @@ func (e *timeoutError) Is(err error) bool {
 // DNSConfigError represents an error reading the machine's DNS configuration.
 // (No longer used; kept for compatibility.)
 type DNSConfigError struct {
-	errors.Layer
+	errors.Info
 	Err error
 }
 
@@ -709,7 +709,7 @@ func (e *temporaryError) Timeout() bool   { return false }
 
 // DNSError represents a DNS lookup error.
 type DNSError struct {
-	errors.Layer
+	errors.Info
 	UnwrapErr   error  // error returned by the [DNSError.Unwrap] method, might be nil
 	Err         string // description of the error
 	Name        string // name looked for
@@ -753,7 +753,7 @@ func newDNSError(err error, name, server string) *DNSError {
 		IsTemporary: isTemporary,
 		IsNotFound:  isNotFound,
 	}
-	errors.InitCustom(&de.Layer, "%s", dnsErrorMessage(de))
+	errors.InitCustom(&de.Info, "%s", dnsErrorMessage(de))
 	return de
 }
 
@@ -779,13 +779,13 @@ func dnsErrorMessage(e *DNSError) string {
 // dnsError returns a DNSError with a stack trace captured at the call site.
 func dnsError(errMsg, name string) *DNSError {
 	e := &DNSError{Err: errMsg, Name: name}
-	errors.InitCustom(&e.Layer, "%s", dnsErrorMessage(e))
+	errors.InitCustom(&e.Info, "%s", dnsErrorMessage(e))
 	return e
 }
 
 func dnsErrorWithServer(errMsg, name, server string) *DNSError {
 	e := &DNSError{Err: errMsg, Name: name, Server: server}
-	errors.InitCustom(&e.Layer, "%s", dnsErrorMessage(e))
+	errors.InitCustom(&e.Info, "%s", dnsErrorMessage(e))
 	return e
 }
 

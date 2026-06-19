@@ -86,7 +86,7 @@ type Sym struct {
 // formatError is returned by some operations if the data does
 // not have the correct format for an object file.
 type formatError struct {
-	errors.Layer
+	errors.Info
 	off int
 	msg string
 	val any
@@ -102,7 +102,7 @@ func formatErrorMessage(off int, msg string, val any) string {
 
 func newFormatError(off int, msg string, val any) *formatError {
 	e := &formatError{off: off, msg: msg, val: val}
-	errors.InitCustom(&e.Layer, "%s", formatErrorMessage(off, msg, val))
+	errors.InitCustom(&e.Info, "%s", formatErrorMessage(off, msg, val))
 	return e
 }
 

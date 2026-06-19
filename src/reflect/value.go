@@ -176,7 +176,7 @@ func unpackEface(i any) Value {
 // a [Value] that does not support it. Such cases are documented
 // in the description of each method.
 type ValueError struct {
-	errors.Layer
+	errors.Info
 	Method string
 	Kind   Kind
 }
@@ -190,7 +190,7 @@ func valueErrorMessage(method string, kind Kind) string {
 
 func newValueError(method string, kind Kind) *ValueError {
 	e := &ValueError{Method: method, Kind: kind}
-	errors.InitCustom(&e.Layer, "%s", valueErrorMessage(method, kind))
+	errors.InitCustom(&e.Info, "%s", valueErrorMessage(method, kind))
 	return e
 }
 
