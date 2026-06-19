@@ -127,7 +127,7 @@ type Unmarshaler interface {
 // An UnmarshalTypeError describes a JSON value that was
 // not appropriate for a value of a specific Go type.
 type UnmarshalTypeError struct {
-	errors.Layer
+	errors.Info
 	Value  string       // description of JSON value - "bool", "array", "number -5"
 	Type   reflect.Type // type of Go value it could not be assigned to
 	Offset int64        // error occurred after reading Offset bytes
@@ -159,7 +159,7 @@ func (e *UnmarshalFieldError) Error() string {
 // An InvalidUnmarshalError describes an invalid argument passed to [Unmarshal].
 // (The argument to [Unmarshal] must be a non-nil pointer.)
 type InvalidUnmarshalError struct {
-	errors.Layer
+	errors.Info
 	Type reflect.Type
 }
 

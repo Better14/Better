@@ -1,0 +1,1066 @@
+
+##### Test execution environment.
+# GOARCH: amd64
+# CPU: 12th Gen Intel(R) Core(TM) i3-12100F
+# GOOS: linux
+# OS Version: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+
+##### Testing packages.
+ok  	archive/tar	3.599s
+ok  	archive/zip	0.638s
+ok  	bufio	0.130s
+ok  	bytes	0.650s
+ok  	cmp	0.010s
+ok  	compress/bzip2	0.286s
+ok  	compress/flate	3.386s
+ok  	compress/gzip	3.056s
+ok  	compress/lzw	0.041s
+ok  	compress/zlib	0.137s
+ok  	container/heap	0.029s
+ok  	container/list	0.025s
+ok  	container/ring	0.020s
+ok  	context	0.187s
+ok  	crypto	2.661s
+ok  	crypto/aes	0.099s
+ok  	crypto/cipher	11.414s
+ok  	crypto/des	0.062s
+ok  	crypto/dsa	0.072s
+ok  	crypto/ecdh	0.163s
+ok  	crypto/ecdsa	0.073s
+ok  	crypto/ed25519	0.288s
+ok  	crypto/elliptic	0.132s
+ok  	crypto/fips140	0.047s
+ok  	crypto/hkdf	0.064s
+ok  	crypto/hmac	0.065s
+ok  	crypto/hpke	7.474s
+ok  	crypto/internal/boring	0.039s
+?   	crypto/internal/boring/bbig	[no test files]
+ok  	crypto/internal/boring/bcache	0.345s
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+ok  	crypto/internal/fips140	0.016s
+ok  	crypto/internal/fips140/aes	0.178s
+ok  	crypto/internal/fips140/aes/gcm	0.011s [no tests to run]
+?   	crypto/internal/fips140/alias	[no test files]
+ok  	crypto/internal/fips140/bigmod	0.287s
+?   	crypto/internal/fips140/check	[no test files]
+?   	crypto/internal/fips140/check/checktest	[no test files]
+ok  	crypto/internal/fips140/drbg	0.029s [no tests to run]
+ok  	crypto/internal/fips140/ecdh	0.032s
+ok  	crypto/internal/fips140/ecdsa	0.100s
+?   	crypto/internal/fips140/ed25519	[no test files]
+ok  	crypto/internal/fips140/edwards25519	0.221s
+ok  	crypto/internal/fips140/edwards25519/field	0.105s
+?   	crypto/internal/fips140/hkdf	[no test files]
+?   	crypto/internal/fips140/hmac	[no test files]
+ok  	crypto/internal/fips140/mldsa	2.672s
+ok  	crypto/internal/fips140/mlkem	0.587s
+ok  	crypto/internal/fips140/nistec	0.116s
+ok  	crypto/internal/fips140/nistec/fiat	0.026s [no tests to run]
+?   	crypto/internal/fips140/pbkdf2	[no test files]
+ok  	crypto/internal/fips140/rsa	0.447s
+?   	crypto/internal/fips140/sha256	[no test files]
+?   	crypto/internal/fips140/sha3	[no test files]
+?   	crypto/internal/fips140/sha512	[no test files]
+?   	crypto/internal/fips140/ssh	[no test files]
+ok  	crypto/internal/fips140/subtle	0.011s
+?   	crypto/internal/fips140/tls12	[no test files]
+?   	crypto/internal/fips140/tls13	[no test files]
+ok  	crypto/internal/fips140cache	3.378s
+ok  	crypto/internal/fips140deps	0.318s
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+ok  	crypto/internal/fips140only	1.430s
+ok  	crypto/internal/fips140test	36.144s
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+ok  	crypto/internal/sysrand	0.868s
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+ok  	crypto/md5	0.128s
+ok  	crypto/mlkem	0.516s
+?   	crypto/mlkem/mlkemtest	[no test files]
+ok  	crypto/pbkdf2	0.037s
+ok  	crypto/rand	1.534s
+ok  	crypto/rc4	0.195s
+ok  	crypto/rsa	1.328s
+ok  	crypto/sha1	0.239s
+ok  	crypto/sha256	0.180s
+ok  	crypto/sha3	7.034s
+ok  	crypto/sha512	0.089s
+ok  	crypto/subtle	0.660s
+ok  	crypto/tls	13.219s
+?   	crypto/tls/internal/fips140tls	[no test files]
+ok  	crypto/x509	40.493s
+?   	crypto/x509/pkix	[no test files]
+ok  	database/sql	0.336s
+ok  	database/sql/driver	0.030s
+ok  	debug/buildinfo	0.145s
+ok  	debug/dwarf	0.105s
+ok  	debug/elf	0.495s
+ok  	debug/gosym	1.389s
+ok  	debug/macho	0.024s
+ok  	debug/pe	0.082s
+ok  	debug/plan9obj	0.013s
+ok  	embed	0.022s [no tests to run]
+ok  	embed/internal/embedtest	0.025s
+?   	encoding	[no test files]
+ok  	encoding/ascii85	0.080s
+ok  	encoding/asn1	0.186s
+ok  	encoding/base32	0.123s
+ok  	encoding/base64	0.029s
+ok  	encoding/binary	0.083s
+ok  	encoding/csv	0.064s
+ok  	encoding/gob	5.550s
+ok  	encoding/hex	0.041s
+ok  	encoding/json	1.097s
+ok  	encoding/pem	2.579s
+ok  	encoding/xml	0.330s
+ok  	errors	0.086s
+ok  	expvar	0.038s
+ok  	flag	0.360s
+ok  	fmt	0.782s
+ok  	go/ast	0.038s
+ok  	go/build	21.832s
+ok  	go/build/constraint	0.029s
+ok  	go/constant	0.088s
+ok  	go/doc	0.105s
+ok  	go/doc/comment	3.121s
+ok  	go/format	0.073s
+ok  	go/importer	1.192s
+ok  	go/internal/gccgoimporter	0.127s
+ok  	go/internal/gcimporter	8.303s
+ok  	go/internal/srcimporter	42.642s
+ok  	go/parser	0.770s
+ok  	go/printer	0.633s
+ok  	go/scanner	0.102s
+ok  	go/token	0.347s
+ok  	go/types	45.898s
+ok  	go/version	0.034s
+ok  	hash	0.019s
+ok  	hash/adler32	0.075s
+ok  	hash/crc32	0.073s
+ok  	hash/crc64	0.022s
+ok  	hash/fnv	0.167s
+ok  	hash/maphash	0.673s
+ok  	html	0.021s
+ok  	html/template	0.308s
+ok  	image	0.113s
+ok  	image/color	0.050s
+?   	image/color/palette	[no test files]
+ok  	image/draw	0.263s
+ok  	image/gif	0.888s
+?   	image/internal/imageutil	[no test files]
+ok  	image/jpeg	7.819s
+ok  	image/png	0.626s
+ok  	index/suffixarray	0.818s
+ok  	internal/abi	0.563s
+?   	internal/asan	[no test files]
+?   	internal/bisect	[no test files]
+ok  	internal/buildcfg	0.063s
+?   	internal/bytealg	[no test files]
+?   	internal/byteorder	[no test files]
+?   	internal/cfg	[no test files]
+ok  	internal/cgrouptest	0.064s
+ok  	internal/chacha8rand	0.048s
+ok  	internal/copyright	0.301s
+?   	internal/coverage	[no test files]
+?   	internal/coverage/calloc	[no test files]
+ok  	internal/coverage/cfile	4.151s
+ok  	internal/coverage/cformat	0.026s
+ok  	internal/coverage/cmerge	0.012s
+?   	internal/coverage/decodecounter	[no test files]
+?   	internal/coverage/decodemeta	[no test files]
+?   	internal/coverage/encodecounter	[no test files]
+?   	internal/coverage/encodemeta	[no test files]
+ok  	internal/coverage/pods	0.017s
+?   	internal/coverage/rtcov	[no test files]
+ok  	internal/coverage/slicereader	0.028s
+ok  	internal/coverage/slicewriter	0.015s
+?   	internal/coverage/stringtab	[no test files]
+ok  	internal/coverage/test	0.037s
+?   	internal/coverage/uleb128	[no test files]
+ok  	internal/cpu	0.137s
+ok  	internal/dag	0.020s
+ok  	internal/diff	0.025s
+?   	internal/exportdata	[no test files]
+?   	internal/filepathlite	[no test files]
+ok  	internal/fmtsort	0.019s
+ok  	internal/fuzz	0.039s
+ok  	internal/gate	0.033s
+?   	internal/goarch	[no test files]
+ok  	internal/godebug	3.011s
+ok  	internal/godebugs	36.455s
+?   	internal/goexperiment	[no test files]
+?   	internal/goos	[no test files]
+?   	internal/goroot	[no test files]
+ok  	internal/gover	0.010s
+?   	internal/goversion	[no test files]
+?   	internal/lazyregexp	[no test files]
+?   	internal/lazytemplate	[no test files]
+?   	internal/msan	[no test files]
+?   	internal/nettrace	[no test files]
+?   	internal/obscuretestdata	[no test files]
+?   	internal/oserror	[no test files]
+ok  	internal/pkgbits	0.025s
+ok  	internal/platform	0.848s
+ok  	internal/poll	0.473s
+ok  	internal/profile	0.061s
+?   	internal/profilerecord	[no test files]
+?   	internal/race	[no test files]
+ok  	internal/reflectlite	0.043s
+ok  	internal/runtime/atomic	0.159s
+ok  	internal/runtime/cgobench	0.062s [no tests to run]
+ok  	internal/runtime/cgroup	0.638s
+?   	internal/runtime/exithook	[no test files]
+?   	internal/runtime/gc	[no test files]
+?   	internal/runtime/gc/internal/gen	[no test files]
+ok  	internal/runtime/gc/scan	0.367s
+ok  	internal/runtime/maps	2.399s
+ok  	internal/runtime/math	0.039s
+?   	internal/runtime/pprof/label	[no test files]
+?   	internal/runtime/startlinetest	[no test files]
+ok  	internal/runtime/sys	0.015s
+ok  	internal/runtime/syscall/linux	0.027s
+ok  	internal/runtime/wasitest	0.029s
+ok  	internal/saferio	0.491s
+ok  	internal/singleflight	0.127s
+ok  	internal/strconv	0.767s
+?   	internal/stringslite	[no test files]
+ok  	internal/sync	2.898s
+ok  	internal/synctest	7.085s
+?   	internal/syscall/execenv	[no test files]
+ok  	internal/syscall/unix	0.060s
+ok  	internal/sysinfo	0.059s
+?   	internal/syslist	[no test files]
+ok  	internal/testenv	1.425s
+?   	internal/testerrors	[no test files]
+?   	internal/testhash	[no test files]
+?   	internal/testlog	[no test files]
+?   	internal/testpty	[no test files]
+ok  	internal/trace	94.682s
+?   	internal/trace/internal/testgen	[no test files]
+ok  	internal/trace/internal/tracev1	0.935s
+?   	internal/trace/raw	[no test files]
+ok  	internal/trace/testtrace	0.034s
+ok  	internal/trace/tracev2	0.010s
+?   	internal/trace/traceviewer	[no test files]
+?   	internal/trace/traceviewer/format	[no test files]
+?   	internal/trace/version	[no test files]
+?   	internal/txtar	[no test files]
+ok  	internal/types/errors	2.212s
+ok  	internal/unsafeheader	0.079s
+ok  	internal/xcoff	0.066s
+ok  	internal/zstd	0.182s
+ok  	io	0.059s
+ok  	io/fs	2.150s
+ok  	io/ioutil	0.038s
+ok  	iter	0.040s
+ok  	length	0.014s
+?   	linkedlist	[no test files]
+ok  	linq	0.021s
+ok  	list	0.021s
+ok  	log	0.047s
+?   	log/internal	[no test files]
+ok  	log/slog	0.093s
+?   	log/slog/internal	[no test files]
+ok  	log/slog/internal/benchmarks	0.021s
+ok  	log/slog/internal/buffer	0.009s
+ok  	log/syslog	1.267s
+ok  	maps	0.045s
+ok  	math	0.051s
+ok  	math/big	32.105s
+ok  	math/big/internal/asmgen	0.025s
+ok  	math/bits	0.017s
+ok  	math/cmplx	0.069s
+ok  	math/rand	1.097s
+ok  	math/rand/v2	1.337s
+?   	maxheap	[no test files]
+ok  	mime	0.055s
+ok  	mime/multipart	4.579s
+ok  	mime/quotedprintable	0.361s
+?   	minheap	[no test files]
+ok  	net	27.502s
+ok  	net/http	40.643s
+ok  	net/http/cgi	1.383s
+ok  	net/http/cookiejar	0.165s
+ok  	net/http/fcgi	0.255s
+ok  	net/http/httptest	0.273s
+ok  	net/http/httptrace	0.069s
+ok  	net/http/httputil	2.959s
+ok  	net/http/internal	0.771s
+ok  	net/http/internal/ascii	0.044s
+ok  	net/http/internal/http2	17.143s
+?   	net/http/internal/httpcommon	[no test files]
+?   	net/http/internal/httpsfv	[no test files]
+?   	net/http/internal/testcert	[no test files]
+ok  	net/http/pprof	4.196s
+ok  	net/internal/cgotest	0.067s
+ok  	net/internal/socktest	0.129s
+ok  	net/mail	0.294s
+ok  	net/netip	4.885s
+ok  	net/rpc	0.245s
+ok  	net/rpc/jsonrpc	0.110s
+ok  	net/smtp	0.234s
+ok  	net/textproto	0.144s
+ok  	net/url	0.275s
+ok  	os	11.041s
+ok  	os/exec	1.451s
+ok  	os/exec/internal/fdtest	0.031s
+ok  	os/signal	6.294s
+ok  	os/user	0.011s
+ok  	path	0.006s
+ok  	path/filepath	0.241s
+?   	person	[no test files]
+?   	personext	[no test files]
+ok  	plugin	0.035s
+?   	queue	[no test files]
+ok  	reflect	3.895s
+?   	reflect/internal/example1	[no test files]
+?   	reflect/internal/example2	[no test files]
+ok  	regexp	3.066s
+ok  	regexp/syntax	4.625s
+ok  	runtime	282.591s
+ok  	runtime/cgo	0.041s
+?   	runtime/coverage	[no test files]
+ok  	runtime/debug	0.404s
+ok  	runtime/metrics	0.034s
+ok  	runtime/pprof	58.799s
+?   	runtime/race	[no test files]
+?   	runtime/race/internal/amd64v1	[no test files]
+ok  	runtime/trace	6.925s
+?   	set	[no test files]
+ok  	slices	0.266s
+ok  	sort	0.415s
+?   	stack	[no test files]
+ok  	strconv	1.048s
+ok  	strings	0.248s
+?   	structs	[no test files]
+ok  	sync	1.493s
+ok  	sync/atomic	5.968s
+ok  	syscall	12.834s
+ok  	testing	10.418s
+ok  	testing/cryptotest	0.047s
+ok  	testing/fstest	0.092s
+?   	testing/internal/testdeps	[no test files]
+ok  	testing/iotest	0.050s
+ok  	testing/quick	0.174s
+ok  	testing/slogtest	0.028s
+ok  	testing/synctest	0.300s
+ok  	text/scanner	0.040s
+ok  	text/tabwriter	0.026s
+ok  	text/template	0.118s
+ok  	text/template/parse	0.062s
+ok  	time	34.138s
+?   	time/tzdata	[no test files]
+?   	tree	[no test files]
+ok  	unicode	0.058s
+ok  	unicode/utf16	0.049s
+ok  	unicode/utf8	0.065s
+ok  	unique	2.144s
+?   	unsafe	[no test files]
+ok  	uuid	0.212s
+ok  	weak	0.632s
+ok  	cmd/addr2line	3.627s
+ok  	cmd/api	3.024s
+?   	cmd/asm	[no test files]
+?   	cmd/asm/internal/arch	[no test files]
+ok  	cmd/asm/internal/asm	5.228s
+?   	cmd/asm/internal/flags	[no test files]
+ok  	cmd/asm/internal/lex	0.318s
+?   	cmd/buildid	[no test files]
+?   	cmd/cgo	[no test files]
+?   	cmd/cgo/internal/cgotest	[no test files]
+ok  	cmd/cgo/internal/swig	0.122s
+ok  	cmd/cgo/internal/test	5.460s
+?   	cmd/cgo/internal/test/gcc68255	[no test files]
+?   	cmd/cgo/internal/test/issue23555a	[no test files]
+?   	cmd/cgo/internal/test/issue23555b	[no test files]
+?   	cmd/cgo/internal/test/issue26213	[no test files]
+?   	cmd/cgo/internal/test/issue26430	[no test files]
+?   	cmd/cgo/internal/test/issue26743	[no test files]
+?   	cmd/cgo/internal/test/issue27054	[no test files]
+?   	cmd/cgo/internal/test/issue27340	[no test files]
+?   	cmd/cgo/internal/test/issue29563	[no test files]
+?   	cmd/cgo/internal/test/issue30527	[no test files]
+?   	cmd/cgo/internal/test/issue41761a	[no test files]
+?   	cmd/cgo/internal/test/issue43639	[no test files]
+?   	cmd/cgo/internal/test/issue52611a	[no test files]
+?   	cmd/cgo/internal/test/issue52611b	[no test files]
+?   	cmd/cgo/internal/test/issue76861	[no test files]
+?   	cmd/cgo/internal/test/issue8756	[no test files]
+?   	cmd/cgo/internal/test/issue8828	[no test files]
+?   	cmd/cgo/internal/test/issue9026	[no test files]
+?   	cmd/cgo/internal/test/issue9400	[no test files]
+?   	cmd/cgo/internal/test/issue9510a	[no test files]
+?   	cmd/cgo/internal/test/issue9510b	[no test files]
+ok  	cmd/cgo/internal/testcarchive	0.020s
+ok  	cmd/cgo/internal/testcshared	0.038s
+ok  	cmd/cgo/internal/testerrors	153.710s
+ok  	cmd/cgo/internal/testfortran	11.962s
+ok  	cmd/cgo/internal/testgodefs	7.223s
+ok  	cmd/cgo/internal/testlife	8.154s
+ok  	cmd/cgo/internal/testnocgo	0.027s
+ok  	cmd/cgo/internal/testout	2.402s
+ok  	cmd/cgo/internal/testplugin	0.030s
+ok  	cmd/cgo/internal/testsanitizers	192.508s
+ok  	cmd/cgo/internal/testshared	0.184s
+ok  	cmd/cgo/internal/testso	15.531s
+ok  	cmd/cgo/internal/teststdio	14.555s
+ok  	cmd/cgo/internal/testtls	0.030s
+ok  	cmd/compile	172.528s
+?   	cmd/compile/internal/abi	[no test files]
+ok  	cmd/compile/internal/abt	0.031s
+ok  	cmd/compile/internal/amd64	42.533s
+?   	cmd/compile/internal/arm	[no test files]
+?   	cmd/compile/internal/arm64	[no test files]
+ok  	cmd/compile/internal/base	0.047s
+?   	cmd/compile/internal/bitvec	[no test files]
+?   	cmd/compile/internal/bloop	[no test files]
+ok  	cmd/compile/internal/compare	0.046s
+?   	cmd/compile/internal/coverage	[no test files]
+?   	cmd/compile/internal/deadlocals	[no test files]
+ok  	cmd/compile/internal/devirtualize	0.065s
+ok  	cmd/compile/internal/dwarfgen	2.677s
+?   	cmd/compile/internal/escape	[no test files]
+?   	cmd/compile/internal/gc	[no test files]
+ok  	cmd/compile/internal/importer	9.769s
+?   	cmd/compile/internal/inline	[no test files]
+ok  	cmd/compile/internal/inline/inlheur	4.395s
+?   	cmd/compile/internal/inline/interleaved	[no test files]
+ok  	cmd/compile/internal/ir	0.049s
+ok  	cmd/compile/internal/liveness	0.128s
+ok  	cmd/compile/internal/logopt	2.852s
+?   	cmd/compile/internal/loong64	[no test files]
+ok  	cmd/compile/internal/loopvar	300.192s
+?   	cmd/compile/internal/mips	[no test files]
+?   	cmd/compile/internal/mips64	[no test files]
+ok  	cmd/compile/internal/noder	0.080s
+?   	cmd/compile/internal/objw	[no test files]
+?   	cmd/compile/internal/pgoir	[no test files]
+?   	cmd/compile/internal/pkginit	[no test files]
+?   	cmd/compile/internal/ppc64	[no test files]
+ok  	cmd/compile/internal/rangefunc	0.094s
+ok  	cmd/compile/internal/reflectdata	0.125s [no tests to run]
+?   	cmd/compile/internal/riscv64	[no test files]
+?   	cmd/compile/internal/rttype	[no test files]
+?   	cmd/compile/internal/s390x	[no test files]
+?   	cmd/compile/internal/slice	[no test files]
+ok  	cmd/compile/internal/ssa	304.709s
+ok  	cmd/compile/internal/ssagen	0.039s
+?   	cmd/compile/internal/staticdata	[no test files]
+?   	cmd/compile/internal/staticinit	[no test files]
+ok  	cmd/compile/internal/syntax	0.476s
+ok  	cmd/compile/internal/test	209.877s
+?   	cmd/compile/internal/typebits	[no test files]
+ok  	cmd/compile/internal/typecheck	3.716s
+ok  	cmd/compile/internal/types	0.028s
+ok  	cmd/compile/internal/types2	58.080s
+?   	cmd/compile/internal/walk	[no test files]
+?   	cmd/compile/internal/wasm	[no test files]
+?   	cmd/compile/internal/x86	[no test files]
+ok  	cmd/covdata	0.201s
+ok  	cmd/cover	19.810s
+ok  	cmd/dist	0.104s
+ok  	cmd/distpack	0.082s
+?   	cmd/fix	[no test files]
+ok  	cmd/go	226.105s
+ok  	cmd/go/internal/auth	0.141s
+?   	cmd/go/internal/base	[no test files]
+?   	cmd/go/internal/bug	[no test files]
+ok  	cmd/go/internal/cache	0.581s
+?   	cmd/go/internal/cacheprog	[no test files]
+ok  	cmd/go/internal/cfg	0.158s [no tests to run]
+?   	cmd/go/internal/clean	[no test files]
+?   	cmd/go/internal/cmdflag	[no test files]
+ok  	cmd/go/internal/doc	1.711s
+ok  	cmd/go/internal/envcmd	0.264s
+ok  	cmd/go/internal/fips140	0.064s
+?   	cmd/go/internal/fmtcmd	[no test files]
+ok  	cmd/go/internal/fsys	0.234s
+ok  	cmd/go/internal/generate	0.056s
+ok  	cmd/go/internal/gover	0.067s
+?   	cmd/go/internal/help	[no test files]
+ok  	cmd/go/internal/imports	0.037s
+?   	cmd/go/internal/list	[no test files]
+ok  	cmd/go/internal/load	0.070s
+ok  	cmd/go/internal/lockedfile	0.623s
+ok  	cmd/go/internal/lockedfile/internal/filelock	0.214s
+ok  	cmd/go/internal/mmap	0.102s
+?   	cmd/go/internal/modcmd	[no test files]
+ok  	cmd/go/internal/modfetch	0.098s
+ok  	cmd/go/internal/modfetch/codehost	8.835s
+ok  	cmd/go/internal/modfetch/zip_sum_test	0.105s
+?   	cmd/go/internal/modget	[no test files]
+ok  	cmd/go/internal/modindex	0.965s
+?   	cmd/go/internal/modinfo	[no test files]
+ok  	cmd/go/internal/modload	0.222s
+ok  	cmd/go/internal/mvs	0.053s
+?   	cmd/go/internal/run	[no test files]
+?   	cmd/go/internal/search	[no test files]
+ok  	cmd/go/internal/str	0.004s
+?   	cmd/go/internal/telemetrycmd	[no test files]
+?   	cmd/go/internal/telemetrystats	[no test files]
+ok  	cmd/go/internal/test	0.257s
+?   	cmd/go/internal/test/internal/genflags	[no test files]
+?   	cmd/go/internal/tool	[no test files]
+ok  	cmd/go/internal/toolchain	0.047s
+?   	cmd/go/internal/trace	[no test files]
+ok  	cmd/go/internal/vcs	0.320s
+ok  	cmd/go/internal/vcweb	0.151s
+ok  	cmd/go/internal/vcweb/vcstest	0.037s
+?   	cmd/go/internal/version	[no test files]
+ok  	cmd/go/internal/verylongtest	0.044s
+?   	cmd/go/internal/vet	[no test files]
+ok  	cmd/go/internal/web	0.068s
+?   	cmd/go/internal/web/intercept	[no test files]
+ok  	cmd/go/internal/work	0.584s
+?   	cmd/go/internal/workcmd	[no test files]
+ok  	cmd/gofmt	0.240s
+ok  	cmd/internal/archive	7.045s
+?   	cmd/internal/bio	[no test files]
+ok  	cmd/internal/bootstrap_test	0.218s
+?   	cmd/internal/browser	[no test files]
+ok  	cmd/internal/buildid	22.968s
+?   	cmd/internal/codesign	[no test files]
+ok  	cmd/internal/cov	5.080s
+?   	cmd/internal/cov/covcmd	[no test files]
+?   	cmd/internal/disasm	[no test files]
+ok  	cmd/internal/dwarf	0.098s
+ok  	cmd/internal/edit	0.086s
+ok  	cmd/internal/fuzztest	6.991s
+?   	cmd/internal/gcprog	[no test files]
+ok  	cmd/internal/goobj	0.143s
+?   	cmd/internal/hash	[no test files]
+?   	cmd/internal/macho	[no test files]
+ok  	cmd/internal/moddeps	11.946s
+ok  	cmd/internal/obj	6.166s
+?   	cmd/internal/obj/arm	[no test files]
+ok  	cmd/internal/obj/arm64	3.054s
+ok  	cmd/internal/obj/loong64	0.946s
+?   	cmd/internal/obj/mips	[no test files]
+ok  	cmd/internal/obj/ppc64	1.930s
+ok  	cmd/internal/obj/riscv	0.623s
+ok  	cmd/internal/obj/s390x	0.163s
+?   	cmd/internal/obj/wasm	[no test files]
+ok  	cmd/internal/obj/x86	3.480s
+ok  	cmd/internal/objabi	0.063s
+?   	cmd/internal/objfile	[no test files]
+ok  	cmd/internal/osinfo	0.040s
+ok  	cmd/internal/par	0.134s
+?   	cmd/internal/pathcache	[no test files]
+ok  	cmd/internal/pgo	0.051s
+ok  	cmd/internal/pkgpath	0.306s
+ok  	cmd/internal/pkgpattern	0.093s
+ok  	cmd/internal/quoted	0.027s
+?   	cmd/internal/robustio	[no test files]
+ok  	cmd/internal/script	0.017s
+?   	cmd/internal/script/scripttest	[no test files]
+ok  	cmd/internal/src	0.102s
+ok  	cmd/internal/sys	0.038s
+?   	cmd/internal/telemetry	[no test files]
+?   	cmd/internal/telemetry/counter	[no test files]
+ok  	cmd/internal/test2json	7.071s
+ok  	cmd/link	96.742s
+?   	cmd/link/internal/amd64	[no test files]
+?   	cmd/link/internal/arm	[no test files]
+?   	cmd/link/internal/arm64	[no test files]
+ok  	cmd/link/internal/benchmark	0.245s
+?   	cmd/link/internal/dwtest	[no test files]
+ok  	cmd/link/internal/ld	85.203s
+?   	cmd/link/internal/loadelf	[no test files]
+ok  	cmd/link/internal/loader	0.293s
+?   	cmd/link/internal/loadmacho	[no test files]
+?   	cmd/link/internal/loadpe	[no test files]
+?   	cmd/link/internal/loadxcoff	[no test files]
+?   	cmd/link/internal/loong64	[no test files]
+?   	cmd/link/internal/mips	[no test files]
+?   	cmd/link/internal/mips64	[no test files]
+?   	cmd/link/internal/ppc64	[no test files]
+?   	cmd/link/internal/riscv64	[no test files]
+?   	cmd/link/internal/s390x	[no test files]
+?   	cmd/link/internal/sym	[no test files]
+?   	cmd/link/internal/wasm	[no test files]
+?   	cmd/link/internal/x86	[no test files]
+ok  	cmd/nm	9.369s
+ok  	cmd/objdump	19.928s
+ok  	cmd/pack	5.595s
+ok  	cmd/pprof	6.825s
+?   	cmd/preprofile	[no test files]
+ok  	cmd/relnote	0.077s
+?   	cmd/test2json	[no test files]
+ok  	cmd/trace	0.914s
+ok  	cmd/vet	69.689s
+
+##### os/user with tag osusergo
+ok  	os/user	0.069s
+
+##### crypto with tag purego (build and vet only)
+?   	crypto/internal/boring/bbig	[no test files]
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+?   	crypto/internal/fips140/alias	[no test files]
+?   	crypto/internal/fips140/check	[no test files]
+?   	crypto/internal/fips140/check/checktest	[no test files]
+?   	crypto/internal/fips140/ed25519	[no test files]
+?   	crypto/internal/fips140/hkdf	[no test files]
+?   	crypto/internal/fips140/hmac	[no test files]
+?   	crypto/internal/fips140/pbkdf2	[no test files]
+?   	crypto/internal/fips140/sha256	[no test files]
+?   	crypto/internal/fips140/sha3	[no test files]
+?   	crypto/internal/fips140/sha512	[no test files]
+?   	crypto/internal/fips140/ssh	[no test files]
+?   	crypto/internal/fips140/tls12	[no test files]
+?   	crypto/internal/fips140/tls13	[no test files]
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+?   	crypto/mlkem/mlkemtest	[no test files]
+?   	crypto/tls/internal/fips140tls	[no test files]
+?   	crypto/x509/pkix	[no test files]
+
+##### GOFIPS140=latest go test crypto/...
+ok  	crypto	7.942s
+ok  	crypto/aes	0.112s
+ok  	crypto/cipher	49.930s
+ok  	crypto/des	0.275s
+ok  	crypto/dsa	1.242s
+ok  	crypto/ecdh	1.796s
+ok  	crypto/ecdsa	1.772s
+ok  	crypto/ed25519	1.862s
+ok  	crypto/elliptic	0.764s
+ok  	crypto/fips140	0.328s
+ok  	crypto/hkdf	0.737s
+ok  	crypto/hmac	0.384s
+ok  	crypto/hpke	30.744s
+ok  	crypto/internal/boring	0.071s
+?   	crypto/internal/boring/bbig	[no test files]
+ok  	crypto/internal/boring/bcache	2.042s
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+ok  	crypto/internal/fips140	0.108s
+ok  	crypto/internal/fips140/aes	0.299s
+ok  	crypto/internal/fips140/aes/gcm	0.139s [no tests to run]
+?   	crypto/internal/fips140/alias	[no test files]
+ok  	crypto/internal/fips140/bigmod	1.541s
+?   	crypto/internal/fips140/check	[no test files]
+?   	crypto/internal/fips140/check/checktest	[no test files]
+ok  	crypto/internal/fips140/drbg	0.202s [no tests to run]
+ok  	crypto/internal/fips140/ecdh	0.136s
+ok  	crypto/internal/fips140/ecdsa	1.907s
+?   	crypto/internal/fips140/ed25519	[no test files]
+ok  	crypto/internal/fips140/edwards25519	0.174s
+ok  	crypto/internal/fips140/edwards25519/field	1.701s
+?   	crypto/internal/fips140/hkdf	[no test files]
+?   	crypto/internal/fips140/hmac	[no test files]
+ok  	crypto/internal/fips140/mldsa	7.659s
+ok  	crypto/internal/fips140/mlkem	4.869s
+ok  	crypto/internal/fips140/nistec	0.048s
+ok  	crypto/internal/fips140/nistec/fiat	0.249s [no tests to run]
+?   	crypto/internal/fips140/pbkdf2	[no test files]
+ok  	crypto/internal/fips140/rsa	1.323s
+?   	crypto/internal/fips140/sha256	[no test files]
+?   	crypto/internal/fips140/sha3	[no test files]
+?   	crypto/internal/fips140/sha512	[no test files]
+?   	crypto/internal/fips140/ssh	[no test files]
+ok  	crypto/internal/fips140/subtle	0.023s
+?   	crypto/internal/fips140/tls12	[no test files]
+?   	crypto/internal/fips140/tls13	[no test files]
+ok  	crypto/internal/fips140cache	10.776s
+ok  	crypto/internal/fips140deps	1.303s
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+ok  	crypto/internal/fips140only	6.005s
+ok  	crypto/internal/fips140test	92.316s
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+ok  	crypto/internal/sysrand	2.761s
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+ok  	crypto/md5	1.167s
+ok  	crypto/mlkem	2.146s
+?   	crypto/mlkem/mlkemtest	[no test files]
+ok  	crypto/pbkdf2	0.187s
+ok  	crypto/rand	2.659s
+ok  	crypto/rc4	0.882s
+ok  	crypto/rsa	6.322s
+ok  	crypto/sha1	0.932s
+ok  	crypto/sha256	0.209s
+ok  	crypto/sha3	23.594s
+ok  	crypto/sha512	0.464s
+ok  	crypto/subtle	2.684s
+ok  	crypto/tls	47.635s
+?   	crypto/tls/internal/fips140tls	[no test files]
+ok  	crypto/x509	50.012s
+?   	crypto/x509/pkix	[no test files]
+
+##### GOFIPS140=v1.0.0-c2097c7c go test crypto/... # (build and vet only)
+?   	crypto/internal/boring/bbig	[no test files]
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/alias	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/check	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/check/checktest	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/ed25519	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/hkdf	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/hmac	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/pbkdf2	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha256	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha3	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha512	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/ssh	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/subtle	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/tls12	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/tls13	[no test files]
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+?   	crypto/mlkem/mlkemtest	[no test files]
+?   	crypto/tls/internal/fips140tls	[no test files]
+?   	crypto/x509/pkix	[no test files]
+
+##### GOFIPS140=v1.26.0 go test crypto/... # (build and vet only)
+?   	crypto/internal/boring/bbig	[no test files]
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+?   	crypto/internal/fips140/v1.26.0	[no test files]
+?   	crypto/internal/fips140/v1.26.0/alias	[no test files]
+?   	crypto/internal/fips140/v1.26.0/check	[no test files]
+?   	crypto/internal/fips140/v1.26.0/check/checktest	[no test files]
+?   	crypto/internal/fips140/v1.26.0/ed25519	[no test files]
+?   	crypto/internal/fips140/v1.26.0/hkdf	[no test files]
+?   	crypto/internal/fips140/v1.26.0/hmac	[no test files]
+?   	crypto/internal/fips140/v1.26.0/pbkdf2	[no test files]
+?   	crypto/internal/fips140/v1.26.0/sha256	[no test files]
+?   	crypto/internal/fips140/v1.26.0/sha3	[no test files]
+?   	crypto/internal/fips140/v1.26.0/sha512	[no test files]
+?   	crypto/internal/fips140/v1.26.0/ssh	[no test files]
+?   	crypto/internal/fips140/v1.26.0/tls12	[no test files]
+?   	crypto/internal/fips140/v1.26.0/tls13	[no test files]
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+?   	crypto/mlkem/mlkemtest	[no test files]
+?   	crypto/tls/internal/fips140tls	[no test files]
+?   	crypto/x509/pkix	[no test files]
+
+##### GOFIPS140=certified go test crypto/... # (build and vet only)
+?   	crypto/internal/boring/bbig	[no test files]
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/alias	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/check	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/check/checktest	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/ed25519	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/hkdf	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/hmac	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/pbkdf2	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha256	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha3	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha512	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/ssh	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/subtle	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/tls12	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/tls13	[no test files]
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+?   	crypto/mlkem/mlkemtest	[no test files]
+?   	crypto/tls/internal/fips140tls	[no test files]
+?   	crypto/x509/pkix	[no test files]
+
+##### GOFIPS140=inprocess go test crypto/... # (build and vet only)
+?   	crypto/internal/boring/bbig	[no test files]
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+?   	crypto/internal/fips140/v1.26.0	[no test files]
+?   	crypto/internal/fips140/v1.26.0/alias	[no test files]
+?   	crypto/internal/fips140/v1.26.0/check	[no test files]
+?   	crypto/internal/fips140/v1.26.0/check/checktest	[no test files]
+?   	crypto/internal/fips140/v1.26.0/ed25519	[no test files]
+?   	crypto/internal/fips140/v1.26.0/hkdf	[no test files]
+?   	crypto/internal/fips140/v1.26.0/hmac	[no test files]
+?   	crypto/internal/fips140/v1.26.0/pbkdf2	[no test files]
+?   	crypto/internal/fips140/v1.26.0/sha256	[no test files]
+?   	crypto/internal/fips140/v1.26.0/sha3	[no test files]
+?   	crypto/internal/fips140/v1.26.0/sha512	[no test files]
+?   	crypto/internal/fips140/v1.26.0/ssh	[no test files]
+?   	crypto/internal/fips140/v1.26.0/tls12	[no test files]
+?   	crypto/internal/fips140/v1.26.0/tls13	[no test files]
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+?   	crypto/mlkem/mlkemtest	[no test files]
+?   	crypto/tls/internal/fips140tls	[no test files]
+?   	crypto/x509/pkix	[no test files]
+
+##### GOFIPS140=v1.0.0 go test crypto/... # (build and vet only)
+?   	crypto/internal/boring/bbig	[no test files]
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/alias	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/check	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/check/checktest	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/ed25519	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/hkdf	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/hmac	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/pbkdf2	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha256	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha3	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/sha512	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/ssh	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/subtle	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/tls12	[no test files]
+?   	crypto/internal/fips140/v1.0.0-c2097c7c/tls13	[no test files]
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+?   	crypto/mlkem/mlkemtest	[no test files]
+?   	crypto/tls/internal/fips140tls	[no test files]
+?   	crypto/x509/pkix	[no test files]
+
+##### GOEXPERIMENT=jsonv2 go test encoding/json/...
+ok  	encoding/json	2.008s
+?   	encoding/json/internal	[no test files]
+ok  	encoding/json/internal/jsonflags	0.044s
+ok  	encoding/json/internal/jsonopts	0.063s
+?   	encoding/json/internal/jsontest	[no test files]
+ok  	encoding/json/internal/jsonwire	0.232s
+ok  	encoding/json/jsontext	10.787s
+ok  	encoding/json/v2	13.367s
+
+##### GOEXPERIMENT=runtimesecret go test runtime/secret/...
+ok  	runtime/secret	2.100s
+
+##### GOEXPERIMENT=simd go test simd/archsimd/...
+ok  	simd/archsimd	0.023s
+ok  	simd/archsimd/internal/simd_test	45.903s
+?   	simd/archsimd/internal/test_helpers	[no test files]
+
+##### spectre
+ok  	internal/runtime/atomic	0.248s
+ok  	internal/runtime/cgobench	0.145s [no tests to run]
+ok  	internal/runtime/cgroup	1.047s
+?   	internal/runtime/exithook	[no test files]
+?   	internal/runtime/gc	[no test files]
+?   	internal/runtime/gc/internal/gen	[no test files]
+ok  	internal/runtime/gc/scan	0.848s
+ok  	internal/runtime/maps	2.453s
+ok  	internal/runtime/math	0.019s
+?   	internal/runtime/pprof/label	[no test files]
+?   	internal/runtime/startlinetest	[no test files]
+ok  	internal/runtime/sys	0.034s
+ok  	internal/runtime/syscall/linux	0.011s
+ok  	internal/runtime/wasitest	0.086s
+ok  	reflect	5.280s
+ok  	crypto	5.280s
+ok  	crypto/aes	0.215s
+ok  	crypto/cipher	21.694s
+ok  	crypto/des	0.075s
+ok  	crypto/dsa	0.019s
+ok  	crypto/ecdh	0.132s
+ok  	crypto/ecdsa	0.375s
+ok  	crypto/ed25519	0.451s
+ok  	crypto/elliptic	0.178s
+ok  	crypto/fips140	0.103s
+ok  	crypto/hkdf	0.064s
+ok  	crypto/hmac	0.091s
+ok  	crypto/hpke	9.828s
+ok  	crypto/internal/boring	0.066s
+?   	crypto/internal/boring/bbig	[no test files]
+ok  	crypto/internal/boring/bcache	0.808s
+?   	crypto/internal/boring/sig	[no test files]
+?   	crypto/internal/constanttime	[no test files]
+?   	crypto/internal/cryptotest	[no test files]
+?   	crypto/internal/entropy	[no test files]
+?   	crypto/internal/entropy/v1.0.0	[no test files]
+ok  	crypto/internal/fips140	0.044s
+ok  	crypto/internal/fips140/aes	0.049s
+ok  	crypto/internal/fips140/aes/gcm	0.009s [no tests to run]
+?   	crypto/internal/fips140/alias	[no test files]
+ok  	crypto/internal/fips140/bigmod	0.462s
+?   	crypto/internal/fips140/check	[no test files]
+?   	crypto/internal/fips140/check/checktest	[no test files]
+ok  	crypto/internal/fips140/drbg	0.029s [no tests to run]
+ok  	crypto/internal/fips140/ecdh	0.043s
+ok  	crypto/internal/fips140/ecdsa	0.162s
+?   	crypto/internal/fips140/ed25519	[no test files]
+ok  	crypto/internal/fips140/edwards25519	0.536s
+ok  	crypto/internal/fips140/edwards25519/field	0.089s
+?   	crypto/internal/fips140/hkdf	[no test files]
+?   	crypto/internal/fips140/hmac	[no test files]
+ok  	crypto/internal/fips140/mldsa	3.984s
+ok  	crypto/internal/fips140/mlkem	1.077s
+ok  	crypto/internal/fips140/nistec	0.042s
+ok  	crypto/internal/fips140/nistec/fiat	0.088s [no tests to run]
+?   	crypto/internal/fips140/pbkdf2	[no test files]
+ok  	crypto/internal/fips140/rsa	0.421s
+?   	crypto/internal/fips140/sha256	[no test files]
+?   	crypto/internal/fips140/sha3	[no test files]
+?   	crypto/internal/fips140/sha512	[no test files]
+?   	crypto/internal/fips140/ssh	[no test files]
+ok  	crypto/internal/fips140/subtle	0.020s
+?   	crypto/internal/fips140/tls12	[no test files]
+?   	crypto/internal/fips140/tls13	[no test files]
+ok  	crypto/internal/fips140cache	2.800s
+ok  	crypto/internal/fips140deps	0.646s
+?   	crypto/internal/fips140deps/byteorder	[no test files]
+?   	crypto/internal/fips140deps/cpu	[no test files]
+?   	crypto/internal/fips140deps/godebug	[no test files]
+?   	crypto/internal/fips140deps/time	[no test files]
+?   	crypto/internal/fips140hash	[no test files]
+ok  	crypto/internal/fips140only	2.058s
+ok  	crypto/internal/fips140test	27.599s
+?   	crypto/internal/impl	[no test files]
+?   	crypto/internal/rand	[no test files]
+?   	crypto/internal/randutil	[no test files]
+ok  	crypto/internal/sysrand	0.915s
+?   	crypto/internal/sysrand/internal/seccomp	[no test files]
+ok  	crypto/md5	0.088s
+ok  	crypto/mlkem	0.726s
+?   	crypto/mlkem/mlkemtest	[no test files]
+ok  	crypto/pbkdf2	0.087s
+ok  	crypto/rand	2.579s
+ok  	crypto/rc4	0.257s
+ok  	crypto/rsa	2.938s
+ok  	crypto/sha1	0.087s
+ok  	crypto/sha256	0.157s
+ok  	crypto/sha3	6.568s
+ok  	crypto/sha512	0.031s
+ok  	crypto/subtle	0.959s
+ok  	crypto/tls	14.774s
+?   	crypto/tls/internal/fips140tls	[no test files]
+ok  	crypto/x509	18.246s
+?   	crypto/x509/pkix	[no test files]
+
+##### Testing without libgcc.
+ok  	net	0.069s
+ok  	os/user	0.037s
+
+##### internal linking, -buildmode=pie
+ok  	reflect	7.554s
+ok  	crypto/internal/fips140test	0.013s [no tests to run]
+ok  	os/user	0.019s
+
+##### external linking, -buildmode=exe
+ok  	crypto/internal/fips140test	0.049s [no tests to run]
+
+##### external linking, -buildmode=pie
+ok  	crypto/internal/fips140test	0.026s [no tests to run]
+
+##### sync -cpu=10
+ok  	sync	1.973s
+
+##### Testing cgo
+ok  	cmd/cgo/internal/test	4.552s
+ok  	cmd/cgo/internal/test	2.480s
+ok  	cmd/cgo/internal/testtls	0.102s
+ok  	cmd/cgo/internal/testtls	0.023s
+ok  	cmd/cgo/internal/testnocgo	0.027s
+ok  	cmd/cgo/internal/testnocgo	0.071s
+ok  	cmd/cgo/internal/test	3.054s
+ok  	cmd/cgo/internal/test	2.420s
+ok  	cmd/cgo/internal/test	3.031s
+ok  	cmd/cgo/internal/test	2.576s
+ok  	cmd/cgo/internal/testtls	0.042s
+ok  	cmd/cgo/internal/testnocgo	0.046s
+
+##### API release note check
+ok  	cmd/relnote	0.018s
+
+##### API check
+ok  	cmd/api	144.081s
+
+##### GOMAXPROCS=2 runtime -cpu=1 -quick
+ok  	runtime	77.237s
+
+##### GOMAXPROCS=2 runtime -cpu=2 -quick
+ok  	runtime	75.427s
+
+##### GOMAXPROCS=2 runtime -cpu=4 -quick
+ok  	runtime	78.306s
+
+##### Testing race detector
+ok  	runtime/race	28.854s
+ok  	flag	1.460s
+ok  	net	1.739s
+ok  	os	1.560s
+ok  	os/exec	2.839s
+ok  	encoding/gob	1.257s
+ok  	flag	1.166s
+ok  	os/exec	2.314s
+
+##### ../test
+ok  	cmd/internal/testdir	396.666s
+
+ALL TESTS PASSED
+EXIT:0

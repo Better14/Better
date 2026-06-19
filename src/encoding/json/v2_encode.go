@@ -208,7 +208,7 @@ type Marshaler = jsonv2.Marshaler
 // An UnsupportedTypeError is returned by [Marshal] when attempting
 // to encode an unsupported value type.
 type UnsupportedTypeError struct {
-	errors.Layer
+	errors.Info
 	Type reflect.Type
 }
 
@@ -219,7 +219,7 @@ func (e *UnsupportedTypeError) Error() string {
 // An UnsupportedValueError is returned by [Marshal] when attempting
 // to encode an unsupported value.
 type UnsupportedValueError struct {
-	errors.Layer
+	errors.Info
 	Value reflect.Value
 	Str   string
 }
@@ -245,7 +245,7 @@ func (e *InvalidUTF8Error) Error() string {
 // A MarshalerError represents an error from calling a
 // [Marshaler.MarshalJSON] or [encoding.TextMarshaler.MarshalText] method.
 type MarshalerError struct {
-	errors.Layer
+	errors.Info
 	Type       reflect.Type
 	Err        error
 	sourceFunc string

@@ -45,14 +45,14 @@ var ErrMissingFile = errors.New("http: no such file")
 // Deprecated: Not all errors in the http package related to protocol errors
 // are of type ProtocolError.
 type ProtocolError struct {
-	errors.Layer
+	errors.Info
 	ErrorString string
 }
 
 // NewProtocolError returns a ProtocolError with a stack trace captured at the call site.
 func NewProtocolError(errorString string) *ProtocolError {
 	pe := &ProtocolError{ErrorString: errorString}
-	errors.InitCustom(&pe.Layer, "%s", errorString)
+	errors.InitCustom(&pe.Info, "%s", errorString)
 	return pe
 }
 
@@ -790,13 +790,13 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 // that the error came from a Read call on the Request.Body.
 // This error type should not escape the net/http package to users.
 type requestBodyReadError struct {
-	errors.Layer
+	errors.Info
 	Err error
 }
 
 func newRequestBodyReadError(err error) requestBodyReadError {
 	e := requestBodyReadError{Err: err}
-	errors.InitCustom(&e.Layer, "%s", err.Error())
+	errors.InitCustom(&e.Info, "%s", err.Error())
 	return e
 }
 
@@ -1218,14 +1218,14 @@ func MaxBytesReader(w ResponseWriter, r io.ReadCloser, n int64) io.ReadCloser {
 
 // MaxBytesError is returned by [MaxBytesReader] when its read limit is exceeded.
 type MaxBytesError struct {
-	errors.Layer
+	errors.Info
 	Limit int64
 }
 
 // NewMaxBytesError returns a MaxBytesError with a stack trace captured at the call site.
 func NewMaxBytesError(limit int64) *MaxBytesError {
 	e := &MaxBytesError{Limit: limit}
-	errors.InitCustom(&e.Layer, "http: request body too large")
+	errors.InitCustom(&e.Info, "http: request body too large")
 	return e
 }
 

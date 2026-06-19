@@ -18,13 +18,13 @@ import (
 
 // A gobError is used to distinguish errors (panics) generated in this package.
 type gobError struct {
-	stderrors.Layer
+	stderrors.Info
 	err error
 }
 
 func newGobError(err error) gobError {
 	e := gobError{err: err}
-	stderrors.InitCustom(&e.Layer, "%s", err.Error())
+	stderrors.InitCustom(&e.Info, "%s", err.Error())
 	return e
 }
 

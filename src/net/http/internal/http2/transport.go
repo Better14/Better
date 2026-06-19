@@ -352,7 +352,19 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 // from a user's x/net/http2. As such, as it has a unique method name
 // (IsHTTP2NoCachedConnError) that net/http sniffs for via func
 // isNoCachedConnError.
+<<<<<<< HEAD
 type noCachedConnError struct{}
+=======
+type noCachedConnError struct {
+	errors.Info
+}
+
+func newNoCachedConnError() noCachedConnError {
+	e := noCachedConnError{}
+	errors.InitCustom(&e.Info, "http2: no cached connection was available")
+	return e
+}
+>>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
 
 func (noCachedConnError) IsHTTP2NoCachedConnError() {}
 func (noCachedConnError) Error() string             { return "http2: no cached connection was available" }
@@ -365,7 +377,7 @@ func isNoCachedConnError(err error) bool {
 	return ok
 }
 
-var ErrNoCachedConn error = noCachedConnError{}
+var ErrNoCachedConn error = newNoCachedConnError()
 
 // RoundTripOpt are options for the Transport.RoundTripOpt method.
 type RoundTripOpt struct {
@@ -1921,11 +1933,29 @@ func (cc *ClientConn) readLoop() {
 // GoAwayError is returned by the Transport when the server closes the
 // TCP connection after sending a GOAWAY frame.
 type GoAwayError struct {
+<<<<<<< HEAD
+=======
+	errors.Info
+>>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
 	LastStreamID uint32
 	ErrCode      ErrCode
 	DebugData    string
 }
 
+<<<<<<< HEAD
+=======
+func goAwayErrorMessage(lastStreamID uint32, errCode ErrCode, debugData string) string {
+	return fmt.Sprintf("http2: server sent GOAWAY and closed the connection; LastStreamID=%v, ErrCode=%v, debug=%q",
+		lastStreamID, errCode, debugData)
+}
+
+func NewGoAwayError(lastStreamID uint32, errCode ErrCode, debugData string) GoAwayError {
+	e := GoAwayError{LastStreamID: lastStreamID, ErrCode: errCode, DebugData: debugData}
+	errors.InitCustom(&e.Info, "%s", goAwayErrorMessage(lastStreamID, errCode, debugData))
+	return e
+}
+
+>>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
 func (e GoAwayError) Error() string {
 	return fmt.Sprintf("http2: server sent GOAWAY and closed the connection; LastStreamID=%v, ErrCode=%v, debug=%q",
 		e.LastStreamID, e.ErrCode, e.DebugData)
@@ -1954,11 +1984,7 @@ func (rl *clientConnReadLoop) cleanup() {
 	err := cc.readerErr
 	cc.mu.Lock()
 	if cc.goAway != nil && isEOFOrNetReadError(err) {
-		err = GoAwayError{
-			LastStreamID: cc.goAway.LastStreamID,
-			ErrCode:      cc.goAway.ErrCode,
-			DebugData:    cc.goAwayDebug,
-		}
+		err = NewGoAwayError(cc.goAway.LastStreamID, cc.goAway.ErrCode, cc.goAwayDebug)
 	} else if err == io.EOF {
 		err = io.ErrUnexpectedEOF
 	}

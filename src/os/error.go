@@ -53,7 +53,7 @@ func NewPathError(op, path string, err error) *PathError {
 
 // SyscallError records an error from a specific system call.
 type SyscallError struct {
-	errors.Layer
+	errors.Info
 	Syscall string
 	Err     error
 }
@@ -83,7 +83,7 @@ func NewSyscallError(syscall string, err error) error {
 		return nil
 	}
 	e := &SyscallError{Syscall: syscall, Err: err}
-	errors.InitCustom(&e.Layer, "%s", syscallErrorMessage(syscall, err))
+	errors.InitCustom(&e.Info, "%s", syscallErrorMessage(syscall, err))
 	return e
 }
 

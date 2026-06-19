@@ -20,14 +20,14 @@ import (
 const errorPrefix = "jsontext: "
 
 type ioError struct {
-	errors.Layer
+	errors.Info
 	action string // either "read" or "write"
 	err    error
 }
 
 func newIOError(action string, err error) *ioError {
 	e := &ioError{action: action, err: err}
-	errors.InitCustom(&e.Layer, "%s", e.Error())
+	errors.InitCustom(&e.Info, "%s", e.Error())
 	return e
 }
 
@@ -39,7 +39,7 @@ func (e *ioError) Unwrap() error {
 }
 
 type numError struct {
-	errors.Layer
+	errors.Info
 	accessor string // either "Int", "Uint", or "Float"
 	value    string // e.g., "1e1000"
 	err      error  // either [strconv.ErrSyntax] or [strconv.ErrRange]
@@ -47,7 +47,7 @@ type numError struct {
 
 func newNumError(accessor, value string, err error) *numError {
 	e := &numError{accessor: accessor, value: value, err: err}
-	errors.InitCustom(&e.Layer, "%s", e.Error())
+	errors.InitCustom(&e.Info, "%s", e.Error())
 	return e
 }
 
@@ -66,9 +66,14 @@ type SyntacticError struct {
 	requireKeyedLiterals
 	nonComparable
 
+<<<<<<< HEAD
 	errors.Layer
 
 	// ByteOffset indicates that an error occurred at or after this byte offset.
+=======
+	errors.Info
+	// ByteOffset indicates that an error occurred after this byte offset.
+>>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
 	ByteOffset int64
 	// JSONPointer indicates that an error occurred within this JSON value
 	// as indicated using the JSON Pointer notation (see RFC 6901).
@@ -85,7 +90,7 @@ func NewSyntacticError(offset int64, ptr Pointer, err error) *SyntacticError {
 
 func newSyntacticError(offset int64, ptr Pointer, err error) *SyntacticError {
 	e := &SyntacticError{ByteOffset: offset, JSONPointer: ptr, Err: err}
-	errors.InitCustom(&e.Layer, "%s", e.Error())
+	errors.InitCustom(&e.Info, "%s", e.Error())
 	return e
 }
 
@@ -200,7 +205,7 @@ func (e *SyntacticError) Unwrap() error {
 // These tokens are reversed and concatenated to "/alpha/bravo/charlie"
 // to form the full pointer.
 type pointerSuffixError struct {
-	errors.Layer
+	errors.Info
 	err error
 
 	// reversePointer is a JSON pointer, but with each token in reverse order.
@@ -209,7 +214,7 @@ type pointerSuffixError struct {
 
 func newPointerSuffixError(err error) *pointerSuffixError {
 	e := &pointerSuffixError{err: err}
-	errors.InitCustom(&e.Layer, "%s", err.Error())
+	errors.InitCustom(&e.Info, "%s", err.Error())
 	return e
 }
 
