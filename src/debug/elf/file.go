@@ -231,7 +231,7 @@ type Symbol struct {
  */
 
 type FormatError struct {
-	errors.Info
+	errors.Base
 	off int64
 	msg string
 	val any
@@ -247,7 +247,7 @@ func formatErrorMessage(off int64, msg string, val any) string {
 
 func newFormatError(off int64, msg string, val any) *FormatError {
 	e := &FormatError{off: off, msg: msg, val: val}
-	errors.InitCustom(&e.Info, "%s", formatErrorMessage(off, msg, val))
+	errors.InitCustom(&e.Base, "%s", formatErrorMessage(off, msg, val))
 	return e
 }
 

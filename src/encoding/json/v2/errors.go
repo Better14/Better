@@ -73,7 +73,7 @@ type SemanticError struct {
 	requireKeyedLiterals
 	nonComparable
 
-	errors.Info
+	errors.Base
 	action string // either "marshal" or "unmarshal"
 
 	// ByteOffset indicates that an error occurred after this byte offset.
@@ -95,7 +95,7 @@ type SemanticError struct {
 }
 
 func initSemanticError(s *SemanticError) *SemanticError {
-	errors.InitCustom(&s.Info, "%s", s.Error())
+	errors.InitCustom(&s.Base, "%s", s.Error())
 	return s
 }
 

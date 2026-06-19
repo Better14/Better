@@ -1808,7 +1808,7 @@ func isSupportedSignatureAlgorithm(sigAlg SignatureScheme, supportedSignatureAlg
 
 // CertificateVerificationError is returned when certificate verification fails during the handshake.
 type CertificateVerificationError struct {
-	errors.Info
+	errors.Base
 	// UnverifiedCertificates and its contents should not be modified.
 	UnverifiedCertificates []*x509.Certificate
 	Err                    error
@@ -1820,7 +1820,7 @@ func certificateVerificationErrorMessage(e *CertificateVerificationError) string
 
 func newCertificateVerificationError(certs []*x509.Certificate, err error) *CertificateVerificationError {
 	e := &CertificateVerificationError{UnverifiedCertificates: certs, Err: err}
-	errors.InitCustom(&e.Info, "%s", certificateVerificationErrorMessage(e))
+	errors.InitCustom(&e.Base, "%s", certificateVerificationErrorMessage(e))
 	return e
 }
 

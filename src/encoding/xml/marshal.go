@@ -1126,7 +1126,7 @@ func (s *parentStack) push(parents []string) error {
 // UnsupportedTypeError is returned when [Marshal] encounters a type
 // that cannot be converted into XML.
 type UnsupportedTypeError struct {
-	errors.Info
+	errors.Base
 	Type reflect.Type
 }
 
@@ -1136,7 +1136,7 @@ func unsupportedTypeErrorMessage(typ reflect.Type) string {
 
 func newUnsupportedTypeError(typ reflect.Type) *UnsupportedTypeError {
 	ue := &UnsupportedTypeError{Type: typ}
-	errors.InitCustom(&ue.Info, "%s", unsupportedTypeErrorMessage(typ))
+	errors.InitCustom(&ue.Base, "%s", unsupportedTypeErrorMessage(typ))
 	return ue
 }
 

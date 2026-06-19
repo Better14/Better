@@ -52,13 +52,13 @@ var ErrDeadlineExceeded error
 
 func init() {
 	var e DeadlineExceededError
-	errors.InitCustom(&e.Info, "i/o timeout")
+	errors.InitCustom(&e.Base, "i/o timeout")
 	ErrDeadlineExceeded = &e
 }
 
 // DeadlineExceededError is returned for an expired deadline.
 type DeadlineExceededError struct {
-	errors.Info
+	errors.Base
 }
 
 // Implement the net.Error interface.

@@ -6,19 +6,19 @@ package errors
 
 import "runtime"
 
-// Info is the embeddable structured-error payload (message, stack trace, inner link).
-// Embed errors.Info in custom error types that also define Error() string;
-// the type name Info avoids a field/method name clash with Error().
-type Info struct {
+// Base is the embeddable structured-error payload (message, stack trace, inner link).
+// Embed errors.Base in custom error types that also define Error() string;
+// the type name Base avoids a field/method name clash with Error().
+type Base struct {
 	Message    string
 	StackTrace StackTrace
-	InnerError *Info
+	InnerError *Base
 
-	link error // non-*Info target for Unwrap when InnerError is nil
+	link error // non-*Base target for Unwrap when InnerError is nil
 }
 
-// Error is an alias for Info. APIs such as New and Wrap return *Error.
-type Error = Info
+// Error is an alias for Base. APIs such as New and Wrap return *Error.
+type Error = Base
 
 // StackTrace is a captured call stack (innermost frame first).
 type StackTrace []StackFrame
@@ -31,7 +31,7 @@ type StackFrame struct {
 }
 
 // Error returns the layer message only.
-func (e *Info) Error() string {
+func (e *Base) Error() string {
 	if e == nil {
 		return "<nil>"
 	}
@@ -39,7 +39,7 @@ func (e *Info) Error() string {
 }
 
 // String serializes the full error chain and stack traces.
-func (e *Info) String() string {
+func (e *Base) String() string {
 	if e == nil {
 		return "<nil>"
 	}
@@ -86,7 +86,7 @@ func (st StackTrace) String() string {
 }
 
 // Unwrap returns the next error in the chain.
-func (e *Info) Unwrap() error {
+func (e *Base) Unwrap() error {
 	if e == nil {
 		return nil
 	}
@@ -97,11 +97,11 @@ func (e *Info) Unwrap() error {
 }
 
 // Wrap prepends a layer with message and a fresh stack trace.
-func (e *Info) Wrap(message string) *Info {
+func (e *Base) Wrap(message string) *Base {
 	if e == nil {
 		return newError(message)
 	}
-	return &Info{
+	return &Base{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),
 		InnerError: e,
@@ -109,14 +109,14 @@ func (e *Info) Wrap(message string) *Info {
 }
 
 // Wrap adds context and a stack trace layer around err.
-func Wrap(err error, message string) *Info {
+func Wrap(err error, message string) *Base {
 	if err == nil {
 		return nil
 	}
-	if e, ok := err.(*Info); ok {
+	if e, ok := err.(*Base); ok {
 		return e.Wrap(message)
 	}
-	return &Info{
+	return &Base{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),
 		InnerError: bridgeError(err),
@@ -126,7 +126,7 @@ func Wrap(err error, message string) *Info {
 // NewWrapped returns a structured error for fmt.Errorf with a single %w verb.
 // message is the full formatted string; wrapped is the wrapped operand.
 func NewWrapped(message string, wrapped error) error {
-	e := &Info{
+	e := &Base{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),
 	}
@@ -135,7 +135,7 @@ func NewWrapped(message string, wrapped error) error {
 }
 
 func newError(message string) *Error {
-	return &Info{
+	return &Base{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),
 	}
@@ -143,45 +143,45 @@ func newError(message string) *Error {
 
 // NewCustom returns a root error of type T with Message, StackTrace, and InnerError set
 // on the embedded Error field. T must be a named type whose underlying type is
-// struct{ Info } — that is, it embeds errors.Info and adds no other fields.
+// struct{ Base } — that is, it embeds errors.Base and adds no other fields.
 // When args are provided, format is interpreted like fmt.Sprintf.
-func NewCustom[T ~struct{ Info }](format string, args ...any) *T {
-	return &T{Info: *newError(formatMessage(format, args...))}
+func NewCustom[T ~struct{ Base }](format string, args ...any) *T {
+	return &T{Base: *newError(formatMessage(format, args...))}
 }
 
 // InitCustom assigns Message, StackTrace, and InnerError on e from a new root error
-// captured at the call site. Use this to initialize the embedded errors.Info field
-// of a custom type that has extra domain fields, e.g. InitCustom(&myErr.Info, msg).
+// captured at the call site. Use this to initialize the embedded errors.Base field
+// of a custom type that has extra domain fields, e.g. InitCustom(&myErr.Base, msg).
 // When args are provided, format is interpreted like fmt.Sprintf.
 // If e is nil, InitCustom does nothing.
-func InitCustom(e *Info, format string, args ...any) {
+func InitCustom(e *Base, format string, args ...any) {
 	if e == nil {
 		return
 	}
 	*e = *newError(formatMessage(format, args...))
 }
 
-func setLink(e *Info, err error) {
+func setLink(e *Base, err error) {
 	if err == nil {
 		return
 	}
-	if inner, ok := err.(*Info); ok {
+	if inner, ok := err.(*Base); ok {
 		e.InnerError = inner
 		return
 	}
 	e.link = err
 }
 
-// bridgeError wraps a non-*Info value for InnerError chains while
+// bridgeError wraps a non-*Base value for InnerError chains while
 // preserving the original error for Unwrap/Is/As via link.
-func bridgeError(err error) *Info {
+func bridgeError(err error) *Base {
 	if err == nil {
 		return nil
 	}
-	if e, ok := err.(*Info); ok {
+	if e, ok := err.(*Base); ok {
 		return e
 	}
-	return &Info{
+	return &Base{
 		Message: err.Error(),
 		link:    err,
 	}

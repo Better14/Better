@@ -486,7 +486,7 @@ func validDNSName(name string) bool {
 // The client may treat an ECHRejectionError with an empty set of RetryConfigs
 // as a secure signal from the server.
 type ECHRejectionError struct {
-	errors.Info
+	errors.Base
 	RetryConfigList []byte
 }
 
@@ -496,7 +496,7 @@ func echRejectionErrorMessage() string {
 
 func newECHRejectionError(retryConfigList []byte) *ECHRejectionError {
 	e := &ECHRejectionError{RetryConfigList: retryConfigList}
-	errors.InitCustom(&e.Info, "%s", echRejectionErrorMessage())
+	errors.InitCustom(&e.Base, "%s", echRejectionErrorMessage())
 	return e
 }
 

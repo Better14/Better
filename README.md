@@ -55,7 +55,7 @@ return fmt.Errorf("readFile %s: %w", path, err)
 log.Printf("%+v", err)   // full chain + stacks
 ```
 
-Custom error types embed `**errors.Base**` for message, stack trace, and wrapping:
+Custom error types embed `errors.Base` for message, stack trace, and wrapping:
 
 ```go
 type AppError struct {
@@ -67,13 +67,13 @@ func validate(id string) error {
 }
 
 type NotFoundError struct {
-	errors.Info
+	errors.Base
 	Code int
 }
 
 func newNotFound(code int, msg string) *NotFoundError {
 	var err NotFoundError
-	errors.InitCustom(&err.Info, "%s", msg)
+	errors.InitCustom(&err.Base, "%s", msg)
 	err.Code = code
 	return &err
 }

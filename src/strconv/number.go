@@ -250,7 +250,7 @@ var ErrSyntax = errors.New("invalid syntax")
 
 // A NumError records a failed conversion.
 type NumError struct {
-	errors.Info
+	errors.Base
 	Func string // the failing function (ParseBool, ParseInt, ParseUint, ParseFloat, ParseComplex)
 	Num  string // the input
 	Err  error  // the reason the conversion failed (e.g. ErrRange, ErrSyntax, etc.)
@@ -268,7 +268,7 @@ func (e *NumError) Unwrap() error { return e.Err }
 
 func newNumError(fn, str string, err error) *NumError {
 	e := &NumError{Func: fn, Num: stringslite.Clone(str), Err: err}
-	errors.InitCustom(&e.Info, "%s", numErrorMessage(fn, e.Num, err))
+	errors.InitCustom(&e.Base, "%s", numErrorMessage(fn, e.Num, err))
 	return e
 }
 

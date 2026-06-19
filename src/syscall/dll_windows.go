@@ -23,7 +23,7 @@ var (
 
 // DLLError describes reasons for DLL load failures.
 type DLLError struct {
-	errors.Info
+	errors.Base
 	Err     error
 	ObjName string
 	Msg     string
@@ -31,7 +31,7 @@ type DLLError struct {
 
 func newDLLError(err error, objName, msg string) *DLLError {
 	e := &DLLError{Err: err, ObjName: objName, Msg: msg}
-	errors.InitCustom(&e.Info, "%s", msg)
+	errors.InitCustom(&e.Base, "%s", msg)
 	return e
 }
 

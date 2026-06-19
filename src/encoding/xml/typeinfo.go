@@ -329,7 +329,7 @@ Loop:
 // A TagPathError represents an error in the unmarshaling process
 // caused by the use of field tags with conflicting paths.
 type TagPathError struct {
-	errors.Info
+	errors.Base
 	Struct       reflect.Type
 	Field1, Tag1 string
 	Field2, Tag2 string
@@ -341,7 +341,7 @@ func tagPathErrorMessage(structType reflect.Type, field1, tag1, field2, tag2 str
 
 func newTagPathError(structType reflect.Type, field1, tag1, field2, tag2 string) *TagPathError {
 	te := &TagPathError{Struct: structType, Field1: field1, Tag1: tag1, Field2: field2, Tag2: tag2}
-	errors.InitCustom(&te.Info, "%s", tagPathErrorMessage(structType, field1, tag1, field2, tag2))
+	errors.InitCustom(&te.Base, "%s", tagPathErrorMessage(structType, field1, tag1, field2, tag2))
 	return te
 }
 

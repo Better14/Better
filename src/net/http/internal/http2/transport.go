@@ -353,12 +353,12 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 // (IsHTTP2NoCachedConnError) that net/http sniffs for via func
 // isNoCachedConnError.
 type noCachedConnError struct {
-	errors.Info
+	errors.Base
 }
 
 func newNoCachedConnError() noCachedConnError {
 	e := noCachedConnError{}
-	errors.InitCustom(&e.Info, "http2: no cached connection was available")
+	errors.InitCustom(&e.Base, "http2: no cached connection was available")
 	return e
 }
 
@@ -1929,7 +1929,7 @@ func (cc *ClientConn) readLoop() {
 // GoAwayError is returned by the Transport when the server closes the
 // TCP connection after sending a GOAWAY frame.
 type GoAwayError struct {
-	errors.Info
+	errors.Base
 	LastStreamID uint32
 	ErrCode      ErrCode
 	DebugData    string
@@ -1942,7 +1942,7 @@ func goAwayErrorMessage(lastStreamID uint32, errCode ErrCode, debugData string) 
 
 func NewGoAwayError(lastStreamID uint32, errCode ErrCode, debugData string) GoAwayError {
 	e := GoAwayError{LastStreamID: lastStreamID, ErrCode: errCode, DebugData: debugData}
-	errors.InitCustom(&e.Info, "%s", goAwayErrorMessage(lastStreamID, errCode, debugData))
+	errors.InitCustom(&e.Base, "%s", goAwayErrorMessage(lastStreamID, errCode, debugData))
 	return e
 }
 

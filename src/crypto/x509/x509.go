@@ -905,7 +905,7 @@ func (e InsecureAlgorithmError) Error() string {
 // a certificate. For example: checking a signature when the public key isn't a
 // certificate signing key.
 type ConstraintViolationError struct {
-	errors.Info
+	errors.Base
 }
 
 func constraintViolationErrorMessage() string {
@@ -914,7 +914,7 @@ func constraintViolationErrorMessage() string {
 
 func newConstraintViolationError() ConstraintViolationError {
 	e := ConstraintViolationError{}
-	errors.InitCustom(&e.Info, "%s", constraintViolationErrorMessage())
+	errors.InitCustom(&e.Base, "%s", constraintViolationErrorMessage())
 	return e
 }
 
