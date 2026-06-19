@@ -135,7 +135,7 @@ func (check *Checker) ident(x *operand, e *ast.Ident, wantType bool) {
 		x.mode_ = builtin
 
 	case *Nil:
-		x.mode_ = value
+		x.mode_ = nilvalue
 
 	default:
 		panic("unreachable")
