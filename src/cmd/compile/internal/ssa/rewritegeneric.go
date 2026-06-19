@@ -28008,7 +28008,7 @@ func rewriteValuegeneric_OpRotateLeft16(v *Value) bool {
 			break
 		}
 		c := auxIntToInt16(v_1.AuxInt)
-		if !(c%16 == 0) {
+		if !(c % 16 == 0) {
 			break
 		}
 		v.copyOf(x)
@@ -28553,7 +28553,7 @@ func rewriteValuegeneric_OpRotateLeft32(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(c%32 == 0) {
+		if !(c % 32 == 0) {
 			break
 		}
 		v.copyOf(x)
@@ -29098,7 +29098,7 @@ func rewriteValuegeneric_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(c%64 == 0) {
+		if !(c % 64 == 0) {
 			break
 		}
 		v.copyOf(x)
@@ -29643,7 +29643,7 @@ func rewriteValuegeneric_OpRotateLeft8(v *Value) bool {
 			break
 		}
 		c := auxIntToInt8(v_1.AuxInt)
-		if !(c%8 == 0) {
+		if !(c % 8 == 0) {
 			break
 		}
 		v.copyOf(x)

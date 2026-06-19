@@ -2848,7 +2848,7 @@ func rewriteValueRISCV64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVHstore)
@@ -2889,7 +2889,7 @@ func rewriteValueRISCV64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%4 == 0) {
+		if !(t.Alignment() % 4 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVWstore)
@@ -2909,7 +2909,7 @@ func rewriteValueRISCV64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVHstore)
@@ -2968,7 +2968,7 @@ func rewriteValueRISCV64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%8 == 0) {
+		if !(t.Alignment() % 8 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVDstore)
@@ -2988,7 +2988,7 @@ func rewriteValueRISCV64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%4 == 0) {
+		if !(t.Alignment() % 4 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVWstore)
@@ -3014,7 +3014,7 @@ func rewriteValueRISCV64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVHstore)
@@ -3079,7 +3079,7 @@ func rewriteValueRISCV64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVHstore)
@@ -10551,7 +10551,7 @@ func rewriteValueRISCV64_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVHstore)
@@ -10587,7 +10587,7 @@ func rewriteValueRISCV64_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%4 == 0) {
+		if !(t.Alignment() % 4 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVWstore)
@@ -10606,7 +10606,7 @@ func rewriteValueRISCV64_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVHstore)
@@ -10651,7 +10651,7 @@ func rewriteValueRISCV64_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%8 == 0) {
+		if !(t.Alignment() % 8 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVDstore)
@@ -10670,7 +10670,7 @@ func rewriteValueRISCV64_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%4 == 0) {
+		if !(t.Alignment() % 4 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVWstore)
@@ -10692,7 +10692,7 @@ func rewriteValueRISCV64_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVHstore)
@@ -10740,7 +10740,7 @@ func rewriteValueRISCV64_OpZero(v *Value) bool {
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment() % 2 == 0) {
 			break
 		}
 		v.reset(OpRISCV64MOVHstore)

@@ -8,14 +8,14 @@
 
 package p
 
-type T /* ERROR unexpected newline */
+type T // ERROR unexpected newline in type declaration
 
-type Map map[int] /* ERROR unexpected newline */
+type Map map[int] /* ERROR missing map value type */
 
 // Examples from go.dev/issue/23434:
 
 func g() {
-	m := make(map[string] /* ERROR unexpected ! */ !)
+	m := make(map[string] /* ERROR missing map value type */ !)
 	for {
 		x := 1
 		print(x)
@@ -23,7 +23,7 @@ func g() {
 }
 
 func f() {
-	m := make(map[string] /* ERROR unexpected \) */ )
+	m := make(map[string] /* ERROR missing map value type */ )
 	for {
 		x := 1
 		print(x)

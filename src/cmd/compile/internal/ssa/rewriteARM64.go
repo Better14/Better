@@ -8794,7 +8794,7 @@ func rewriteValueARM64_OpARM64MADD(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(OpARM64SUBshiftLL)
@@ -8815,7 +8815,7 @@ func rewriteValueARM64_OpARM64MADD(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(OpARM64ADDshiftLL)
@@ -8836,7 +8836,7 @@ func rewriteValueARM64_OpARM64MADD(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 			break
 		}
 		v.reset(OpARM64SUBshiftLL)
@@ -8857,7 +8857,7 @@ func rewriteValueARM64_OpARM64MADD(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(OpARM64ADDshiftLL)
@@ -8970,7 +8970,7 @@ func rewriteValueARM64_OpARM64MADD(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(OpARM64SUBshiftLL)
@@ -8991,7 +8991,7 @@ func rewriteValueARM64_OpARM64MADD(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(OpARM64ADDshiftLL)
@@ -9012,7 +9012,7 @@ func rewriteValueARM64_OpARM64MADD(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 			break
 		}
 		v.reset(OpARM64SUBshiftLL)
@@ -9033,7 +9033,7 @@ func rewriteValueARM64_OpARM64MADD(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(OpARM64ADDshiftLL)
@@ -9212,7 +9212,7 @@ func rewriteValueARM64_OpARM64MADDW(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -9235,7 +9235,7 @@ func rewriteValueARM64_OpARM64MADDW(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -9258,7 +9258,7 @@ func rewriteValueARM64_OpARM64MADDW(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -9281,7 +9281,7 @@ func rewriteValueARM64_OpARM64MADDW(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -9422,7 +9422,7 @@ func rewriteValueARM64_OpARM64MADDW(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -9445,7 +9445,7 @@ func rewriteValueARM64_OpARM64MADDW(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -9468,7 +9468,7 @@ func rewriteValueARM64_OpARM64MADDW(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -9491,7 +9491,7 @@ func rewriteValueARM64_OpARM64MADDW(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -9665,7 +9665,7 @@ func rewriteValueARM64_OpARM64MNEG(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt64(v_1.AuxInt)
-			if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+			if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 				continue
 			}
 			v.reset(OpARM64SLLconst)
@@ -9689,7 +9689,7 @@ func rewriteValueARM64_OpARM64MNEG(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt64(v_1.AuxInt)
-			if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+			if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 				continue
 			}
 			v.reset(OpARM64NEG)
@@ -9714,7 +9714,7 @@ func rewriteValueARM64_OpARM64MNEG(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt64(v_1.AuxInt)
-			if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+			if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 				continue
 			}
 			v.reset(OpARM64SLLconst)
@@ -9738,7 +9738,7 @@ func rewriteValueARM64_OpARM64MNEG(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt64(v_1.AuxInt)
-			if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+			if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 				continue
 			}
 			v.reset(OpARM64NEG)
@@ -9917,7 +9917,7 @@ func rewriteValueARM64_OpARM64MNEGW(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt64(v_1.AuxInt)
-			if !(c%3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
+			if !(c % 3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
 				continue
 			}
 			v.reset(OpARM64MOVWUreg)
@@ -9942,7 +9942,7 @@ func rewriteValueARM64_OpARM64MNEGW(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt64(v_1.AuxInt)
-			if !(c%5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
+			if !(c % 5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
 				continue
 			}
 			v.reset(OpARM64MOVWUreg)
@@ -9969,7 +9969,7 @@ func rewriteValueARM64_OpARM64MNEGW(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt64(v_1.AuxInt)
-			if !(c%7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
+			if !(c % 7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
 				continue
 			}
 			v.reset(OpARM64MOVWUreg)
@@ -9994,7 +9994,7 @@ func rewriteValueARM64_OpARM64MNEGW(v *Value) bool {
 				continue
 			}
 			c := auxIntToInt64(v_1.AuxInt)
-			if !(c%9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
+			if !(c % 9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
 				continue
 			}
 			v.reset(OpARM64MOVWUreg)
@@ -13283,7 +13283,7 @@ func rewriteValueARM64_OpARM64MSUB(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(OpARM64ADDshiftLL)
@@ -13304,7 +13304,7 @@ func rewriteValueARM64_OpARM64MSUB(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(OpARM64SUBshiftLL)
@@ -13325,7 +13325,7 @@ func rewriteValueARM64_OpARM64MSUB(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 			break
 		}
 		v.reset(OpARM64ADDshiftLL)
@@ -13346,7 +13346,7 @@ func rewriteValueARM64_OpARM64MSUB(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(OpARM64SUBshiftLL)
@@ -13459,7 +13459,7 @@ func rewriteValueARM64_OpARM64MSUB(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%3 == 0 && isPowerOfTwo(c/3)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3)) {
 			break
 		}
 		v.reset(OpARM64ADDshiftLL)
@@ -13480,7 +13480,7 @@ func rewriteValueARM64_OpARM64MSUB(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%5 == 0 && isPowerOfTwo(c/5)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5)) {
 			break
 		}
 		v.reset(OpARM64SUBshiftLL)
@@ -13501,7 +13501,7 @@ func rewriteValueARM64_OpARM64MSUB(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%7 == 0 && isPowerOfTwo(c/7)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7)) {
 			break
 		}
 		v.reset(OpARM64ADDshiftLL)
@@ -13522,7 +13522,7 @@ func rewriteValueARM64_OpARM64MSUB(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%9 == 0 && isPowerOfTwo(c/9)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9)) {
 			break
 		}
 		v.reset(OpARM64SUBshiftLL)
@@ -13701,7 +13701,7 @@ func rewriteValueARM64_OpARM64MSUBW(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -13724,7 +13724,7 @@ func rewriteValueARM64_OpARM64MSUBW(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -13747,7 +13747,7 @@ func rewriteValueARM64_OpARM64MSUBW(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -13770,7 +13770,7 @@ func rewriteValueARM64_OpARM64MSUBW(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_2.AuxInt)
-		if !(c%9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -13911,7 +13911,7 @@ func rewriteValueARM64_OpARM64MSUBW(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
+		if !(c % 3 == 0 && isPowerOfTwo(c/3) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -13934,7 +13934,7 @@ func rewriteValueARM64_OpARM64MSUBW(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
+		if !(c % 5 == 0 && isPowerOfTwo(c/5) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -13957,7 +13957,7 @@ func rewriteValueARM64_OpARM64MSUBW(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
+		if !(c % 7 == 0 && isPowerOfTwo(c/7) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)
@@ -13980,7 +13980,7 @@ func rewriteValueARM64_OpARM64MSUBW(v *Value) bool {
 		}
 		c := auxIntToInt64(v_1.AuxInt)
 		x := v_2
-		if !(c%9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
+		if !(c % 9 == 0 && isPowerOfTwo(c/9) && is32Bit(c)) {
 			break
 		}
 		v.reset(OpARM64MOVWUreg)

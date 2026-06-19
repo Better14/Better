@@ -114,6 +114,57 @@ func (check *Checker) overloadList(funcs []*Func) string {
 	return b.String()
 }
 
+func identicalMethodSig(a, b *Func) bool {
+	if a == nil || b == nil || a.typ == nil || b.typ == nil {
+		return false
+	}
+	sa, ok := a.typ.(*Signature)
+	if !ok {
+		return false
+	}
+	sb, ok := b.typ.(*Signature)
+	if !ok {
+		return false
+	}
+	if sa.recv == nil || sb.recv == nil {
+		return sa.recv == sb.recv
+	}
+	if TypeString(sa.recv.typ, nil) != TypeString(sb.recv.typ, nil) {
+		return false
+	}
+	if sa.variadic != sb.variadic {
+		return false
+	}
+	pa, pb := sa.Params(), sb.Params()
+	if pa == nil || pb == nil {
+		if pa != pb {
+			return false
+		}
+	} else {
+		if pa.Len() != pb.Len() {
+			return false
+		}
+		for i := 0; i < pa.Len(); i++ {
+			if !Identical(pa.At(i).Type(), pb.At(i).Type()) {
+				return false
+			}
+		}
+	}
+	ra, rb := sa.Results(), sb.Results()
+	if ra == nil || rb == nil {
+		return ra == rb
+	}
+	if ra.Len() != rb.Len() {
+		return false
+	}
+	for i := 0; i < ra.Len(); i++ {
+		if !Identical(ra.At(i).Type(), rb.At(i).Type()) {
+			return false
+		}
+	}
+	return true
+}
+
 func (check *Checker) checkOverloadDuplicates(name string, cands []*Func, kind string) {
 	seen := make(map[string]*Func)
 	for _, fn := range cands {
@@ -143,29 +194,28 @@ func (check *Checker) resolveRecvBaseName(recvName string) string {
 }
 
 func (check *Checker) checkMethodOverloadDuplicates() {
-	merged := make(map[methodKey][]*Func)
 	for key, cands := range check.overloadMeths {
-		baseName := check.resolveRecvBaseName(key.recvName)
-		mk := methodKey{recvName: baseName, name: key.name}
-		merged[mk] = append(merged[mk], cands...)
-	}
-	for key, cands := range merged {
-		seen := make(map[string]*Func)
+		var seen []*Func
 		for _, fn := range cands {
 			if fn == nil || fn.typ == nil {
 				continue
 			}
 			sig, ok := fn.typ.(*Signature)
-			if !ok {
+			if !ok || sig.recv == nil || !isValid(sig.recv.typ) {
 				continue
 			}
-			sigKey := overloadSigKey(key.name, sig)
-			if prev, ok := seen[sigKey]; ok {
-				check.errorf(fn.pos, DuplicateMethod, "method %s.%s already declared", key.recvName, key.name)
-				_ = prev
-				continue
+			for _, prev := range seen {
+				if identicalMethodSig(prev, fn) {
+					if prev.Pos().IsKnown() {
+						check.errorf(fn.pos, DuplicateMethod, "method %s.%s already declared at %v", key.recvName, key.name, prev.Pos())
+					} else {
+						check.errorf(fn.pos, DuplicateMethod, "method %s.%s already declared", key.recvName, key.name)
+					}
+					goto next
+				}
 			}
-			seen[sigKey] = fn
+			seen = append(seen, fn)
+		next:
 		}
 	}
 }
