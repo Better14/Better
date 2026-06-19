@@ -59,12 +59,12 @@ var (
 )
 
 // alias receiver types
-func (Ai /* ERRORx "cannot define new methods on non-local type (int|Ai)" */) m1() {}
+func (Ai) m1() {}
 func (T0) m1() {}
 func (A0) m1 /* ERROR "already declared" */ () {}
 func (A0) m2 () {}
 func (A3 /* ERROR "invalid receiver" */ ) m1 () {}
-func (A10 /* ERROR "invalid receiver" */ ) m1() {}
+func (A10) m1() {}
 
 // x0 has methods m1, m2 declared via receiver type names T0 and A0
 var _ interface{ m1(); m2() } = x0
@@ -115,8 +115,8 @@ type (
 	B2 = int
 )
 
-func (B0 /* ERRORx "cannot define new methods on non-local type (int|B)" */ ) m() {}
-func (B1 /* ERRORx "cannot define new methods on non-local type (int|B)" */ ) n() {}
+func (B0) m() {}
+func (B1) n() {}
 
 // cycles
 type (
@@ -191,7 +191,7 @@ type eD struct {
 
 var (
 	_ = eD{}.xf /* ERROR "ambiguous selector eD{}.xf" */
-	_ = eD{}.xm /* ERROR "ambiguous selector eD{}.xm" */
+	_ = eD{}.xm
 )
 
 var (
