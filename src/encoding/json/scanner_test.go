@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"math"
 	"math/rand"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -193,15 +192,15 @@ func TestIndentErrors(t *testing.T) {
 		in  string
 		err error
 	}{
-		{Name(""), `{"X": "foo", "Y"}`, &SyntaxError{"invalid character '}' after object key", 17}},
-		{Name(""), `{"X": "foo" "Y": "bar"}`, &SyntaxError{"invalid character '\"' after object key:value pair", 13}},
+		{Name(""), `{"X": "foo", "Y"}`, &SyntaxError{msg: "invalid character '}' after object key", Offset: 17}},
+		{Name(""), `{"X": "foo" "Y": "bar"}`, &SyntaxError{msg: "invalid character '\"' after object key:value pair", Offset: 13}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			slice := make([]uint8, 0)
 			buf := bytes.NewBuffer(slice)
 			if err := Indent(buf, []uint8(tt.in), "", ""); err != nil {
-				if !reflect.DeepEqual(err, tt.err) {
+				if !equalError(err, tt.err) {
 					t.Fatalf("%s: Indent error:\n\tgot:  %v\n\twant: %v", tt.Where, err, tt.err)
 				}
 			}

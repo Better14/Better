@@ -2892,7 +2892,7 @@ func testTimeoutHandlerContextCanceled(t *testing.T, mode testMode) {
 		t.Errorf("got body %q; expected %q", g, e)
 	}
 	if g, e := <-writeErrors, context.Canceled; g != e {
-		t.Errorf("got unexpected Write in handler: %v, want %g", g, e)
+		t.Errorf("got unexpected Write in handler: %v, want %v", g, e)
 	}
 }
 

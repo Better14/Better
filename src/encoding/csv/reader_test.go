@@ -7,6 +7,7 @@ package csv
 import (
 	"errors"
 	"fmt"
+	"internal/testerrors"
 	"io"
 	"reflect"
 	"slices"
@@ -429,7 +430,7 @@ func TestRead(t *testing.T) {
 			r, positions, errPositions, input := newReader(tt)
 			out, err := r.ReadAll()
 			if wantErr := firstError(tt.Errors, positions, errPositions); wantErr != nil {
-				if !reflect.DeepEqual(err, wantErr) {
+				if !testerrors.EqualValues(err, wantErr) {
 					t.Fatalf("ReadAll() error mismatch:\ngot  %v (%#v)\nwant %v (%#v)", err, err, wantErr, wantErr)
 				}
 				if out != nil {
@@ -461,7 +462,7 @@ func TestRead(t *testing.T) {
 				} else if recNum >= len(tt.Output) {
 					wantErr = io.EOF
 				}
-				if !reflect.DeepEqual(err, wantErr) {
+				if !testerrors.EqualValues(err, wantErr) {
 					t.Fatalf("Read() error at record %d:\ngot %v (%#v)\nwant %v (%#v)", recNum, err, err, wantErr, wantErr)
 				}
 				// ErrFieldCount is explicitly non-fatal.

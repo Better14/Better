@@ -319,12 +319,12 @@ func TestOIDUnmarshalBinary(t *testing.T) {
 		var o OID
 		err := o.UnmarshalBinary(tt.raw)
 
-		expectErr := errInvalidOID
-		if tt.valid {
-			expectErr = nil
+		var expectErr error
+		if !tt.valid {
+			expectErr = errInvalidOID
 		}
 
-		if err != expectErr {
+		if (err != nil || expectErr != nil) && err != expectErr {
 			t.Errorf("(o *OID).UnmarshalBinary(%v) = %v; want = %v; (o = %v)", tt.raw, err, expectErr, o)
 		}
 	}

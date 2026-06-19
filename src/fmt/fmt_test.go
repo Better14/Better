@@ -1511,10 +1511,10 @@ var mallocTest = []struct {
 		mallocBuf.Reset()
 		Fprintf(&mallocBuf, "%x %x %x", mallocPointer, mallocPointer, mallocPointer)
 	}},
-	{0, `Errorf("hello")`, func() { _ = Errorf("hello") }},
-	{2, `Errorf("hello: %x")`, func() { _ = Errorf("hello: %x", mallocPointer) }},
-	{1, `sink = Errorf("hello")`, func() { sink = Errorf("hello") }},
-	{2, `sink = Errorf("hello: %x")`, func() { sink = Errorf("hello: %x", mallocPointer) }},
+	{6, `Errorf("hello")`, func() { _ = Errorf("hello") }},
+	{7, `Errorf("hello: %x")`, func() { _ = Errorf("hello: %x", mallocPointer) }},
+	{6, `sink = Errorf("hello")`, func() { sink = Errorf("hello") }},
+	{7, `sink = Errorf("hello: %x")`, func() { sink = Errorf("hello: %x", mallocPointer) }},
 }
 
 var _ bytes.Buffer

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"internal/testerrors"
 	"internal/poll"
 	"io"
 	"io/fs"
@@ -146,7 +147,10 @@ func TestDialError(t *testing.T) {
 	origTestHookLookupIP := testHookLookupIP
 	defer func() { testHookLookupIP = origTestHookLookupIP }()
 	testHookLookupIP = func(ctx context.Context, fn func(context.Context, string, string) ([]IPAddr, error), network, host string) ([]IPAddr, error) {
-		return nil, dnsError("dial error test", "name", Server: "server", IsTimeout: true)
+		e := dnsError("dial error test", "name")
+		e.Server = "server"
+		e.IsTimeout = true
+		return nil, e
 	}
 	sw.Set(socktest.FilterConnect, func(so *socktest.Status) (socktest.AfterFilter, error) {
 		return nil, errOpNotSupported
@@ -301,7 +305,10 @@ func TestListenError(t *testing.T) {
 	origTestHookLookupIP := testHookLookupIP
 	defer func() { testHookLookupIP = origTestHookLookupIP }()
 	testHookLookupIP = func(_ context.Context, fn func(context.Context, string, string) ([]IPAddr, error), network, host string) ([]IPAddr, error) {
-		return nil, dnsError("listen error test", "name", Server: "server", IsTimeout: true)
+		e := dnsError("listen error test", "name")
+		e.Server = "server"
+		e.IsTimeout = true
+		return nil, e
 	}
 	sw.Set(socktest.FilterListen, func(so *socktest.Status) (socktest.AfterFilter, error) {
 		return nil, errOpNotSupported
@@ -361,7 +368,10 @@ func TestListenPacketError(t *testing.T) {
 	origTestHookLookupIP := testHookLookupIP
 	defer func() { testHookLookupIP = origTestHookLookupIP }()
 	testHookLookupIP = func(_ context.Context, fn func(context.Context, string, string) ([]IPAddr, error), network, host string) ([]IPAddr, error) {
-		return nil, dnsError("listen error test", "name", Server: "server", IsTimeout: true)
+		e := dnsError("listen error test", "name")
+		e.Server = "server"
+		e.IsTimeout = true
+		return nil, e
 	}
 
 	for i, tt := range listenPacketErrorTests {
@@ -815,4 +825,17 @@ func TestContextError(t *testing.T) {
 	if !errors.Is(errTimeout, context.DeadlineExceeded) {
 		t.Error("errTimeout is not context.DeadlineExceeded")
 	}
+}
+
+func equalError(a, b error) bool {
+	if (a == nil) != (b == nil) {
+		return false
+	}
+	if a == nil {
+		return true
+	}
+	if a.Error() == b.Error() {
+		return true
+	}
+	return testerrors.EqualValues(a, b)
 }

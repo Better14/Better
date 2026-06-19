@@ -446,21 +446,21 @@ func TestDecodeInStream(t *testing.T) {
 		{CaseName: Name(""), json: ` [{"a": 1} {"a": 2}] `, expTokens: []any{
 			Delim('['),
 			decodeThis{map[string]any{"a": float64(1)}},
-			decodeThis{&SyntaxError{"expected comma after array element", 11}},
+			decodeThis{&SyntaxError{msg: "expected comma after array element", Offset: 11}},
 		}},
 		{CaseName: Name(""), json: `{ "` + strings.Repeat("a", 513) + `" 1 }`, expTokens: []any{
 			Delim('{'), strings.Repeat("a", 513),
-			decodeThis{&SyntaxError{"expected colon after object key", 518}},
+			decodeThis{&SyntaxError{msg: "expected colon after object key", Offset: 518}},
 		}},
 		{CaseName: Name(""), json: `{ "\a" }`, expTokens: []any{
 			Delim('{'),
-			&SyntaxError{"invalid character 'a' in string escape code", 3},
+			&SyntaxError{msg: "invalid character 'a' in string escape code", Offset: 3},
 		}},
 		{CaseName: Name(""), json: ` \a`, expTokens: []any{
-			&SyntaxError{"invalid character '\\\\' looking for beginning of value", 1},
+			&SyntaxError{msg: "invalid character '\\\\' looking for beginning of value", Offset: 1},
 		}},
 		{CaseName: Name(""), json: `,`, expTokens: []any{
-			&SyntaxError{"invalid character ',' looking for beginning of value", 0},
+			&SyntaxError{msg: "invalid character ',' looking for beginning of value", Offset: 0},
 		}},
 	}
 	for _, tt := range tests {
@@ -486,7 +486,7 @@ func TestDecodeInStream(t *testing.T) {
 					got, err = dec.Token()
 				}
 				if errWant, ok := want.(error); ok {
-					if err == nil || !reflect.DeepEqual(err, errWant) {
+					if err == nil || !equalError(err, errWant) {
 						t.Fatalf("%s:\n\tinput: %s\n\tgot error:  %v\n\twant error: %v", tt.Where, tt.json, err, errWant)
 					}
 					break
@@ -545,16 +545,16 @@ func TestTokenError(t *testing.T) {
 		{in: `{"`, err: io.ErrUnexpectedEOF},
 		{in: `{"k"`, err: io.EOF},
 		{in: `{"k":`, err: io.EOF},
-		{in: `{"k",`, err: &SyntaxError{"invalid character ',' after object key", int64(len(`{"k"`))}},
-		{in: `{"k"}`, err: &SyntaxError{"invalid character '}' after object key", int64(len(`{"k"`))}},
+		{in: `{"k",`, err: &SyntaxError{msg: "invalid character ',' after object key", Offset: int64(len(`{"k"`))}},
+		{in: `{"k"}`, err: &SyntaxError{msg: "invalid character '}' after object key", Offset: int64(len(`{"k"`))}},
 		{in: ` [0`, err: io.EOF},
 		{in: `[0.`, err: io.ErrUnexpectedEOF},
-		{in: `[0. `, err: &SyntaxError{"invalid character ' ' after decimal point in numeric literal", int64(len(`[0.`))}},
+		{in: `[0. `, err: &SyntaxError{msg: "invalid character ' ' after decimal point in numeric literal", Offset: int64(len(`[0.`))}},
 		{in: `[0,`, err: io.EOF},
-		{in: `[0:`, err: &SyntaxError{"invalid character ':' after array element", int64(len(`[0`))}},
+		{in: `[0:`, err: &SyntaxError{msg: "invalid character ':' after array element", Offset: int64(len(`[0`))}},
 		{in: `n`, err: io.ErrUnexpectedEOF},
 		{in: `nul`, err: io.ErrUnexpectedEOF},
-		{in: `fal `, err: &SyntaxError{"invalid character ' ' in literal false (expecting 's')", int64(len(`fal `))}},
+		{in: `fal `, err: &SyntaxError{msg: "invalid character ' ' in literal false (expecting 's')", Offset: int64(len(`fal `))}},
 		{in: `false`, err: io.EOF},
 		{in: `  1e1000`, err: &UnmarshalTypeError{Value: "number 1e1000", Type: reflect.TypeFor[float64](), Offset: int64(len(`  1e100`))}},
 	}
@@ -562,7 +562,7 @@ func TestTokenError(t *testing.T) {
 		d := NewDecoder(strings.NewReader(tt.in))
 		for i := 0; true; i++ {
 			if _, err := d.Token(); err != nil {
-				if !reflect.DeepEqual(err, tt.err) {
+				if !equalError(err, tt.err) {
 					t.Errorf("`%s`: %d.Token error = %#v, want %#v", tt.in, i, err, tt.err)
 				}
 				break

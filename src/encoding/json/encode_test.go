@@ -1362,11 +1362,11 @@ func TestMarshalerError(t *testing.T) {
 		want string
 	}{{
 		Name(""),
-		&MarshalerError{st, fmt.Errorf(errText), ""},
+		&MarshalerError{Type: st, Err: fmt.Errorf(errText), sourceFunc: ""},
 		"json: error calling MarshalJSON for type " + st.String() + ": " + errText,
 	}, {
 		Name(""),
-		&MarshalerError{st, fmt.Errorf(errText), "TestMarshalerError"},
+		&MarshalerError{Type: st, Err: fmt.Errorf(errText), sourceFunc: "TestMarshalerError"},
 		"json: error calling TestMarshalerError for type " + st.String() + ": " + errText,
 	}}
 

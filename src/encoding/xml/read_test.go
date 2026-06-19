@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"internal/testerrors"
 	"reflect"
 	"runtime"
 	"strings"
@@ -326,16 +327,16 @@ type BadPathEmbeddedB struct {
 var badPathTests = []struct {
 	v, e any
 }{
-	{&BadPathTestA{}, &TagPathError{reflect.TypeFor[BadPathTestA](), "First", "items>item1", "Second", "items"}},
-	{&BadPathTestB{}, &TagPathError{reflect.TypeFor[BadPathTestB](), "First", "items>item1", "Second", "items>item1>value"}},
-	{&BadPathTestC{}, &TagPathError{reflect.TypeFor[BadPathTestC](), "First", "", "Second", "First"}},
-	{&BadPathTestD{}, &TagPathError{reflect.TypeFor[BadPathTestD](), "First", "", "Second", "First"}},
+	{&BadPathTestA{}, &TagPathError{Struct: reflect.TypeFor[BadPathTestA](), Field1: "First", Tag1: "items>item1", Field2: "Second", Tag2: "items"}},
+	{&BadPathTestB{}, &TagPathError{Struct: reflect.TypeFor[BadPathTestB](), Field1: "First", Tag1: "items>item1", Field2: "Second", Tag2: "items>item1>value"}},
+	{&BadPathTestC{}, &TagPathError{Struct: reflect.TypeFor[BadPathTestC](), Field1: "First", Tag1: "", Field2: "Second", Tag2: "First"}},
+	{&BadPathTestD{}, &TagPathError{Struct: reflect.TypeFor[BadPathTestD](), Field1: "First", Tag1: "", Field2: "Second", Tag2: "First"}},
 }
 
 func TestUnmarshalBadPaths(t *testing.T) {
 	for _, tt := range badPathTests {
 		err := Unmarshal([]byte(pathTestString), tt.v)
-		if !reflect.DeepEqual(err, tt.e) {
+		if !equalError(err, tt.e) {
 			t.Fatalf("Unmarshal with %#v didn't fail properly:\nhave %#v,\nwant %#v", tt.v, err, tt.e)
 		}
 	}
@@ -1125,4 +1126,17 @@ func TestCVE202230633(t *testing.T) {
 		Things []string
 	}
 	Unmarshal(bytes.Repeat([]byte("<a>"), 17_000_000), &example)
+}
+
+func equalError(a, b error) bool {
+	if (a == nil) != (b == nil) {
+		return false
+	}
+	if a == nil {
+		return true
+	}
+	if a.Error() == b.Error() {
+		return true
+	}
+	return testerrors.EqualValues(a, b)
 }
