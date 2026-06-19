@@ -88,7 +88,7 @@ func TestErrorf(t *testing.T) {
 		wantText:  "wrapped several times: 1 1 2 1",
 		wantSplit: []error{errString("1"), errString("2")},
 	}, {
-		err:        fmt.Errorf("%w", nil),
+		err:        noVetErrorf("%w", nil),
 		wantText:   "%!w(<nil>)",
 		wantUnwrap: nil, // still nil
 	}} {

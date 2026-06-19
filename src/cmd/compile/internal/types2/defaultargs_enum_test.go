@@ -37,7 +37,7 @@ func use() {
 	if err != nil {
 		t.Fatal(err)
 	}
-	conf := types2.NewConfig()
+	conf := &types2.Config{}
 	_, err = conf.Check("p", []*syntax.File{f}, nil)
 	if err != nil {
 		t.Fatalf("Check failed: %v", err)
@@ -58,7 +58,7 @@ func bad(mode Mode = ByName("x")) {}
 	if err != nil {
 		t.Fatal(err)
 	}
-	conf := types2.NewConfig()
+	conf := &types2.Config{}
 	_, err = conf.Check("p", []*syntax.File{f}, nil)
 	if err == nil {
 		t.Fatal("expected type error for tuple enum default")

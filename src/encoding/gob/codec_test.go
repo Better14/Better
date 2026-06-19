@@ -1523,7 +1523,7 @@ func TestErrorInvalidTypeId(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		var foo struct{}
 		err := d.Decode(&foo)
-		if err != errBadType {
+		if err == nil || err.Error() != errBadType.Error() {
 			t.Fatalf("decode: expected %s, got %s", errBadType, err)
 		}
 	}

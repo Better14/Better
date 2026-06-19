@@ -39,9 +39,9 @@ type (
 	Stream      = stream
 	StreamState = streamState
 
-	PseudoHeaderError     = newPseudoHeaderError
-	HeaderFieldNameError  = newHeaderFieldNameError
-	HeaderFieldValueError = newHeaderFieldValueError
+	PseudoHeaderError     = pseudoHeaderError
+	HeaderFieldNameError  = headerFieldNameError
+	HeaderFieldValueError = headerFieldValueError
 )
 
 const (
@@ -220,6 +220,18 @@ func DisableGoroutineTracking(t testing.TB) {
 
 func InvalidHTTP1LookingFrameHeader() FrameHeader {
 	return invalidHTTP1LookingFrameHeader()
+}
+
+func NewPseudoHeaderError(name string) PseudoHeaderError {
+	return newPseudoHeaderError(name)
+}
+
+func NewHeaderFieldNameError(name string) HeaderFieldNameError {
+	return newHeaderFieldNameError(name)
+}
+
+func NewHeaderFieldValueError(name string) HeaderFieldValueError {
+	return newHeaderFieldValueError(name)
 }
 
 func EncodeRequestHeaders(req *ClientRequest, addGzipHeader bool, peerMaxHeaderListSize uint64, headerf func(name, value string)) (httpcommon.EncodeHeadersResult, error) {

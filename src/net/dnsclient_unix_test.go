@@ -1420,7 +1420,7 @@ func TestStrictErrorsLookupIP(t *testing.T) {
 			} else {
 				wantErr = tt.wantLaxErr
 			}
-			if !reflect.DeepEqual(err, wantErr) {
+			if !equalError(err, wantErr) {
 				t.Errorf("#%d (%s) strict=%v: got err %#v; want %#v", i, tt.desc, strict, err, wantErr)
 			}
 
@@ -1495,7 +1495,7 @@ func TestStrictErrorsLookupTXT(t *testing.T) {
 		} else {
 			wantRRs = 1
 		}
-		if !reflect.DeepEqual(err, wantErr) {
+		if !equalError(err, wantErr) {
 			t.Errorf("strict=%v: got err %#v; want %#v", strict, err, wantErr)
 		}
 		a, err := p.AllAnswers()

@@ -1075,7 +1075,7 @@ func TestTransportInvalidTrailer_Pseudo2(t *testing.T) {
 	testTransportInvalidTrailer_Pseudo(t, splitHeader)
 }
 func testTransportInvalidTrailer_Pseudo(t *testing.T, trailers headerType) {
-	testInvalidTrailer(t, trailers, PseudoHeaderError(":colon"),
+	testInvalidTrailer(t, trailers, NewPseudoHeaderError(":colon"),
 		":colon", "foo",
 		"foo", "bar",
 	)
@@ -1088,18 +1088,18 @@ func TestTransportInvalidTrailer_Capital2(t *testing.T) {
 	testTransportInvalidTrailer_Capital(t, splitHeader)
 }
 func testTransportInvalidTrailer_Capital(t *testing.T, trailers headerType) {
-	testInvalidTrailer(t, trailers, HeaderFieldNameError("Capital"),
+	testInvalidTrailer(t, trailers, NewHeaderFieldNameError("Capital"),
 		"foo", "bar",
 		"Capital", "bad",
 	)
 }
 func TestTransportInvalidTrailer_EmptyFieldName(t *testing.T) {
-	testInvalidTrailer(t, oneHeader, HeaderFieldNameError(""),
+	testInvalidTrailer(t, oneHeader, NewHeaderFieldNameError(""),
 		"", "bad",
 	)
 }
 func TestTransportInvalidTrailer_BinaryFieldValue(t *testing.T) {
-	testInvalidTrailer(t, oneHeader, HeaderFieldValueError("x"),
+	testInvalidTrailer(t, oneHeader, NewHeaderFieldValueError("x"),
 		"x", "has\nnewline",
 	)
 }
@@ -2485,7 +2485,7 @@ func testTransportReturnsErrorOnBadResponseHeaders(t *testing.T) {
 	})
 
 	err := rt.err()
-	want := NewStreamError(1, ErrCodeProtocol, HeaderFieldNameError("  content-type"))
+	want := NewStreamError(1, ErrCodeProtocol, NewHeaderFieldNameError("  content-type"))
 	if !reflect.DeepEqual(err, want) {
 		t.Fatalf("RoundTrip error = %#v; want %#v", err, want)
 	}

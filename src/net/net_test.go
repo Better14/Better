@@ -596,7 +596,7 @@ func TestErrors(t *testing.T) {
 	var (
 		_ Error = &OpError{}
 		_ Error = &ParseError{}
-		_ Error = NewAddrError(}
+		_ Error = NewAddrError("err", "addr")
 		_ Error = UnknownNetworkError("")
 		_ Error = InvalidAddrError("")
 		_ Error = &timeoutError{}
@@ -608,5 +608,5 @@ func TestErrors(t *testing.T) {
 	// it using a declaration.
 	if _, ok := ErrClosed.(Error); !ok {
 		t.Fatal("ErrClosed does not implement Error")
-	)
+	}
 }
