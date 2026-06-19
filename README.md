@@ -319,12 +319,12 @@ See also the [quick reference table](doc/new_features/new_features.md#quick-refe
 
 ---
 
-## Download and install
 
 Gopher image
 *Gopher image by [Renee French](https://reneefrench.blogspot.com/), licensed under [Creative Commons 4.0 Attribution license](https://creativecommons.org/licenses/by/4.0/).*
 
 Unless otherwise noted, the Go source files are distributed under the BSD-style license found in the LICENSE file.
+## Download and install
 
 ### Step 1: Install upstream Go (bootstrap)
 
@@ -348,81 +348,78 @@ go version
 
 ### Step 2: Build BetterGo
 
-Clone or copy this repository, then follow the [bootstrap build instructions](#build-from-source-bootstrap) below. After the build, add BetterGo’s `bin` directory to your `PATH` and set `GOROOT` to the fork root.
+Clone or copy this repository, then follow **[doc/new_docs/installation.md](doc/new_docs/installation.md)** for the full build process. A short summary is in [Build from source](#build-from-source-bootstrap) below.
+
+After the build, add BetterGo’s `bin` directory to your `PATH` and set `GOROOT` to the fork root.
 
 ---
 
 ## Build from source (bootstrap)
 
-You need a bootstrap Go tree (`GOROOT_BOOTSTRAP`) that is **not** BetterGo — typically the upstream install from [go.dev/dl](https://go.dev/dl/). The build scripts compile BetterGo using that bootstrap compiler, then reinstall the toolchain into this tree.
+BetterGo follows the upstream [Installing Go from source](https://go.dev/doc/install/source) process: a bootstrap Go compiler builds this tree, then the result becomes your new `GOROOT`.
 
-Set `GOROOT_BOOTSTRAP` explicitly if the bootstrap Go is not on your `PATH` or not in the default search locations.
+**Full instructions:** [doc/new_docs/installation.md](doc/new_docs/installation.md)
 
+You need **`GOROOT_BOOTSTRAP`** pointing at upstream Go (not BetterGo) — typically the install from [go.dev/dl](https://go.dev/dl/). Set it explicitly if `go` on your `PATH` is missing or already points at BetterGo.
 
-| Platform    | Build command | Notes                                                                              |
-| ----------- | ------------- | ---------------------------------------------------------------------------------- |
-| **Linux**   | `./make.bash` | Run from `$GOROOT/src`. Use `./all.bash` to build and run tests.                   |
-| **macOS**   | `./make.bash` | Same as Linux. Do not use `make.bash` on Windows.                                  |
-| **Windows** | `make.bat`    | Run from `%GOROOT%\src` in **cmd** or PowerShell. Use `all.bat` to build and test. |
+| Platform | Build command | Notes |
+| -------- | ------------- | ----- |
+| **Linux** | `./make.bash` | Run from `$GOROOT/src`. Use `./all.bash` to build and run tests. |
+| **macOS** | `./make.bash` | Same as Linux. Do not use `make.bash` on Windows. |
+| **Windows** | `make.bat` | Run from `%GOROOT%\src`. Requires MinGW — see below. Use `all.bat` to build and test. |
 
-
-Replace `/path/to/fork/go` with the absolute path to this repository’s `go` directory.
+Replace `/path/to/bettergo/go` with the absolute path to this repository’s `go` directory.
 
 ### Linux and macOS
 
 ```bash
-# Point bootstrap at upstream Go (adjust path if needed)
 export GOROOT_BOOTSTRAP=$(go env GOROOT)
+export GOEXPERIMENT=genericmethods   # optional; generic methods
 
-# Optional: enable generic methods experiment if your bootstrap requires it
-export GOEXPERIMENT=genericmethods
-
-cd /path/to/fork/go/src
+cd /path/to/bettergo/go/src
 ./make.bash          # build toolchain only
 # ./all.bash         # build + run tests (long)
-```
 
-After a successful build:
-
-```bash
-export GOROOT=/path/to/fork/go
+export GOROOT=/path/to/bettergo/go
 export PATH=$GOROOT/bin:$PATH
 go version
 ```
 
-Add the `export` lines to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to make the fork permanent.
+Add the `export` lines to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to make BetterGo permanent.
 
 ### Windows
 
-Install upstream Go from [go.dev/dl](https://go.dev/dl/) first. Then:
+Windows builds need a C compiler on `PATH` (MinGW **`gcc`**) unless you set `CGO_ENABLED=0`. Upstream documents the full setup on the **[Go Wiki: WindowsBuild](https://go.dev/wiki/WindowsBuild)** page; see also [doc/new_docs/installation.md](doc/new_docs/installation.md).
+
+**Install MinGW (summary):**
+
+1. Download the MinGW installer from [SourceForge — mingw-get-inst](https://sourceforge.net/projects/mingw/files/OldFiles/mingw-get-inst/) ([WindowsBuild](https://go.dev/wiki/WindowsBuild)).
+2. Enable **C Compiler**, **MinGW Developer Toolkit**, and **MSYS Basic System**.
+3. Add `C:\MinGW\bin` (and MSYS bin if needed) to **`PATH`**.
+4. Verify: `gcc --version`.
+
+Install upstream Go from [go.dev/dl](https://go.dev/dl/), then:
 
 ```powershell
-# Bootstrap: upstream Go (adjust if go.exe is elsewhere)
 $env:GOROOT_BOOTSTRAP = (go env GOROOT)
+$env:GOEXPERIMENT = "genericmethods"   # optional
 
-# Optional
-$env:GOEXPERIMENT = "genericmethods"
-
-cd C:\path\to\fork\go\src
+cd C:\path\to\bettergo\go\src
 .\make.bat           # build toolchain only
 # .\all.bat          # build + run tests (long)
-```
 
-After a successful build:
-
-```powershell
-$env:GOROOT = "C:\path\to\fork\go"
+$env:GOROOT = "C:\path\to\bettergo\go"
 $env:PATH = "$env:GOROOT\bin;$env:PATH"
 go version
 ```
 
-Add `GOROOT` and update `PATH` in System Environment Variables if you want the fork available in every session.
+Add `GOROOT` and update `PATH` in System Environment Variables to keep BetterGo across sessions.
 
 ### Bootstrap details
 
-- `**GOROOT_BOOTSTRAP**` must contain `bin/go` (or `bin\go.exe` on Windows) from upstream Go ≥ 1.24.6.
+- **`GOROOT_BOOTSTRAP`** must contain `bin/go` (or `bin\go.exe` on Windows) from upstream Go ≥ 1.24.6.
 - If unset, the scripts search common locations (`$HOME/go1.24.6`, `$HOME/sdk/go1.24.6`, etc.) and any other `go` on `PATH` whose `GOROOT` is not BetterGo.
-- `**make.bash` / `make.bat**` only build the toolchain. `**all.bash` / `all.bat**` also run the full test suite.
+- **`make.bash` / `make.bat`** only build the toolchain. **`all.bash` / `all.bat`** also run the full test suite.
 - For IDE support, build [gopls](doc/new_features/gopls.md) from the `go_tools` repository against BetterGo’s `GOROOT`.
 
 ---
@@ -431,4 +428,4 @@ Add `GOROOT` and update `PATH` in System Environment Variables if you want the f
 
 Go is the work of thousands of contributors. We appreciate your help!
 
-To contribute upstream, read [https://go.dev/doc/contribute](https://go.dev/doc/contribute). For BetterGo, see `[doc/new_features/](doc/new_features/new_features.md)` for the feature index and design docs.
+To contribute upstream, read [https://go.dev/doc/contribute](https://go.dev/doc/contribute). For BetterGo, see [`doc/new_features/`](doc/new_features/new_features.md) for the feature index and design docs.
