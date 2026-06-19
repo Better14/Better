@@ -839,7 +839,7 @@ var errBad = errors.New("bad value for field") // placeholder not passed to user
 
 // ParseError describes a problem parsing a time string.
 type ParseError struct {
-	errors.Info
+	errors.Base
 	Layout     string
 	Value      string
 	LayoutElem string
@@ -865,7 +865,7 @@ func newParseError(layout, value, layoutElem, valueElem, message string) *ParseE
 	valueCopy := stringslite.Clone(value)
 	valueElemCopy := stringslite.Clone(valueElem)
 	pe := &ParseError{Layout: layout, Value: valueCopy, LayoutElem: layoutElem, ValueElem: valueElemCopy, Message: message}
-	errors.InitCustom(&pe.Info, "%s", parseErrorMessage(layout, valueCopy, layoutElem, valueElemCopy, message))
+	errors.InitCustom(&pe.Base, "%s", parseErrorMessage(layout, valueCopy, layoutElem, valueElemCopy, message))
 	return pe
 }
 
@@ -1614,7 +1614,7 @@ func leadingFraction(s string) (x uint64, scale float64, rem string) {
 
 // parseDurationError describes a problem parsing a duration string.
 type parseDurationError struct {
-	errors.Info
+	errors.Base
 	message string
 	value   string
 }
@@ -1625,7 +1625,7 @@ func parseDurationErrorMessage(message, value string) string {
 
 func newParseDurationError(message, value string) *parseDurationError {
 	pe := &parseDurationError{message: message, value: value}
-	errors.InitCustom(&pe.Info, "%s", parseDurationErrorMessage(message, value))
+	errors.InitCustom(&pe.Base, "%s", parseDurationErrorMessage(message, value))
 	return pe
 }
 

@@ -64,7 +64,7 @@ func (e ErrCode) stringToken() string {
 // ConnectionError is an error that results in the termination of the
 // entire connection.
 type ConnectionError struct {
-	errors.Info
+	errors.Base
 	Code ErrCode
 }
 
@@ -75,7 +75,7 @@ func connectionErrorMessage(code ErrCode) string {
 // NewConnectionError returns a ConnectionError with a stack trace captured at the call site.
 func NewConnectionError(code ErrCode) ConnectionError {
 	e := ConnectionError{Code: code}
-	errors.InitCustom(&e.Info, "%s", connectionErrorMessage(code))
+	errors.InitCustom(&e.Base, "%s", connectionErrorMessage(code))
 	return e
 }
 
@@ -84,7 +84,7 @@ func (e ConnectionError) Error() string { return connectionErrorMessage(e.Code) 
 // StreamError is an error that only affects one stream within an
 // HTTP/2 connection.
 type StreamError struct {
-	errors.Info
+	errors.Base
 	StreamID uint32
 	Code     ErrCode
 	Cause    error // optional additional detail
@@ -109,7 +109,7 @@ func streamError(id uint32, code ErrCode) StreamError {
 // NewStreamError returns a StreamError with a stack trace captured at the call site.
 func NewStreamError(id uint32, code ErrCode, cause error) StreamError {
 	e := StreamError{StreamID: id, Code: code, Cause: cause}
-	errors.InitCustom(&e.Info, "%s", streamErrorMessage(id, code, cause))
+	errors.InitCustom(&e.Base, "%s", streamErrorMessage(id, code, cause))
 	return e
 }
 
@@ -146,12 +146,12 @@ func (e StreamError) As(target any) bool {
 // or the connection, as appropriate. For streams, [...]; for the
 // connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code."
 type goAwayFlowError struct {
-	errors.Info
+	errors.Base
 }
 
 func newGoAwayFlowError() goAwayFlowError {
 	e := goAwayFlowError{}
-	errors.InitCustom(&e.Info, "connection exceeded flow control window size")
+	errors.InitCustom(&e.Base, "connection exceeded flow control window size")
 	return e
 }
 
@@ -165,7 +165,7 @@ func (goAwayFlowError) Error() string { return "connection exceeded flow control
 // the Reason into the Framer's errDetail field, accessible via
 // the (*Framer).ErrorDetail method.
 type connError struct {
-	errors.Info
+	errors.Base
 	Code   ErrCode // the ConnectionError error code
 	Reason string  // additional reason
 }
@@ -176,7 +176,7 @@ func connErrorMessage(code ErrCode, reason string) string {
 
 func newConnError(code ErrCode, reason string) connError {
 	e := connError{Code: code, Reason: reason}
-	errors.InitCustom(&e.Info, "%s", connErrorMessage(code, reason))
+	errors.InitCustom(&e.Base, "%s", connErrorMessage(code, reason))
 	return e
 }
 
@@ -185,13 +185,13 @@ func (e connError) Error() string {
 }
 
 type pseudoHeaderError struct {
-	errors.Info
+	errors.Base
 	name string
 }
 
 func newPseudoHeaderError(name string) pseudoHeaderError {
 	e := pseudoHeaderError{name: name}
-	errors.InitCustom(&e.Info, "invalid pseudo-header %q", name)
+	errors.InitCustom(&e.Base, "invalid pseudo-header %q", name)
 	return e
 }
 
@@ -200,13 +200,13 @@ func (e pseudoHeaderError) Error() string {
 }
 
 type duplicatePseudoHeaderError struct {
-	errors.Info
+	errors.Base
 	name string
 }
 
 func newDuplicatePseudoHeaderError(name string) duplicatePseudoHeaderError {
 	e := duplicatePseudoHeaderError{name: name}
-	errors.InitCustom(&e.Info, "duplicate pseudo-header %q", name)
+	errors.InitCustom(&e.Base, "duplicate pseudo-header %q", name)
 	return e
 }
 
@@ -215,13 +215,13 @@ func (e duplicatePseudoHeaderError) Error() string {
 }
 
 type headerFieldNameError struct {
-	errors.Info
+	errors.Base
 	name string
 }
 
 func newHeaderFieldNameError(name string) headerFieldNameError {
 	e := headerFieldNameError{name: name}
-	errors.InitCustom(&e.Info, "invalid header field name %q", name)
+	errors.InitCustom(&e.Base, "invalid header field name %q", name)
 	return e
 }
 
@@ -230,13 +230,13 @@ func (e headerFieldNameError) Error() string {
 }
 
 type headerFieldValueError struct {
-	errors.Info
+	errors.Base
 	name string
 }
 
 func newHeaderFieldValueError(name string) headerFieldValueError {
 	e := headerFieldValueError{name: name}
-	errors.InitCustom(&e.Info, "invalid header field value for %q", name)
+	errors.InitCustom(&e.Base, "invalid header field value for %q", name)
 	return e
 }
 

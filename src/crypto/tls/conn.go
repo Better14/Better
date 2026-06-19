@@ -185,13 +185,13 @@ type halfConn struct {
 }
 
 type permanentError struct {
-	errors.Info
+	errors.Base
 	err net.Error
 }
 
 func newPermanentError(err net.Error) *permanentError {
 	e := &permanentError{err: err}
-	errors.InitCustom(&e.Info, "%s", err.Error())
+	errors.InitCustom(&e.Base, "%s", err.Error())
 	return e
 }
 
@@ -570,7 +570,7 @@ func (hc *halfConn) encrypt(record, payload []byte, rand io.Reader) ([]byte, err
 
 // RecordHeaderError is returned when a TLS record header is invalid.
 type RecordHeaderError struct {
-	errors.Info
+	errors.Base
 	// Msg contains a human readable string that describes the error.
 	Msg string
 	// RecordHeader contains the five bytes of TLS record header that
@@ -591,7 +591,7 @@ func (c *Conn) newRecordHeaderError(conn net.Conn, msg string) (err RecordHeader
 	err.Msg = msg
 	err.Conn = conn
 	copy(err.RecordHeader[:], c.rawInput.Bytes())
-	errors.InitCustom(&err.Info, "%s", recordHeaderErrorMessage(msg))
+	errors.InitCustom(&err.Base, "%s", recordHeaderErrorMessage(msg))
 	return err
 }
 

@@ -20,7 +20,7 @@ func IsNil(err error) bool {
 }
 
 // EqualValues reports whether x and y are deeply equal, except that
-// errors.Info.StackTrace fields are ignored.
+// errors.Base.StackTrace fields are ignored.
 func EqualValues(x, y any) bool {
 	return equalValues(reflect.ValueOf(x), reflect.ValueOf(y))
 }
@@ -45,16 +45,16 @@ func equalValues(vx, vy reflect.Value) bool {
 		}
 		return equalValues(vx.Elem(), vy.Elem())
 	case reflect.Struct:
-		if vx.Type() == reflect.TypeOf(errors.Info{}) {
-			return infoDataEqual(vx.Interface().(errors.Info), vy.Interface().(errors.Info))
+		if vx.Type() == reflect.TypeOf(errors.Base{}) {
+			return infoDataEqual(vx.Interface().(errors.Base), vy.Interface().(errors.Base))
 		}
 		for i := 0; i < vx.NumField(); i++ {
 			sf := vx.Type().Field(i)
 			if !sf.IsExported() {
 				continue
 			}
-			if sf.Type == reflect.TypeOf(errors.Info{}) {
-				if !infoDataEqual(vx.Field(i).Interface().(errors.Info), vy.Field(i).Interface().(errors.Info)) {
+			if sf.Type == reflect.TypeOf(errors.Base{}) {
+				if !infoDataEqual(vx.Field(i).Interface().(errors.Base), vy.Field(i).Interface().(errors.Base)) {
 					return false
 				}
 				continue
@@ -69,7 +69,7 @@ func equalValues(vx, vy reflect.Value) bool {
 	}
 }
 
-func infoDataEqual(a, b errors.Info) bool {
+func infoDataEqual(a, b errors.Base) bool {
 	// Ignore Message and StackTrace; callers compare Error() strings when needed.
 	if (a.InnerError == nil) != (b.InnerError == nil) {
 		return false

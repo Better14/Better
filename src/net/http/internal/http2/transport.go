@@ -356,12 +356,12 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 type noCachedConnError struct{}
 =======
 type noCachedConnError struct {
-	errors.Info
+	errors.Base
 }
 
 func newNoCachedConnError() noCachedConnError {
 	e := noCachedConnError{}
-	errors.InitCustom(&e.Info, "http2: no cached connection was available")
+	errors.InitCustom(&e.Base, "http2: no cached connection was available")
 	return e
 }
 >>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
@@ -1934,9 +1934,13 @@ func (cc *ClientConn) readLoop() {
 // TCP connection after sending a GOAWAY frame.
 type GoAwayError struct {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	errors.Info
 >>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
+=======
+	errors.Base
+>>>>>>> 82a9f2da53 (Rename errors.Info to errors.Base across the stdlib.)
 	LastStreamID uint32
 	ErrCode      ErrCode
 	DebugData    string
@@ -1951,7 +1955,7 @@ func goAwayErrorMessage(lastStreamID uint32, errCode ErrCode, debugData string) 
 
 func NewGoAwayError(lastStreamID uint32, errCode ErrCode, debugData string) GoAwayError {
 	e := GoAwayError{LastStreamID: lastStreamID, ErrCode: errCode, DebugData: debugData}
-	errors.InitCustom(&e.Info, "%s", goAwayErrorMessage(lastStreamID, errCode, debugData))
+	errors.InitCustom(&e.Base, "%s", goAwayErrorMessage(lastStreamID, errCode, debugData))
 	return e
 }
 

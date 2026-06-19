@@ -65,7 +65,7 @@ const (
 // CertificateInvalidError results when an odd error occurs. Users of this
 // library probably want to handle all these errors uniformly.
 type CertificateInvalidError struct {
-	errors.Info
+	errors.Base
 	Cert   *Certificate
 	Reason InvalidReason
 	Detail string
@@ -103,7 +103,7 @@ func certificateInvalidErrorMessage(e CertificateInvalidError) string {
 
 func newCertificateInvalidError(cert *Certificate, reason InvalidReason, detail string) CertificateInvalidError {
 	e := CertificateInvalidError{Cert: cert, Reason: reason, Detail: detail}
-	errors.InitCustom(&e.Info, "%s", certificateInvalidErrorMessage(e))
+	errors.InitCustom(&e.Base, "%s", certificateInvalidErrorMessage(e))
 	return e
 }
 
@@ -114,7 +114,7 @@ func (e CertificateInvalidError) Error() string {
 // HostnameError results when the set of authorized names doesn't match the
 // requested name.
 type HostnameError struct {
-	errors.Info
+	errors.Base
 	Certificate *Certificate
 	Host        string
 }
@@ -157,7 +157,7 @@ func hostnameErrorMessage(h HostnameError) string {
 
 func newHostnameError(cert *Certificate, host string) HostnameError {
 	e := HostnameError{Certificate: cert, Host: host}
-	errors.InitCustom(&e.Info, "%s", hostnameErrorMessage(e))
+	errors.InitCustom(&e.Base, "%s", hostnameErrorMessage(e))
 	return e
 }
 
@@ -167,7 +167,7 @@ func (h HostnameError) Error() string {
 
 // UnknownAuthorityError results when the certificate issuer is unknown
 type UnknownAuthorityError struct {
-	errors.Info
+	errors.Base
 	Cert *Certificate
 	// hintErr contains an error that may be helpful in determining why an
 	// authority wasn't found.
@@ -195,7 +195,7 @@ func unknownAuthorityErrorMessage(e UnknownAuthorityError) string {
 
 func newUnknownAuthorityError(cert *Certificate, hintErr error, hintCert *Certificate) UnknownAuthorityError {
 	e := UnknownAuthorityError{Cert: cert, hintErr: hintErr, hintCert: hintCert}
-	errors.InitCustom(&e.Info, "%s", unknownAuthorityErrorMessage(e))
+	errors.InitCustom(&e.Base, "%s", unknownAuthorityErrorMessage(e))
 	return e
 }
 
@@ -205,7 +205,7 @@ func (e UnknownAuthorityError) Error() string {
 
 // SystemRootsError results when we fail to load the system root certificates.
 type SystemRootsError struct {
-	errors.Info
+	errors.Base
 	Err error
 }
 
@@ -219,7 +219,7 @@ func systemRootsErrorMessage(se SystemRootsError) string {
 
 func newSystemRootsError(err error) SystemRootsError {
 	e := SystemRootsError{Err: err}
-	errors.InitCustom(&e.Info, "%s", systemRootsErrorMessage(e))
+	errors.InitCustom(&e.Base, "%s", systemRootsErrorMessage(e))
 	return e
 }
 
