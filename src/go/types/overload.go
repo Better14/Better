@@ -7,6 +7,7 @@ package types
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 	. "internal/types/errors"
 	"strings"
 )
@@ -114,7 +115,7 @@ func (check *Checker) overloadList(funcs []*Func) string {
 	return b.String()
 }
 
-func identicalMethodSig(a, b *Func) bool {
+func (check *Checker) identicalMethodSig(a, b *Func) bool {
 	if a == nil || b == nil || a.typ == nil || b.typ == nil {
 		return false
 	}
@@ -129,7 +130,7 @@ func identicalMethodSig(a, b *Func) bool {
 	if sa.recv == nil || sb.recv == nil {
 		return sa.recv == sb.recv
 	}
-	if TypeString(sa.recv.typ, nil) != TypeString(sb.recv.typ, nil) {
+	if !check.identicalReceiverTypes(sa.recv.typ, sb.recv.typ) {
 		return false
 	}
 	if sa.variadic != sb.variadic {
@@ -165,8 +166,40 @@ func identicalMethodSig(a, b *Func) bool {
 	return true
 }
 
+func (check *Checker) identicalReceiverTypes(a, b Type) bool {
+	if Identical(a, b) {
+		return true
+	}
+	baseA := check.receiverNamedBase(a)
+	baseB := check.receiverNamedBase(b)
+	return baseA != nil && baseA == baseB
+}
+
+func (check *Checker) receiverNamedBase(t Type) *TypeName {
+	t, _ = deref(t)
+	n := asNamed(Unalias(t))
+	if n == nil || n.obj == nil || n.obj.pkg != check.pkg {
+		return nil
+	}
+	_, base := check.resolveBaseTypeName(false, &ast.Ident{NamePos: token.NoPos, Name: n.obj.Name()})
+	return base
+}
+
+func (check *Checker) recvBaseTypeName(recvName string) string {
+	_, base := check.resolveBaseTypeName(false, &ast.Ident{NamePos: token.NoPos, Name: recvName})
+	if base != nil {
+		return base.Name()
+	}
+	return recvName
+}
+
 func (check *Checker) checkMethodOverloadDuplicates() {
+	merged := make(map[methodKey][]*Func)
 	for key, cands := range check.overloadMeths {
+		mk := methodKey{recvName: check.recvBaseTypeName(key.recvName), name: key.name}
+		merged[mk] = append(merged[mk], cands...)
+	}
+	for key, cands := range merged {
 		var seen []*Func
 		for _, fn := range cands {
 			if fn == nil || fn.typ == nil {
@@ -177,7 +210,7 @@ func (check *Checker) checkMethodOverloadDuplicates() {
 				continue
 			}
 			for _, prev := range seen {
-				if identicalMethodSig(prev, fn) {
+				if check.identicalMethodSig(prev, fn) {
 					if prev.Pos().IsValid() {
 						check.errorf(atPos(fn.pos), DuplicateMethod, "method %s.%s already declared at %v", key.recvName, fn.name, prev.Pos())
 					} else {

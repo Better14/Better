@@ -225,6 +225,31 @@ func (check *Checker) funcType(sig *Signature, recvPar *ast.FieldList, ftyp *ast
 	sig.variadic = variadic
 }
 
+// receiverDeclaresTypeParams reports whether rtparams are the type parameter
+// names declared by the generic type rbase (e.g. R1[A] where A is R1's type
+// parameter), even if the package also defines a type with the same name.
+func (check *Checker) receiverDeclaresTypeParams(rbase ast.Expr, rtparams []*ast.Ident) bool {
+	if len(rtparams) == 0 {
+		return false
+	}
+	var cause string
+	t := check.genericType(rbase, &cause)
+	n := asNamed(t)
+	if n == nil || !isValid(n) || !isGeneric(t) {
+		return false
+	}
+	tparams := n.TypeParams()
+	if tparams == nil || tparams.Len() != len(rtparams) {
+		return false
+	}
+	for i, rp := range rtparams {
+		if rp.Name != tparams.At(i).Obj().Name() {
+			return false
+		}
+	}
+	return true
+}
+
 // collectRecv extracts the method receiver and its type parameters (if any) from rparam.
 // It declares the type parameters (but not the receiver) in the current scope, and
 // returns the receiver variable and its type parameter list (if any).
@@ -242,11 +267,13 @@ func (check *Checker) collectRecv(rparam *ast.Field, scopePos token.Pos) (*Var, 
 	// parameters. Only undeclared identifiers such as T in iter.Seq[T]
 	// introduce receiver type parameters.
 	if rtparams != nil {
-		declareParams := false
-		for _, rp := range rtparams {
-			if check.lookup(rp.Name) == nil {
-				declareParams = true
-				break
+		declareParams := check.receiverDeclaresTypeParams(rbase, rtparams)
+		if !declareParams {
+			for _, rp := range rtparams {
+				if check.lookup(rp.Name) == nil {
+					declareParams = true
+					break
+				}
 			}
 		}
 		if !declareParams {

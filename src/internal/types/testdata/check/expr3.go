@@ -497,7 +497,7 @@ func _calls() {
 	f1(x, y /* ERROR "too many arguments in call to f1\n\thave (int, float32)\n\twant (int)" */ )
 	f1(s /* ERRORx `cannot use .* in argument` */ )
 	f1(x ... /* ERROR "cannot use ..." */ )
-	f1(g0 /* ERROR "used as value" */ ())
+	f1 /* ERROR "used as value" */ (g0() /* ERROR "used as value" */ )
 	f1(g1())
 	f1(g2 /* ERROR "too many arguments in call to f1\n\thave (float32, string)\n\twant (int)" */ ())
 
@@ -505,12 +505,12 @@ func _calls() {
 	f2(3.14) /* ERROR "not enough arguments in call to f2\n\thave (number)\n\twant (float32, string)" */
 	f2(3.14, "foo")
 	f2(x /* ERRORx `cannot use .* in argument` */ , "foo")
-	f2(g0 /* ERROR "used as value" */ ()) /* ERROR "not enough arguments in call to f2\n\thave (func())\n\twant (float32, string)" */
+	f2 /* ERROR "used as value" */ (g0() /* ERROR "used as value" */ ) /* ERROR "not enough arguments in call to f2\n\thave (func())\n\twant (float32, string)" */
 	f2(g1()) /* ERROR "not enough arguments in call to f2\n\thave (int)\n\twant (float32, string)" */
 	f2(g2())
 
 	fs() /* ERROR "not enough arguments" */
-	fs(g0 /* ERROR "used as value" */ ())
+	fs /* ERROR "used as value" */ (g0() /* ERROR "used as value" */ )
 	fs(g1 /* ERRORx `cannot use .* in argument` */ ())
 	fs(g2 /* ERROR "too many arguments" */ ())
 	fs(gs())
