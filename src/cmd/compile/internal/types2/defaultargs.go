@@ -16,7 +16,7 @@ func (check *Checker) paramDefault(v *Var, expr syntax.Expr) {
 		return
 	}
 	if x.mode() != constant_ && !check.isEnumUnitVariantDefault(&x, v.typ) {
-		check.errorf(expr, InvalidSyntaxTree, "default argument must be compile-time constant")
+		check.error(expr, InvalidSyntaxTree, "default argument must be compile-time constant")
 		return
 	}
 	check.assignment(&x, v.typ, "default argument")

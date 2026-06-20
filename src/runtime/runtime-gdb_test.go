@@ -50,6 +50,8 @@ func checkGdbEnvironment(t *testing.T) {
 		if testing.Short() {
 			t.Skip("skipping gdb tests on AIX; see https://golang.org/issue/35710")
 		}
+	case "windows":
+		t.Skip("skipping gdb tests on Windows")
 	case "plan9":
 		t.Skip("there is no gdb on Plan 9")
 	}

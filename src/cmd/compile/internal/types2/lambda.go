@@ -19,13 +19,13 @@ func (check *Checker) lambdaExpr(x *operand, e *syntax.LambdaExpr, hint Type) {
 		}
 	}
 	if hint == nil {
-		check.errorf(e, InvalidSyntaxTree, "lambda expression requires type context")
+		check.error(e, InvalidSyntaxTree, "lambda expression requires type context")
 		x.invalidate()
 		return
 	}
 	hintSig := check.signatureFromHint(hint)
 	if hintSig == nil {
-		check.errorf(e, InvalidSyntaxTree, "lambda expression requires function type context")
+		check.error(e, InvalidSyntaxTree, "lambda expression requires function type context")
 		x.invalidate()
 		return
 	}
@@ -35,7 +35,7 @@ func (check *Checker) lambdaExpr(x *operand, e *syntax.LambdaExpr, hint Type) {
 		return
 	}
 	if hintSig.results.Len() != 1 {
-		check.errorf(e, InvalidSyntaxTree, "lambda expression requires exactly one result")
+		check.error(e, InvalidSyntaxTree, "lambda expression requires exactly one result")
 		x.invalidate()
 		return
 	}

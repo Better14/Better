@@ -270,7 +270,14 @@ func (check *Checker) collectRecv(rparam *ast.Field, scopePos token.Pos) (*Var, 
 		declareParams := check.receiverDeclaresTypeParams(rbase, rtparams)
 		if !declareParams {
 			for _, rp := range rtparams {
-				if check.lookup(rp.Name) == nil {
+				obj := check.lookup(rp.Name)
+				if obj == nil {
+					declareParams = true
+					break
+				}
+				// Predeclared types used as instantiation arguments introduce
+				// receiver type parameters that shadow the predeclared names.
+				if _, ok := obj.Type().(*Basic); ok && obj.Pkg() == nil {
 					declareParams = true
 					break
 				}

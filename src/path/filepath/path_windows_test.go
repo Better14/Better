@@ -597,6 +597,9 @@ func TestNTNamespaceSymlink(t *testing.T) {
 	vol := filepath.VolumeName(tmpdir)
 	output, err := exec.Command("cmd", "/c", "mountvol", vol, "/L").CombinedOutput()
 	if err != nil {
+		if strings.Contains(string(output), "not recognized") || strings.Contains(string(output), "not found") {
+			t.Skipf("mountvol not available: %v %q", err, output)
+		}
 		t.Fatalf("failed to run mountvol %v /L: %v %q", vol, err, output)
 	}
 	target := strings.Trim(string(output), " \n\r")

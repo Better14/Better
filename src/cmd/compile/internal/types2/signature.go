@@ -253,7 +253,14 @@ func (check *Checker) collectRecv(rparam *syntax.Field, scopePos syntax.Pos) (*V
 					declareParams = true
 					break
 				}
-				if check.lookup(rp.Value) == nil {
+				obj := check.lookup(rp.Value)
+				if obj == nil {
+					declareParams = true
+					break
+				}
+				// Predeclared types used as instantiation arguments introduce
+				// receiver type parameters that shadow the predeclared names.
+				if _, ok := obj.Type().(*Basic); ok && obj.Pkg() == nil {
 					declareParams = true
 					break
 				}

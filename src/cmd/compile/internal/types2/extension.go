@@ -513,7 +513,7 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 		var slicesPkg *PkgName
 		slicesPkg = check.ensureImported(call.Pos(), "slices")
 		if slicesPkg == nil {
-			check.errorf(call, BrokenImport, "could not import slices")
+			check.error(call, BrokenImport, "could not import slices")
 			x.invalidate()
 			x.expr = call
 			return statement, true

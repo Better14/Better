@@ -156,6 +156,13 @@ func (x *operand) convertibleTo(check *Checker, T Type, cause *string) bool {
 		return true
 	}
 
+	// "V is Optional(T) and T is T" — force unwrap; panics at runtime if nil
+	if o, ok := Vu.(*Optional); ok && Vp == nil && Tp == nil {
+		if Identical(T, o.elem) || Identical(Tu, o.elem.Underlying()) {
+			return true
+		}
+	}
+
 	// "V and T are unnamed pointer types and their pointer base types
 	// have identical underlying types if tags are ignored
 	// and their pointer base types are not type parameters"

@@ -1436,8 +1436,8 @@ func testServer_RSTStream_Unblocks_Read(t *testing.T) {
 			}
 		},
 		func(err error) {
-			want := StreamError{StreamID: 0x1, Code: 0x8}
-			if !reflect.DeepEqual(err, want) {
+			want := StreamError{StreamID: 0x1, Code: ErrCodeCancel}
+			if se, ok := err.(StreamError); !ok || se.StreamID != want.StreamID || se.Code != want.Code {
 				t.Errorf("Read error = %v; want %v", err, want)
 			}
 		},

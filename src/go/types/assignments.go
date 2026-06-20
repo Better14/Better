@@ -86,6 +86,14 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 			check.updateExprVal(x.expr, val)
 		}
 		if newType != x.typ() {
+			if o, ok := newType.Underlying().(*Optional); ok && x.mode() == constant_ {
+				// Keep untyped/typed constant as elem type; conversion to T? happens at compile time.
+				newType = o.elem
+			}
+			if r, ok := newType.Underlying().(*Result); ok && x.mode() == constant_ {
+				// Keep untyped/typed constant as elem type; conversion to T! happens at compile time.
+				newType = r.elem
+			}
 			x.typ_ = newType
 			check.updateExprType(x.expr, newType, false)
 		}
@@ -264,14 +272,14 @@ func (check *Checker) assignVar(lhs, rhs ast.Expr, x *operand, context string) {
 
 	if x == nil {
 		var target *target
-		// avoid calling ExprString if not needed
 		if T != nil {
-			if _, ok := T.Underlying().(*Signature); ok {
-				target = newTarget(T, ExprString(lhs))
-			}
+			target = newTarget(T, ExprString(lhs))
 		}
+		saved := check.callExpectedType
+		check.callExpectedType = T
 		x = new(operand)
 		check.expr(target, x, rhs)
+		check.callExpectedType = saved
 	}
 
 	if T == nil && context == "assignment" {
@@ -399,7 +407,7 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []ast.Expr, returnStmt ast.S
 
 	// return r for func () T! when r has type T! (value type): return r.value, r.err
 	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
-		if rhs, ok := check.multiExpr(orig_rhs[0], true); ok && len(rhs) == 2 {
+		if rhs, _ := check.multiExpr(orig_rhs[0], true); len(rhs) == 2 {
 			if rhs[0].isValid() && Identical(rhs[0].typ(), lhs[0].typ) && Identical(rhs[1].typ(), lhs[1].typ) {
 				check.initVar(lhs[0], rhs[0], context)
 				check.initVar(lhs[1], rhs[1], context)
@@ -409,7 +417,7 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []ast.Expr, returnStmt ast.S
 		}
 	}
 
-	// return v for func () T? means return v, nil
+	// return v for func () T! means return v, nil
 	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
 		var x operand
 		check.expr(nil, &x, orig_rhs[0])
@@ -480,7 +488,17 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []ast.Expr, returnStmt ast.S
 		return
 	}
 
-	rhs, commaOk := check.multiExpr(orig_rhs[0], l == 2 && returnStmt == nil)
+	// Single-value return of a call expression: pass the expected result type
+	// so generic calls can infer type arguments (e.g. linq.Select with => lambdas).
+	if returnStmt != nil && l == 1 && isCall {
+		var x operand
+		check.expr(newTarget(lhs[0].typ, "result variable"), &x, orig_rhs[0])
+		check.initVar(lhs[0], &x, context)
+		return
+	}
+
+	allowCommaOk := l == 2 && (returnStmt == nil || (check.sig != nil && check.sig.ResultQuery()))
+	rhs, commaOk := check.multiExpr(orig_rhs[0], allowCommaOk)
 	r = len(rhs)
 	if l == r {
 		for i, lhs := range lhs {

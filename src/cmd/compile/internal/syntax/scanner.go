@@ -592,8 +592,19 @@ func (s *scanner) number(seenPoint bool) {
 				s.errorf("invalid radix point in %s literal", baseName(base))
 				ok = false
 			}
+			st := s.saveState()
 			s.nextch()
-			seenPoint = true
+			switch {
+			case isDecimal(s.ch) || s.ch == '_':
+				seenPoint = true
+			case lower(s.ch) == 'e' || lower(s.ch) == 'p':
+				seenPoint = true
+			case 'A' <= s.ch && s.ch <= 'Z' && s.ch != 'E':
+				// 21.Double() — dot before an exported identifier is a selector, not a float fraction.
+				s.restoreState(st)
+			default:
+				seenPoint = true
+			}
 		}
 	}
 

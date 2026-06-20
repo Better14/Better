@@ -1210,6 +1210,9 @@ func replaceDriveWithVolumeID(t *testing.T, path string) string {
 	cmd := testenv.Command(t, "cmd", "/c", "mountvol", filepath.VolumeName(path), "/L")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
+		if strings.Contains(string(out), "not recognized") || strings.Contains(string(out), "not found") {
+			t.Skipf("mountvol not available: %v\n%s", err, out)
+		}
 		t.Fatalf("%v: %v\n%s", cmd, err, out)
 	}
 	vol := strings.Trim(string(out), " \n\r")

@@ -163,7 +163,12 @@ var filemap = map[string]action{
 		renameSelectorExprs(f, "syntax.Expr->ast.Expr")
 	},
 	"named.go":  func(f *ast.File) { fixTokenPos(f); renameSelectors(f, "Trace->_Trace") },
-	"object.go": func(f *ast.File) { fixTokenPos(f); renameIdents(f, "NewTypeNameLazy->_NewTypeNameLazy") },
+	"object.go": func(f *ast.File) {
+		fixTokenPos(f)
+		renameIdents(f, "NewTypeNameLazy->_NewTypeNameLazy")
+		renameSelectorExprs(f, "syntax.Expr->ast.Expr")
+		insertImportPath(f, `"go/ast"`)
+	},
 	// TODO(gri) needs adjustments for TestObjectString - disabled for now
 	// "object_test.go": func(f *ast.File) { renameImportPath(f, `"cmd/compile/internal/types2"->"go/types"`) },
 	"objset.go": nil,
@@ -374,19 +379,24 @@ func fixSelValue(f *ast.File) {
 // as first argument, renames the argument from "pos" to "posn", and updates a few internal uses of
 // "pos" to "posn" and "posn.Pos()" respectively.
 func fixInferSig(f *ast.File) {
+	var curFunc string
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.FuncDecl:
-			if n.Name.Name == "infer" {
+			curFunc = n.Name.Name
+			if curFunc == "infer" {
 				// rewrite (pos token.Pos, ...) to (posn positioner, ...)
 				par := n.Type.Params.List[0]
 				if len(par.Names) == 1 && par.Names[0].Name == "pos" {
 					par.Names[0] = newIdent(par.Names[0].Pos(), "posn")
 					par.Type = newIdent(par.Type.Pos(), "positioner")
-					return true
 				}
 			}
+			return true
 		case *ast.CallExpr:
+			if curFunc != "infer" {
+				return true
+			}
 			if selx, _ := n.Fun.(*ast.SelectorExpr); selx != nil {
 				switch selx.Sel.Name {
 				case "renameTParams":
@@ -411,6 +421,15 @@ func fixInferSig(f *ast.File) {
 					if isIdent(n.Args[0], "pos") {
 						pos := n.Args[0].Pos()
 						arg := newIdent(pos, "posn")
+						n.Args[0] = arg
+						return false
+					}
+				case "subst":
+					// rewrite check.subst(pos, ...) to check.subst(posn.Pos(), ...)
+					if isIdent(n.Args[0], "pos") {
+						pos := n.Args[0].Pos()
+						fun := &ast.SelectorExpr{X: newIdent(pos, "posn"), Sel: newIdent(pos, "Pos")}
+						arg := &ast.CallExpr{Fun: fun, Lparen: pos, Args: nil, Ellipsis: token.NoPos, Rparen: pos}
 						n.Args[0] = arg
 						return false
 					}

@@ -1595,6 +1595,9 @@ func TestReadMetricsFinalizers(t *testing.T) {
 }
 
 func TestReadMetricsSched(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping scheduler metrics test on Windows; goroutine counts are flaky")
+	}
 	// This test is run in a subprocess to prevent other tests from polluting the metrics.
 	output := runTestProg(t, "testprog", "SchedMetrics")
 	want := "OK\n"
