@@ -788,7 +788,11 @@ func (check *Checker) funcDecl(obj *Func, decl *declInfo) {
 	obj.typ = sig // guard against cycles
 
 	fdecl := decl.fdecl
+	if fdecl.Recv != nil {
+		check.pendingRecvMethod = obj.name
+	}
 	check.funcType(sig, fdecl.Recv, fdecl.Type)
+	check.pendingRecvMethod = ""
 
 	// types2 handles go:nointerface pragma here by setting obj.nointerface.
 	// go/types currently doesn't handle pragmas.

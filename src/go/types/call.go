@@ -382,8 +382,8 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr, hint Type) exprKi
 				}
 				if !skipRecv {
 					var recv operand
-					check.expr(nil, &recv, sel.X)
-					if recv.isValid() {
+					check.exprOrType(&recv, sel.X, false)
+					if recv.mode() != typexpr && recv.isValid() {
 						methodRecv = &recv
 					}
 				}

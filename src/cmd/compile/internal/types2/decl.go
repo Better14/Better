@@ -689,7 +689,11 @@ func (check *Checker) funcDecl(obj *Func, decl *declInfo) {
 	obj.typ = sig // guard against cycles
 
 	fdecl := decl.fdecl
+	if fdecl.Recv != nil {
+		check.pendingRecvMethod = obj.name
+	}
 	check.funcType(sig, fdecl.Recv, fdecl.TParamList, fdecl.Type)
+	check.pendingRecvMethod = ""
 
 	if fdecl.Pragma != nil {
 		if p, ok := fdecl.Pragma.(interface{ Nointerface() bool }); ok && p.Nointerface() {

@@ -2539,9 +2539,40 @@ func (p *parser) parseEnumCasePattern() ast.Expr {
 	if p.tok != token.LBRACE {
 		return p.parseBinaryExpr(p.parsePrimaryExpr(name), token.LowestPrec+1)
 	}
-	pat := &ast.EnumPatternExpr{Variant: name}
+	// Decide between composite literal T{...} and enum pattern Variant{fields}.
+	lbrace := p.pos
 	p.next() // '{'
-	for p.tok != token.RBRACE && p.tok != token.EOF {
+	if p.tok != token.IDENT {
+		p.exprLev++
+		var elts []ast.Expr
+		if p.tok != token.RBRACE {
+			elts = p.parseElementList()
+		}
+		p.exprLev--
+		rbrace := p.expectClosing(token.RBRACE, "composite literal")
+		expr := &ast.CompositeLit{Type: name, Lbrace: lbrace, Elts: elts, Rbrace: rbrace}
+		return p.parseBinaryExpr(expr, token.LowestPrec+1)
+	}
+	fieldIdent := &ast.Ident{NamePos: p.pos, Name: p.lit}
+	p.next()
+	if p.tok == token.COLON {
+		p.exprLev++
+		colon := p.pos
+		p.next()
+		elts := []ast.Expr{&ast.KeyValueExpr{Key: fieldIdent, Colon: colon, Value: p.parseValue()}}
+		if p.tok == token.COMMA {
+			p.next()
+			elts = append(elts, p.parseElementList()...)
+		}
+		p.exprLev--
+		rbrace := p.expectClosing(token.RBRACE, "composite literal")
+		expr := &ast.CompositeLit{Type: name, Lbrace: lbrace, Elts: elts, Rbrace: rbrace}
+		return p.parseBinaryExpr(expr, token.LowestPrec+1)
+	}
+	pat := &ast.EnumPatternExpr{Variant: name}
+	pat.Fields = append(pat.Fields, &ast.Field{Names: []*ast.Ident{fieldIdent}})
+	for p.tok == token.COMMA {
+		p.next()
 		if p.tok != token.IDENT {
 			p.errorExpected(p.pos, "identifier")
 			p.advance(map[token.Token]bool{token.COMMA: true, token.RBRACE: true})
@@ -2550,11 +2581,6 @@ func (p *parser) parseEnumCasePattern() ast.Expr {
 		field := &ast.Ident{NamePos: p.pos, Name: p.lit}
 		p.next()
 		pat.Fields = append(pat.Fields, &ast.Field{Names: []*ast.Ident{field}})
-		if p.tok == token.COMMA {
-			p.next()
-		} else {
-			break
-		}
 	}
 	pat.Rbrace = p.expect(token.RBRACE)
 	return pat
@@ -3089,7 +3115,8 @@ func (p *parser) parseStructStmt() ast.Stmt {
 		return stmt
 	}
 	typ := p.parseStructTypeAfterKeyword(structPos)
-	stmt, _ := p.finishSimpleStmt([]ast.Expr{typ}, labelOk)
+	expr := p.parsePrimaryExpr(typ)
+	stmt, _ := p.finishSimpleStmt([]ast.Expr{expr}, labelOk)
 	if _, isLabeledStmt := stmt.(*ast.LabeledStmt); !isLabeledStmt {
 		p.expectSemi()
 	}
@@ -3167,7 +3194,8 @@ func (p *parser) parseInterfaceStmt() ast.Stmt {
 		return stmt
 	}
 	typ := p.parseInterfaceTypeAfterKeyword(ifacePos)
-	stmt, _ := p.finishSimpleStmt([]ast.Expr{typ}, labelOk)
+	expr := p.parsePrimaryExpr(typ)
+	stmt, _ := p.finishSimpleStmt([]ast.Expr{expr}, labelOk)
 	if _, isLabeledStmt := stmt.(*ast.LabeledStmt); !isLabeledStmt {
 		p.expectSemi()
 	}

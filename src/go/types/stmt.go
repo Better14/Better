@@ -620,6 +620,28 @@ func (check *Checker) stmt(ctxt stmtContext, s ast.Stmt) {
 		if x.isValid() && !allBoolean(x.typ()) {
 			check.error(s.Cond, InvalidCond, "non-boolean condition in if statement")
 		}
+		if v, nonNil, ok := check.parseNullableGuard(s.Cond); ok {
+			if elem := nullableElem(v.typ); elem != nil {
+				narrow := map[*Var]Type{v: elem}
+				if nonNil {
+					check.withNullableNarrow(narrow, func() { check.stmt(inner, s.Body) })
+				} else {
+					check.stmt(inner, s.Body)
+				}
+				switch s.Else.(type) {
+				case nil:
+				case *ast.IfStmt, *ast.BlockStmt:
+					if nonNil {
+						check.stmt(inner, s.Else)
+					} else {
+						check.withNullableNarrow(narrow, func() { check.stmt(inner, s.Else) })
+					}
+				default:
+					check.error(s.Else, InvalidSyntaxTree, "invalid else branch in if statement")
+				}
+				break
+			}
+		}
 		check.stmt(inner, s.Body)
 		// The parser produces a correct AST but if it was modified
 		// elsewhere the else branch may be invalid. Check again.

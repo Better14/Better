@@ -139,6 +139,7 @@ type Checker struct {
 	// (initialized by Files, valid only for the duration of check.Files;
 	// maps and lists are allocated on demand)
 	files         []*syntax.File             // list of package files
+	fileScopes    map[*syntax.File]*Scope    // scopes for each file; populated during collectObjects
 	versions      map[*syntax.PosBase]string // maps files to version strings (each file has an entry); shared with Info.FileVersions if present; may be unaltered Config.GoVersion
 	imports       []*PkgName                 // list of imported packages
 	dotImportMap  map[dotImportKey]*PkgName  // maps dot-imported objects to the package they were dot-imported through
@@ -157,7 +158,8 @@ type Checker struct {
 
 	callExpectedType Type // if set, infer missing type args from this expected expression type
 	inferResultType  Type // function result type for callExpectedType inference
-	inExtensionProbe bool // guard against recursive extension call probing
+	inExtensionProbe     bool                                 // guard against recursive extension call probing
+	pendingRecvMethod    string                               // method name while checking a method signature
 
 	firstErr   error                    // first error encountered
 	methods    map[*TypeName][]*Func    // maps package scope type names to associated non-blank (non-interface) methods

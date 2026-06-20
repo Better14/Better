@@ -19,17 +19,29 @@ func (check *Checker) lambdaExpr(x *operand, e *syntax.LambdaExpr, hint Type) {
 		}
 	}
 	if hint == nil {
+		if check.inExtensionProbe {
+			x.invalidate()
+			return
+		}
 		check.error(e, InvalidSyntaxTree, "lambda expression requires type context")
 		x.invalidate()
 		return
 	}
 	hintSig := check.signatureFromHint(hint)
 	if hintSig == nil {
+		if check.inExtensionProbe {
+			x.invalidate()
+			return
+		}
 		check.error(e, InvalidSyntaxTree, "lambda expression requires function type context")
 		x.invalidate()
 		return
 	}
 	if hintSig.params.Len() != len(e.ParamList) {
+		if check.inExtensionProbe {
+			x.invalidate()
+			return
+		}
 		check.errorf(e, WrongArgCount, "lambda has %d parameters, want %d", len(e.ParamList), hintSig.params.Len())
 		x.invalidate()
 		return

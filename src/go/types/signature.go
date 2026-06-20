@@ -450,10 +450,23 @@ func (check *Checker) collectRecv(rparam *ast.Field, scopePos token.Pos) (*Var, 
 
 	// Delay validation of receiver type as it may cause premature expansion of types
 	// the receiver type is dependent on (see go.dev/issue/51232, go.dev/issue/51233).
+	methodName := check.pendingRecvMethod
 	check.later(func() {
-		if !check.isExtensionRecv(recv.typ) {
-			check.validRecv(rbase, recv)
+		if check.isExtensionRecv(recv.typ) {
+			if receiverUsesCgo(check.fset, recv.typ) {
+				check.validRecv(rbase, recv)
+				return
+			}
+			if home := recvHomePkg(recv.typ); home != nil && home != check.pkg {
+				if methodName != "" {
+					if alt, _, _ := lookupFieldOrMethod(recv.typ, false, home, methodName, false); alt != nil {
+						check.errorf(rbase, InvalidRecv, "cannot define new methods on non-local type %s", recv.typ)
+					}
+				}
+			}
+			return
 		}
+		check.validRecv(rbase, recv)
 	}).describef(recv, "validRecv(%s)", recv)
 
 	return recv, recvTParamsList
@@ -606,7 +619,43 @@ func (check *Checker) declareParams(names []*ast.Ident, params []*Var, scopePos 
 	}
 }
 
-// validRecv verifies that the receiver satisfies its respective spec requirements
+// receiverUsesCgo reports whether typ is (or is an alias for) a cgo-generated type.
+func receiverUsesCgo(fset *token.FileSet, typ Type) bool {
+	typ, _ = deref(typ)
+	for typ != nil {
+		typ = Unalias(typ)
+		switch t := typ.(type) {
+		case *Named:
+			return isCGoTypeObj(fset, t.obj)
+		case *Alias:
+			typ = t.fromRHS
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// recvHomePkg reports the package that defines the receiver base type, if any.
+func recvHomePkg(typ Type) *Package {
+	typ, _ = deref(typ)
+	for typ != nil {
+		typ = Unalias(typ)
+		switch t := typ.(type) {
+		case *Named:
+			if t.obj == nil || t.obj.pkg == nil {
+				return nil
+			}
+			return t.obj.pkg
+		case *Alias:
+			typ = t.fromRHS
+		default:
+			return nil
+		}
+	}
+	return nil
+}
+
 // and reports an error otherwise.
 func (check *Checker) validRecv(pos positioner, recv *Var) {
 	// spec: "The receiver type must be of the form T or *T where T is a type name."
@@ -620,7 +669,11 @@ func (check *Checker) validRecv(pos positioner, recv *Var) {
 	// as the method."
 	switch T := atyp.(type) {
 	case *Named:
-		if T.obj.pkg != check.pkg || isCGoTypeObj(check.fset, T.obj) {
+		if home := recvHomePkg(rtyp); home != nil && home != check.pkg {
+			check.errorf(pos, InvalidRecv, "cannot define new methods on non-local type %s", rtyp)
+			break
+		}
+		if isCGoTypeObj(check.fset, T.obj) {
 			check.errorf(pos, InvalidRecv, "cannot define new methods on non-local type %s", rtyp)
 			break
 		}
