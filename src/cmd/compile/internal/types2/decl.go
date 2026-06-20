@@ -689,7 +689,11 @@ func (check *Checker) funcDecl(obj *Func, decl *declInfo) {
 	obj.typ = sig // guard against cycles
 
 	fdecl := decl.fdecl
+	if fdecl.Recv != nil {
+		check.pendingRecvMethod = obj.name
+	}
 	check.funcType(sig, fdecl.Recv, fdecl.TParamList, fdecl.Type)
+	check.pendingRecvMethod = ""
 
 	if sig.recv != nil && check.isExtensionRecv(sig.recv.typ) {
 		if check.hasInstanceMethod(sig.recv.typ, true, obj.name) {

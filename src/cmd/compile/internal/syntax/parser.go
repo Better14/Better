@@ -2754,7 +2754,8 @@ func (p *parser) shorthandTypeDeclStmt(keyword token, f func(*Group) Decl) Stmt 
 	default:
 		return nil
 	}
-	return p.simpleStmt(typ, 0)
+	x := p.pexpr(typ, false)
+	return p.simpleStmt(x, 0)
 }
 
 func (p *parser) forStmt() Stmt {
@@ -3089,37 +3090,104 @@ func (p *parser) enumCasePattern() Expr {
 		return p.expr()
 	}
 	name := p.name()
-	if p.tok == _Lbrace {
-		pat := new(EnumPattern)
-		pat.pos = name.Pos()
-		pat.Variant = name
-		p.next()
-		for p.tok != _EOF && p.tok != _Rbrace {
-			if p.tok != _Name {
-				p.syntaxError("expected identifier in enum struct pattern")
-				if p.tok == _Comma {
-					p.next()
-				} else {
-					p.advance(_Comma, _Rbrace)
-				}
-				continue
-			}
-			f := new(Field)
-			f.pos = p.pos()
-			f.Name = p.name()
-			pat.Fields = append(pat.Fields, f)
-			if !p.got(_Comma) {
-				break
-			}
-		}
-		pat.Rbrace = p.pos()
-		p.want(_Rbrace)
-		return pat
+	if p.tok != _Lbrace {
+		p.xnest++
+		x := p.binaryExpr(p.pexpr(name, false), 0)
+		p.xnest--
+		return x
 	}
-	p.xnest++
-	x := p.binaryExpr(p.pexpr(name, false), 0)
-	p.xnest--
-	return x
+	p.next() // '{'
+	if p.tok != _Name {
+		cl := p.compositeLitElems(name)
+		p.xnest++
+		x := p.binaryExpr(cl, 0)
+		p.xnest--
+		return x
+	}
+	fieldName := p.name()
+	if p.tok == _Colon {
+		cl := new(CompositeLit)
+		cl.pos = name.Pos()
+		cl.Type = name
+		p.xnest++
+		p.next()
+		kv := new(KeyValueExpr)
+		kv.pos = fieldName.Pos()
+		kv.Key = fieldName
+		kv.Value = p.bare_complitexpr()
+		cl.ElemList = append(cl.ElemList, kv)
+		cl.NKeys = 1
+		if p.got(_Comma) {
+			cl.Rbrace = p.list("composite literal", _Comma, _Rbrace, func() bool {
+				e := p.bare_complitexpr()
+				if p.tok == _Colon {
+					l := new(KeyValueExpr)
+					l.pos = p.pos()
+					p.next()
+					l.Key = e
+					l.Value = p.bare_complitexpr()
+					e = l
+					cl.NKeys++
+				}
+				cl.ElemList = append(cl.ElemList, e)
+				return false
+			})
+		} else {
+			cl.Rbrace = p.pos()
+			p.want(_Rbrace)
+		}
+		p.xnest--
+		p.xnest++
+		x := p.binaryExpr(cl, 0)
+		p.xnest--
+		return x
+	}
+	pat := new(EnumPattern)
+	pat.pos = name.Pos()
+	pat.Variant = name
+	f := new(Field)
+	f.pos = fieldName.Pos()
+	f.Name = fieldName
+	pat.Fields = append(pat.Fields, f)
+	for p.got(_Comma) {
+		if p.tok != _Name {
+			p.syntaxError("expected identifier in enum struct pattern")
+			if p.tok == _Comma {
+				p.next()
+			} else {
+				p.advance(_Comma, _Rbrace)
+			}
+			continue
+		}
+		f := new(Field)
+		f.pos = p.pos()
+		f.Name = p.name()
+		pat.Fields = append(pat.Fields, f)
+	}
+	pat.Rbrace = p.pos()
+	p.want(_Rbrace)
+	return pat
+}
+
+func (p *parser) compositeLitElems(typ Expr) *CompositeLit {
+	cl := new(CompositeLit)
+	cl.pos = typ.Pos()
+	cl.Type = typ
+	cl.Rbrace = p.list("composite literal", _Comma, _Rbrace, func() bool {
+		e := p.bare_complitexpr()
+		if p.tok == _Colon {
+			l := new(KeyValueExpr)
+			l.pos = p.pos()
+			p.next()
+			l.Key = e
+			l.Value = p.bare_complitexpr()
+			e = l
+			cl.NKeys++
+		}
+		cl.ElemList = append(cl.ElemList, e)
+		return false
+	})
+	return cl
 }
 
 func (p *parser) commClause() *CommClause {

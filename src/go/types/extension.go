@@ -9,6 +9,158 @@ import (
 	. "internal/types/errors"
 )
 
+// extensionSubstFromRecv maps the first type parameter of sig from recv's element type, if possible.
+func (check *Checker) extensionSubstFromRecv(recv Type, sig *Signature) substMap {
+	if sig == nil || sig.TypeParams().Len() == 0 {
+		return nil
+	}
+	elem := iterSeqElem(recv)
+	if elem == nil {
+		elem = sliceOrArrayElem(recv)
+	}
+	if elem == nil {
+		return nil
+	}
+	return substMap{sig.TypeParams().At(0): elem}
+}
+
+// extensionArgsMatch reports whether call arguments match fn's parameters after recv,
+// instantiating type parameters from recv when possible.
+func (check *Checker) extensionArgsMatch(recv Type, args []ast.Expr, fn *Func) bool {
+	sig := fn.Signature()
+	if sig == nil || sig.Params() == nil || sig.Params().Len() != 1+len(args) {
+		return false
+	}
+	smap := check.extensionSubstFromRecv(recv, sig)
+	for i, arg := range args {
+		paramType := sig.Params().At(i + 1).Type()
+		if len(smap) > 0 {
+			paramType = check.subst(nopos, paramType, smap, nil, check.context())
+		}
+		var x operand
+		check.rawExpr(nil, &x, arg, paramType, true)
+		if !x.isValid() {
+			return false
+		}
+		if ok, _ := x.assignableTo(check, paramType, nil); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (check *Checker) selectExtensionMatch(call *ast.CallExpr, recv *operand, matches []extensionMatch) (extensionMatch, bool) {
+	if len(matches) > 1 {
+		narrowed := check.narrowExtensionMatchesByCallbackArity(recv.typ(), call.Args, matches)
+		if len(narrowed) == 1 {
+			return narrowed[0], true
+		}
+		if len(narrowed) > 0 {
+			matches = narrowed
+		}
+	}
+	if len(matches) == 1 {
+		return matches[0], true
+	}
+	var fits []extensionMatch
+	for _, m := range matches {
+		if check.extensionArgsMatch(recv.typ(), call.Args, m.fn) {
+			fits = append(fits, m)
+		}
+	}
+	if len(fits) == 1 {
+		return fits[0], true
+	}
+	if len(fits) > 1 {
+		narrowed := check.narrowExtensionMatchesByCallbackArity(recv.typ(), call.Args, fits)
+		if len(narrowed) == 1 {
+			return narrowed[0], true
+		}
+		if len(narrowed) > 0 {
+			fits = narrowed
+			matches = narrowed
+		}
+	}
+	funcs := make([]*Func, len(matches))
+	for i, m := range matches {
+		funcs[i] = m.fn
+	}
+	var argOps []*operand
+	recvArg := *recv
+	argOps = append(argOps, &recvArg)
+	for _, arg := range call.Args {
+		var a operand
+		check.expr(nil, &a, arg)
+		if !a.isValid() {
+			// Lambdas and other context-sensitive args are resolved by extensionArgsMatch above.
+			return extensionMatch{}, false
+		}
+		argOps = append(argOps, &a)
+	}
+	if fn := check.selectOverloadSilent(call, funcs, argOps); fn != nil {
+		for _, m := range matches {
+			if m.fn == fn {
+				return m, true
+			}
+		}
+	}
+	return extensionMatch{}, false
+}
+
+func (check *Checker) extensionCallbackArity(typ Type) int {
+	sig := check.signatureFromHint(typ)
+	if sig == nil {
+		return -1
+	}
+	return sig.params.Len()
+}
+
+func (check *Checker) exprCallbackArity(arg ast.Expr) (int, bool) {
+	switch e := ast.Unparen(arg).(type) {
+	case *ast.LambdaExpr:
+		return len(e.Params), true
+	case *ast.FuncLit:
+		if e.Type == nil || e.Type.Params == nil {
+			return -1, false
+		}
+		n := 0
+		for _, f := range e.Type.Params.List {
+			n += len(f.Names)
+			if len(f.Names) == 0 {
+				n++
+			}
+		}
+		return n, true
+	default:
+		return -1, false
+	}
+}
+
+func (check *Checker) narrowExtensionMatchesByCallbackArity(recv Type, args []ast.Expr, fits []extensionMatch) []extensionMatch {
+	if len(args) != 1 {
+		return nil
+	}
+	arity, ok := check.exprCallbackArity(args[0])
+	if !ok || arity < 0 {
+		return nil
+	}
+	var out []extensionMatch
+	for _, m := range fits {
+		sig := m.fn.Signature()
+		if sig == nil || sig.Params() == nil || sig.Params().Len() < 2 {
+			continue
+		}
+		paramType := sig.Params().At(1).Type()
+		if smap := check.extensionSubstFromRecv(recv, sig); len(smap) > 0 {
+			paramType = check.subst(nopos, paramType, smap, nil, check.context())
+		}
+		if check.extensionCallbackArity(paramType) == arity {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
 // extensionFuncShape reports whether fn looks like an exported extension
 // (receiver lowered to the first parameter) from pkg.
 func extensionFuncShape(pkg *Package, fn *Func) bool {
@@ -280,6 +432,23 @@ func (check *Checker) extensionCandidates(recvType Type, method string) []extens
 	return out
 }
 
+func (check *Checker) attachLinqSliceFast(recvType Type, m extensionMatch) extensionMatch {
+	pkg := m.fn.pkg
+	if pkg == nil && m.pkgName != nil {
+		pkg = m.pkgName.imported
+	}
+	if pkg == nil || pkg.path != linqPkgPath {
+		return m
+	}
+	if sliceOrArrayElem(recvType) == nil {
+		return m
+	}
+	if fast, ok := linqSliceFastPath(m.fn.name); ok {
+		m.linqFast = fast
+	}
+	return m
+}
+
 func (check *Checker) matchExtension(recvType Type, fn *Func) (extensionMatch, bool) {
 	sig := fn.Signature()
 	if sig.params == nil || sig.params.Len() == 0 {
@@ -288,13 +457,13 @@ func (check *Checker) matchExtension(recvType Type, fn *Func) (extensionMatch, b
 	param0 := sig.params.At(0).typ
 
 	if check.extensionTypesMatch(recvType, param0) {
-		return extensionMatch{fn: fn}, true
+		return check.attachLinqSliceFast(recvType, extensionMatch{fn: fn}), true
 	}
 
 	// [N]T can use extensions declared on []T.
 	if arr, ok := Unalias(recvType).Underlying().(*Array); ok {
 		if sl, ok := Unalias(param0).Underlying().(*Slice); ok && Identical(arr.elem, sl.elem) {
-			return extensionMatch{fn: fn, slice: true}, true
+			return check.attachLinqSliceFast(recvType, extensionMatch{fn: fn, slice: true}), true
 		}
 	}
 
@@ -456,47 +625,24 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 	}
 
 	var m extensionMatch
-	if len(matches) == 1 {
-		m = matches[0]
-	} else {
-		funcs := make([]*Func, len(matches))
-		for i, match := range matches {
-			funcs[i] = match.fn
-		}
-		var argOps []*operand
-		recvArg := recv
-		argOps = append(argOps, &recvArg)
-		for _, arg := range call.Args {
-			var a operand
-			check.expr(nil, &a, arg)
-			if !a.isValid() {
-				x.invalidate()
-				x.expr = call
-				return statement, true
-			}
-			argOps = append(argOps, &a)
-		}
-		fn := check.selectOverloadSilent(call, funcs, argOps)
-		if fn == nil {
-			check.errorf(call, AmbiguousSelector, "ambiguous extension call %s.%s", recv.expr, sel.Sel.Name)
-			x.invalidate()
-			x.expr = call
-			return statement, true
-		}
-		m = matches[0]
-		for _, cand := range matches {
-			if cand.fn == fn {
-				m = cand
-				break
-			}
-		}
+	var ok bool
+	if m, ok = check.selectExtensionMatch(call, &recv, matches); !ok {
+		check.errorf(call, AmbiguousSelector, "ambiguous extension call %s.%s", recv.expr, sel.Sel.Name)
+		x.invalidate()
+		x.expr = call
+		return statement, true
 	}
 
 	recvExpr := sel.X
 	if m.slice {
 		recvExpr = &ast.SliceExpr{X: sel.X}
 	}
-	if m.adapt {
+	m = check.attachLinqSliceFast(recv.typ(), m)
+	funcName := m.fn.Name()
+	useLinqFast := m.linqFast != ""
+	if useLinqFast {
+		funcName = m.linqFast
+	} else if m.adapt {
 		if !check.verifyVersionf(call, go1_27, "slices.Values") {
 			x.invalidate()
 			x.expr = call
@@ -523,16 +669,17 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 
 	pkgIdent := m.pkgName
 	if pkgIdent == nil {
-		// same package: use an unqualified function name
 		check.recordUse(sel.Sel, m.fn)
-		call.Fun = sel.Sel
+		call.Fun = astNewIdent(call.Pos(), funcName)
 	} else {
 		call.Fun = &ast.SelectorExpr{
 			X:   astNewIdent(call.Pos(), pkgIdent.name),
-			Sel: sel.Sel,
+			Sel: astNewIdent(call.Pos(), funcName),
 		}
 		check.recordUse(call.Fun.(*ast.SelectorExpr).X.(*ast.Ident), pkgIdent)
-		check.recordSelection(call.Fun.(*ast.SelectorExpr), MethodVal, recv.typ(), m.fn, []int{0}, false)
+		if !useLinqFast {
+			check.recordSelection(call.Fun.(*ast.SelectorExpr), MethodVal, recv.typ(), m.fn, []int{0}, false)
+		}
 	}
 	if inst != nil {
 		switch e := inst.orig.(type) {

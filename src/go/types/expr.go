@@ -1496,6 +1496,17 @@ func (check *Checker) multiExpr(e ast.Expr, allowCommaOk bool) (list []*operand,
 		return
 	}
 
+	// Result(T) destructuring: val, err := r
+	if allowCommaOk && x.isValid() && (x.mode() == variable || x.mode() == value) {
+		if res, ok := AsResult(x.typ()); ok {
+			list = []*operand{
+				{mode_: value, expr: e, typ_: res.elem},
+				{mode_: value, expr: e, typ_: universeError},
+			}
+			return list, false
+		}
+	}
+
 	// exactly one (possibly invalid or comma-ok) value
 	list = []*operand{&x}
 	if allowCommaOk && (x.mode() == mapindex || x.mode() == commaok || x.mode() == commaerr) {

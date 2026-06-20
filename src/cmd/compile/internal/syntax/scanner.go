@@ -599,7 +599,7 @@ func (s *scanner) number(seenPoint bool) {
 				seenPoint = true
 			case lower(s.ch) == 'e' || lower(s.ch) == 'p':
 				seenPoint = true
-			case 'A' <= s.ch && s.ch <= 'Z' && s.ch != 'E':
+			case prefix != 'x' && 'A' <= s.ch && s.ch <= 'Z' && s.ch != 'E':
 				// 21.Double() — dot before an exported identifier is a selector, not a float fraction.
 				s.restoreState(st)
 			default:

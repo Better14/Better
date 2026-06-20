@@ -788,7 +788,11 @@ func (check *Checker) funcDecl(obj *Func, decl *declInfo) {
 	obj.typ = sig // guard against cycles
 
 	fdecl := decl.fdecl
+	if fdecl.Recv != nil {
+		check.pendingRecvMethod = obj.name
+	}
 	check.funcType(sig, fdecl.Recv, fdecl.Type)
+	check.pendingRecvMethod = ""
 
 	if sig.recv != nil && check.isExtensionRecv(sig.recv.typ) {
 		check.finishExtensionFunc(obj, sig)
