@@ -272,8 +272,11 @@ func (check *Checker) assignVar(lhs, rhs syntax.Expr, x *operand, context string
 		if T != nil {
 			target = newTarget(T, ExprString(lhs))
 		}
+		saved := check.callExpectedType
+		check.callExpectedType = T
 		x = new(operand)
 		check.expr(target, x, rhs)
+		check.callExpectedType = saved
 	}
 
 	if T == nil && context == "assignment" {
@@ -491,7 +494,7 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []syntax.Expr, returnStmt sy
 		return
 	}
 
-	rhs, commaOk := check.multiExpr(orig_rhs[0], l == 2)
+	rhs, commaOk := check.multiExpr(orig_rhs[0], l == 2 && returnStmt == nil)
 	r = len(rhs)
 	if l == r {
 		for i, lhs := range lhs {
