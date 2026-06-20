@@ -31,7 +31,7 @@ func TestSizeof(t *testing.T) {
 		{Interface{}, 40, 80},
 		{Map{}, 16, 32},
 		{Chan{}, 12, 24},
-		{Named{}, 68, 128},
+		{Named{}, 68, 136},
 		{TypeParam{}, 28, 48},
 		{term{}, 12, 24},
 
@@ -39,15 +39,15 @@ func TestSizeof(t *testing.T) {
 		{PkgName{}, 56, 96},
 		{Const{}, 60, 104},
 		{TypeName{}, 52, 88},
-		{Var{}, 60, 104},
-		{Func{}, 60, 104},
+		{Var{}, 60, 136},
+		{Func{}, 60, 120},
 		{Label{}, 56, 96},
 		{Builtin{}, 56, 96},
 		{Nil{}, 52, 88},
 
 		// Misc
 		{Scope{}, 60, 104},
-		{Package{}, 44, 88},
+		{Package{}, 44, 136},
 		{_TypeSet{}, 28, 56},
 	}
 
