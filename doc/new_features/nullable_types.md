@@ -11,6 +11,29 @@
 
 Nullable types are useful for primitives and structs that cannot otherwise hold `nil` in Go. Reference types (`*T`, `map`, `slice`, `chan`, `func`, `interface`) are already “nullable” via `nil`; `T?` is most important for `int`, `bool`, `float64`, struct types, etc.
 
+## Suffix binding with composite types
+
+`?` is a **postfix suffix on the entire type expression** to its left (the same parsing rule as `!`). It does not bind only to the innermost type name.
+
+| Written | Meaning |
+| ------- | ------- |
+| `int?` | `int` or `nil` |
+| `[]int?` | `([]int)?` — the **slice itself** may be `nil` (nullable slice) |
+| `[](int?)` | `[]` of `int?` — each element is `int` or `nil` |
+| `*int?` | `(*int)?` — nullable pointer to `int` (not the same as `*int`, which is already nil-able) |
+
+So `[]int?` means **slice or null** (the whole slice is optional), not “slice of int-or-null elements”. For per-element optionals, use parentheses:
+
+```go
+var counts []int?      // counts is nil, or a []int
+var items [](int?)     // slice where each element is int?
+var name string? = row?.title
+```
+
+Slices, maps, channels, pointers, and interfaces are already nil-able in ordinary Go. `[]T?` is mainly useful when you need to distinguish “missing collection” (`nil` slice) from “empty collection” (`[]T{}`) at the type level. `[](T?)` is for when **each element** may be absent.
+
+See [Suffix binding with composite types](result_types.md#suffix-binding-with-composite-types) for the same rules with `!` (`[]BookRow!` → `([]BookRow, error)`).
+
 ### Declaration and assignment
 
 ```go

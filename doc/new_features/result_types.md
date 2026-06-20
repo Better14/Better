@@ -40,6 +40,32 @@ A `T!` function may return a single value `v`; the compiler treats it as `return
 
 `int!` is semantically equivalent to `(int, error)`.
 
+## Suffix binding with composite types
+
+`!` is a **postfix suffix on the entire type expression** to its left (the same parsing rule as `?`). It does not bind only to the innermost type name.
+
+| Written | Meaning |
+| ------- | ------- |
+| `BookRow!` | `(BookRow, error)` |
+| `[]BookRow!` | `([]BookRow, error)` — slice result **or** one error for the whole operation |
+| `[](BookRow!)` | `[]` of `BookRow!` — each element is a `BookRow!` value type (value + `err` fields) |
+| `*BookRow!` | `(*BookRow, error)` |
+
+So `[]BookRow!` is **not** “a slice where each element is `BookRow` or `error`”. It is the usual Go pattern: return a `[]BookRow` on success, or return a single `error` for the call.
+
+Use **parentheses** when you want `!` to bind to an inner type before an outer constructor (`[]`, `*`, etc.) applies:
+
+```go
+func QueryBooks(...) []BookRow! {
+	// ([]BookRow, error): one slice or one error
+	return out
+}
+
+var perRow [](BookRow!) // [] of BookRow! value type — uncommon; not a function result shorthand
+```
+
+This matches pointer binding: `*T!` means `(*T, error)`, not `*(T!)`. See [Suffix binding with composite types](nullable_types.md#suffix-binding-with-composite-types) for the same rules with `?`.
+
 ## Postfix `!` and `!.field`
 
 ### `(T, error)` and `T!`
