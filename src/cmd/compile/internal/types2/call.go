@@ -727,8 +727,10 @@ func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature,
 			return []*operand{&x}, nil
 		}
 		// Expand multi-value expressions before singleValue checking (e.g. f() for g(..., ...)).
-		if list, _ := check.multiExpr(e, false); len(list) > 1 {
-			return list, nil
+		if _, ok := syntax.Unparen(e).(*syntax.CallExpr); ok {
+			if list, _ := check.multiExpr(e, false); len(list) > 1 {
+				return list, nil
+			}
 		}
 		var hint Type
 		if params != nil && params.Len() > 0 {
