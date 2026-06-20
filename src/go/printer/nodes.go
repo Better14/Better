@@ -869,6 +869,17 @@ func isRemainder(op token.Token) bool {
 	return op == token.REM
 }
 
+func isRawStringExpr(expr ast.Expr) bool {
+	if lit, ok := stripParensAlways(expr).(*ast.BasicLit); ok {
+		return lit.Kind == token.STRING && len(lit.Value) > 0 && lit.Value[0] == '`'
+	}
+	return false
+}
+
+func isRawStringAdd(op token.Token, x, y ast.Expr) bool {
+	return op == token.ADD && (isRawStringExpr(x) || isRawStringExpr(y))
+}
+
 func diffPrec(expr ast.Expr, prec int) int {
 	x, ok := expr.(*ast.BinaryExpr)
 	if !ok || prec != x.Op.Precedence() {
@@ -935,7 +946,7 @@ func (p *printer) binaryExpr(x *ast.BinaryExpr, prec1, cutoff, depth int) {
 	}
 
 	printBlank := prec < cutoff
-	if isComparison(x.Op) || isRemainder(x.Op) {
+	if isComparison(x.Op) || isRemainder(x.Op) || isRawStringAdd(x.Op, x.X, x.Y) {
 		printBlank = true
 	}
 
