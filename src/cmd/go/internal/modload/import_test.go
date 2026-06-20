@@ -7,7 +7,10 @@ package modload
 import (
 	"context"
 	"internal/testenv"
+	"os"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -88,5 +91,23 @@ func TestQueryImport(t *testing.T) {
 				t.Errorf("queryImport(_, %q) = %v, _; want %v", tt.path, m, tt.m)
 			}
 		})
+	}
+}
+
+func TestIgnoreSystemTempModuleRoot(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows-specific temp dir layout")
+	}
+	sys := systemTempDir()
+	modRoot := filepath.Join(sys, "go.mod")
+	if _, err := os.Stat(modRoot); err != nil {
+		t.Skipf("no go.mod in system temp %v", sys)
+	}
+	wd := filepath.Join(sys, "cmd-go-test-ignore", "work", "gopath", "src")
+	if findModuleRoot(wd) != "" {
+		t.Fatalf("findModuleRoot(%q) = %q, want empty", wd, findModuleRoot(wd))
+	}
+	if FindGoMod(wd) != "" {
+		t.Fatalf("FindGoMod(%q) = %q, want empty", wd, FindGoMod(wd))
 	}
 }

@@ -17,6 +17,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -552,13 +553,13 @@ func Init(ld *Loader) {
 				// Stay in GOPATH mode.
 				return
 			}
-		} else if search.InDir(modRoot, os.TempDir()) == "." {
+		} else if search.InDir(modRoot, systemTempDir()) == "." {
 			// If you create /tmp/go.mod for experimenting,
 			// then any tests that create work directories under /tmp
 			// will find it and get modules when they're not expecting them.
 			// It's a bit of a peculiar thing to disallow but quite mysterious
 			// when it happens. See golang.org/issue/26708.
-			fmt.Fprintf(os.Stderr, "go: warning: ignoring go.mod in system temp root %v\n", os.TempDir())
+			fmt.Fprintf(os.Stderr, "go: warning: ignoring go.mod in system temp root %v\n", systemTempDir())
 			if ld.RootMode == NeedRoot {
 				base.Fatal(NewNoMainModulesError(ld))
 			}
@@ -637,7 +638,7 @@ func FindGoMod(wd string) string {
 		// Stay in GOPATH mode.
 		return ""
 	}
-	if search.InDir(modRoot, os.TempDir()) == "." {
+	if search.InDir(modRoot, systemTempDir()) == "." {
 		// If you create /tmp/go.mod for experimenting,
 		// then any tests that create work directories under /tmp
 		// will find it and get modules when they're not expecting them.
@@ -1711,6 +1712,35 @@ var altConfigs = []string{
 	".git/config",
 }
 
+var systemTempDirOnce sync.Once
+var systemTempDirValue string
+
+// systemTempDir returns the operating system's default temporary directory,
+// ignoring TMP/TEMP/TMPDIR overrides. Tests often redirect os.TempDir to an
+// isolated directory, but module and workspace discovery walks up to the real
+// system temp directory and must ignore stray go.mod and go.work files there.
+func systemTempDir() string {
+	systemTempDirOnce.Do(func() {
+		if runtime.GOOS == "windows" {
+			systemTempDirValue = filepath.Join(os.Getenv("LOCALAPPDATA"), "Temp")
+			return
+		}
+		envs := []string{"TMP", "TEMP", "TMPDIR"}
+		saved := make([]string, len(envs))
+		for i, k := range envs {
+			saved[i] = os.Getenv(k)
+			os.Unsetenv(k)
+		}
+		systemTempDirValue = os.TempDir()
+		for i, k := range envs {
+			if saved[i] != "" {
+				os.Setenv(k, saved[i])
+			}
+		}
+	})
+	return systemTempDirValue
+}
+
 func findModuleRoot(dir string) (roots string) {
 	if dir == "" {
 		panic("dir not set")
@@ -1720,7 +1750,9 @@ func findModuleRoot(dir string) (roots string) {
 	// Look for enclosing go.mod.
 	for {
 		if fi, err := fsys.Stat(filepath.Join(dir, "go.mod")); err == nil && !fi.IsDir() {
-			return dir
+			if search.InDir(dir, systemTempDir()) != "." {
+				return dir
+			}
 		}
 		d := filepath.Dir(dir)
 		if d == dir {
@@ -1737,11 +1769,13 @@ func findWorkspaceFile(dir string) (root string) {
 	}
 	dir = filepath.Clean(dir)
 
-	// Look for enclosing go.mod.
+	// Look for enclosing go.work.
 	for {
 		f := filepath.Join(dir, "go.work")
 		if fi, err := fsys.Stat(f); err == nil && !fi.IsDir() {
-			return f
+			if search.InDir(dir, systemTempDir()) != "." {
+				return f
+			}
 		}
 		d := filepath.Dir(dir)
 		if d == dir {

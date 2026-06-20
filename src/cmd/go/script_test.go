@@ -292,6 +292,7 @@ func scriptEnv(srv *vcstest.Server, srvCertFile string) ([]string, error) {
 var extraEnvKeys = []string{
 	"SYSTEMROOT",         // must be preserved on Windows to find DLLs; golang.org/issue/25210
 	"WINDIR",             // must be preserved on Windows to be able to run PowerShell command; golang.org/issue/30711
+	"LOCALAPPDATA",       // must be preserved on Windows to locate the system temp directory
 	"LD_LIBRARY_PATH",    // must be preserved on Unix systems to find shared libraries
 	"LIBRARY_PATH",       // allow override of non-standard static library paths
 	"C_INCLUDE_PATH",     // allow override non-standard include paths

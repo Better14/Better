@@ -164,6 +164,8 @@ func compileAndDump(t *testing.T, file, function, moreGCFlags string) []byte {
 	cmd := testenv.Command(t, testenv.GoToolPath(t), "build", "-o", "foo.o", "-gcflags=-d=ssa/genssa/dump="+function+" "+moreGCFlags, source)
 	cmd.Dir = tmpdir
 	cmd.Env = replaceEnv(cmd.Env, "GOSSADIR", tmpdir)
+	cmd.Env = replaceEnv(cmd.Env, "TMP", tmpdir)
+	cmd.Env = replaceEnv(cmd.Env, "TMPDIR", tmpdir)
 	testGoos := "linux" // default to linux
 	if testGoArch() == "wasm" {
 		testGoos = "js"
