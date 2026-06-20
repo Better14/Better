@@ -257,6 +257,9 @@ var depsRules = `
 	encoding, reflect
 	< encoding/binary;
 
+	errors, reflect
+	< internal/testerrors;
+
 	FMT, encoding < flag;
 
 	fmt !< encoding/base32, encoding/base64;
@@ -876,16 +879,11 @@ var depsRules = `
 	list, maxheap, minheap, set, tree
 	< linq;
 
+	NONE
 	< person;
 
 	person
 	< personext;
-
-	errors, reflect
-	< internal/testerrors;
-
-	internal/testerrors
-	< encoding/csv, encoding/json, encoding/xml, net, net/http/internal/http2;
 `
 
 // listStdPkgs returns the same list of packages as "go list std".
