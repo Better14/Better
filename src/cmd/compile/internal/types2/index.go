@@ -62,30 +62,27 @@ func (check *Checker) indexExpr(x *operand, e *syntax.IndexExpr) (isFuncInst boo
 		return false
 	}
 
-	if (x.mode() == value || x.mode() == variable) && !supportsBuiltinIndex(x.typ()) && check.tryIndexOperatorOverload(x, e, x) {
-		return false
-	}
-
-	// We cannot index on an incomplete type; make sure it's complete.
+	// We cannot index on an incomplete type; make sure it's complete
+	// before supportsBuiltinIndex, which calls Underlying.
 	if !check.isComplete(x.typ()) {
 		x.invalidate()
 		return false
 	}
 	switch typ := x.typ().Underlying().(type) {
 	case *Pointer:
-		// Additionally, if x.typ is a pointer to an array type, indexing implicitly dereferences the value, meaning
-		// its base type must also be complete.
 		if !check.isComplete(typ.base) {
 			x.invalidate()
 			return false
 		}
 	case *Map:
-		// Lastly, if x.typ is a map type, indexing must produce a value of a complete type, meaning
-		// its element type must also be complete.
 		if !check.isComplete(typ.elem) {
 			x.invalidate()
 			return false
 		}
+	}
+
+	if (x.mode() == value || x.mode() == variable) && !supportsBuiltinIndex(x.typ()) && check.tryIndexOperatorOverload(x, e, x) {
+		return false
 	}
 
 	// ordinary index expression

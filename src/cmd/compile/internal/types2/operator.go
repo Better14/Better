@@ -243,7 +243,10 @@ func (check *Checker) tryIndexOperatorOverload(x *operand, e *syntax.IndexExpr, 
 	} else {
 		check.expr(nil, &l, e.X)
 	}
-	if !l.isValid() || supportsBuiltinIndex(l.typ()) {
+	if !l.isValid() {
+		return false
+	}
+	if !check.isComplete(l.typ()) || supportsBuiltinIndex(l.typ()) {
 		return false
 	}
 	indices := check.overloadIndices(e)
@@ -292,7 +295,10 @@ func (check *Checker) tryIndexAssignOperatorOverload(lhs, rhs syntax.Expr, x *op
 	}
 	var l operand
 	check.expr(nil, &l, idx.X)
-	if !l.isValid() || supportsBuiltinIndex(l.typ()) {
+	if !l.isValid() {
+		return false
+	}
+	if !check.isComplete(l.typ()) || supportsBuiltinIndex(l.typ()) {
 		return false
 	}
 	indices := check.overloadIndices(idx)

@@ -497,6 +497,8 @@ func (check *Checker) collectObjects() {
 						if s.Body == nil {
 							check.softErrorf(obj.pos, MissingInitBody, "func init must have a body")
 						}
+					} else if name == "main" && pkg.name == "main" {
+						check.declare(pkg.scope, s.Name, obj, nopos)
 					} else if name == "_" {
 						check.declare(pkg.scope, s.Name, obj, nopos)
 					} else {
