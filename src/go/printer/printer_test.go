@@ -1194,6 +1194,36 @@ func Open(path string) *sql.DB! {
 	}
 }
 
+func TestCompositeSuffixTypeFormat(t *testing.T) {
+	const src = `package p
+
+func sliceResult() []string! {
+	return nil
+}
+
+func sliceOfResults() [](string!) {
+	var s string! = "ok"
+	return [](string!){s}
+}
+
+func optionalSlice() []string? {
+	return nil
+}
+
+func sliceOfOptionals() [](string?) {
+	hi := "a"
+	return [](string?){nil, &hi, nil}
+}
+`
+	got, err := format([]byte(src), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != src {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, src)
+	}
+}
+
 func TestLambdaFormat(t *testing.T) {
 	const src = `package p
 

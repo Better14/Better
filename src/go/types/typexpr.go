@@ -404,8 +404,8 @@ func (check *Checker) typInternal(e0 ast.Expr, def *TypeName) (T Type) {
 		if !isValid(elem) {
 			return Typ[Invalid]
 		}
-		if isNullish(elem) {
-			check.errorf(e, InvalidSyntaxTree, "invalid nullable type %s?; type is already nil-able", elem)
+		if _, ok := elem.Underlying().(*Optional); ok {
+			check.errorf(e, InvalidSyntaxTree, "invalid nullable type %s?; cannot apply ? to an already-nullable type", elem)
 			return Typ[Invalid]
 		}
 		return NewOptional(elem)
