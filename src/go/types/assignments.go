@@ -419,13 +419,15 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []ast.Expr, returnStmt ast.S
 	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
 		var x operand
 		check.expr(nil, &x, orig_rhs[0])
-		if x.isValid() && AssignableTo(x.typ(), lhs[0].typ) && Identical(lhs[1].typ, universeError) {
-			check.initVar(lhs[0], &x, context)
-			var nerr operand
-			nerr.mode_ = nilvalue
-			nerr.typ_ = universeError
-			check.initVar(lhs[1], &nerr, context)
-			return
+		if x.isValid() {
+			if okVal, _ := x.assignableTo(check, lhs[0].typ, nil); okVal && Identical(lhs[1].typ, universeError) {
+				check.initVar(lhs[0], &x, context)
+				var nerr operand
+				nerr.mode_ = nilvalue
+				nerr.typ_ = universeError
+				check.initVar(lhs[1], &nerr, context)
+				return
+			}
 		}
 	}
 
@@ -433,13 +435,17 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []ast.Expr, returnStmt ast.S
 	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
 		var x operand
 		check.expr(nil, &x, orig_rhs[0])
-		if x.isValid() && !AssignableTo(x.typ(), lhs[0].typ) && AssignableTo(x.typ(), lhs[1].typ) {
-			var zero operand
-			zero.mode_ = value
-			zero.typ_ = lhs[0].typ
-			check.initVar(lhs[0], &zero, context)
-			check.initVar(lhs[1], &x, context)
-			return
+		if x.isValid() {
+			okVal, _ := x.assignableTo(check, lhs[0].typ, nil)
+			okErr, _ := x.assignableTo(check, lhs[1].typ, nil)
+			if !okVal && okErr {
+				var zero operand
+				zero.mode_ = value
+				zero.typ_ = lhs[0].typ
+				check.initVar(lhs[0], &zero, context)
+				check.initVar(lhs[1], &x, context)
+				return
+			}
 		}
 	}
 
