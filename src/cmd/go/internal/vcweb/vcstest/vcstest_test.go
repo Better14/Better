@@ -78,6 +78,12 @@ func serveStandalone(host string, port int) (err error) {
 // TestScripts verifies that the VCS setup scripts in cmd/go/testdata/vcstest
 // run successfully.
 func TestScripts(t *testing.T) {
+	if _, err := exec.LookPath("hg"); err != nil {
+		t.Skip("skipping vcstest scripts: hg not found in PATH")
+	}
+	if out, err := exec.Command("hg", "version").CombinedOutput(); err != nil {
+		t.Skipf("skipping vcstest scripts: hg not working: %v\n%s", err, out)
+	}
 	scriptDir, err := filepath.Abs(*dir)
 	if err != nil {
 		t.Fatal(err)

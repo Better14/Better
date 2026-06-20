@@ -117,6 +117,17 @@ func (obj *object) Pkg() *Package { return obj.pkg }
 // Name returns the object's (package-local, unqualified) name.
 func (obj *object) Name() string { return obj.name }
 
+// LinkName returns the linker symbol name for obj.
+// Overloaded functions and methods use a parameter-type suffix after '·'.
+func (obj *Func) LinkName() string {
+	if obj.linkSuffix != "" {
+		return obj.name + "·" + obj.linkSuffix
+	}
+	return obj.name
+}
+
+func (obj *Func) setLinkSuffix(s string) { obj.linkSuffix = s }
+
 // Type returns the object's type.
 func (obj *object) Type() Type { return obj.typ }
 
@@ -297,9 +308,9 @@ type Var struct {
 	object
 	origin   *Var // if non-nil, the Var from which this one was instantiated
 	kind     VarKind
-	embedded bool // if set, the variable is an embedded struct field, and name is the type name
-	defExpr  ast.Expr         // default argument expression; nil if none
-	defVal   constant.Value   // compile-time default; invalid if defExpr is nil
+	embedded bool           // if set, the variable is an embedded struct field, and name is the type name
+	defExpr  ast.Expr       // default argument expression; nil if none
+	defVal   constant.Value // compile-time default; invalid if defExpr is nil
 }
 
 // A VarKind discriminates the various kinds of variables.
@@ -402,9 +413,9 @@ func (*Var) isDependency() {} // a variable may be a dependency of an initializa
 // An abstract method may belong to many interfaces due to embedding.
 type Func struct {
 	object
-	hasPtrRecv_  bool  // only valid for methods that don't have a type yet; use hasPtrRecv() to read
-	isExtension_ bool  // extension method: receiver type is external, predeclared, or composite
-	origin       *Func // if non-nil, the Func from which this one was instantiated
+	hasPtrRecv_  bool   // only valid for methods that don't have a type yet; use hasPtrRecv() to read
+	isExtension_ bool   // extension method: receiver type is external, predeclared, or composite
+	origin       *Func  // if non-nil, the Func from which this one was instantiated
 	linkSuffix   string // non-empty for overloaded symbols; used by the compiler backend
 }
 
@@ -413,17 +424,6 @@ func (obj *Func) IsExtension() bool { return obj.isExtension_ }
 
 // SetExtension marks obj as an extension method (used when loading export data).
 func (obj *Func) SetExtension(v bool) { obj.isExtension_ = v }
-
-// LinkName returns the linker symbol name for obj.
-// Overloaded functions and methods use a parameter-type suffix after '·'.
-func (obj *Func) LinkName() string {
-	if obj.linkSuffix != "" {
-		return obj.name + "·" + obj.linkSuffix
-	}
-	return obj.name
-}
-
-func (obj *Func) setLinkSuffix(s string) { obj.linkSuffix = s }
 
 // NewFunc returns a new function with the given signature, representing
 // the function's type.

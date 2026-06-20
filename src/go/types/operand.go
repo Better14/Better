@@ -272,6 +272,8 @@ func compositeKind(typ Type) string {
 		return "tuple"
 	case *Union:
 		return "union"
+	case *Enum:
+		return "enum"
 	default:
 		panic("unreachable")
 	}
@@ -370,18 +372,6 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 	// and neither V nor T is a type parameter.
 	if Identical(Vu, Tu) && (!hasName(V) || !hasName(T)) && Vp == nil && Tp == nil {
 		return true, 0
-	}
-
-	// Allow slices and arrays to assign to iter.Seq[T] for LINQ extension type-checking.
-	if srcSl, ok := Vu.(*Slice); ok {
-		if seqElem := iterSeqElem(T); seqElem != nil && Identical(srcSl.elem, seqElem) {
-			return true, 0
-		}
-	}
-	if srcArr, ok := Vu.(*Array); ok {
-		if seqElem := iterSeqElem(T); seqElem != nil && Identical(srcArr.elem, seqElem) {
-			return true, 0
-		}
 	}
 
 	// T is an interface type, but not a type parameter, and V implements T.

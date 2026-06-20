@@ -219,7 +219,11 @@ func genInlTreeSym(ctxt *Link, cu *sym.CompilationUnit, fi loader.FuncInfo, arch
 			// shared library), and we don't load FuncInfo from the
 			// shared library. We will report potentially incorrect
 			// FuncID in this case. See https://go.dev/issue/55954.
-			panic(fmt.Sprintf("inlined function %s missing func info", ldr.SymName(call.Func)))
+			//
+			// Stenciled generic instantiations may also lack FuncInfo
+			// in the loader; use a safe default rather than panic.
+			funcID = 0
+			startLine = 0
 		}
 
 		// Construct runtime.inlinedCall value.

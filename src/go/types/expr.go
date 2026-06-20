@@ -421,10 +421,10 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 		return nil, nil, InvalidUntypedConversion
 	}
 
-	if isTypes2 && x.isNil() {
+	if x.isNil() {
 		assert(isUntyped(x.typ()))
 		if hasNil(target) {
-			return target, nil, 0
+			return Typ[UntypedNil], nil, 0
 		}
 		return nil, nil, InvalidUntypedConversion
 	}
@@ -468,6 +468,26 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 		default:
 			return nil, nil, InvalidUntypedConversion
 		}
+	case *Optional:
+		if x.isNil() {
+			return target, nil, 0
+		}
+		_, val, code := check.implicitTypeAndValue(x, u.elem)
+		if code != 0 {
+			return nil, nil, code
+		}
+		return target, val, code
+
+	case *Result:
+		if x.isNil() {
+			return nil, nil, InvalidUntypedConversion
+		}
+		_, val, code := check.implicitTypeAndValue(x, u.elem)
+		if code != 0 {
+			return nil, nil, code
+		}
+		return target, val, code
+
 	case *Interface:
 		if isTypeParam(target) {
 			if !underIs(target, func(u Type) bool {
@@ -1229,7 +1249,7 @@ func (check *Checker) exprInternal(T *target, x *operand, e ast.Expr, hint Type)
 		return statement
 
 	case *ast.NullCondExpr:
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone ?.; use ?.field or ?.[index]")
+		check.error(e, InvalidSyntaxTree, "invalid operation: standalone ?.; use ?.field or ?.[index]")
 		goto Error
 
 	case *ast.EnumPatternExpr:

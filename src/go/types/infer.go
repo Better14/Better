@@ -320,6 +320,22 @@ func (check *Checker) infer(posn positioner, tparams []*TypeParam, targs []Type,
 		u.tracef("=> %s ➞ %s\n", tparams, inferred)
 	}
 
+	// --- 2.5 ---
+	// use expected result type from assignment/return context
+	if expected := check.callExpectedType; expected != nil {
+		if result := check.inferResultType; result != nil {
+			if traceInference {
+				u.tracef("== expected result: %s", expected)
+				u.tracef("-- function result  : %s", result)
+			}
+			smap := makeSubstMap(tparams, u.inferred(tparams))
+			result = check.subst(posn.Pos(), result, smap, nil, check.context())
+			if result != nil {
+				u.unify(result, expected, assign)
+			}
+		}
+	}
+
 	// --- 3 ---
 	// use information from untyped constants
 

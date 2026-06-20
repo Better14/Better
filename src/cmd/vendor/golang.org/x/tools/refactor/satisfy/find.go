@@ -55,6 +55,14 @@ type Constraint struct {
 	LHS, RHS types.Type
 }
 
+func asSignature(t types.Type) (*types.Signature, bool) {
+	if t == nil {
+		return nil, false
+	}
+	sig, ok := typeparams.CoreType(t).(*types.Signature)
+	return sig, ok
+}
+
 // A Finder inspects the type-checked ASTs of Go packages and
 // accumulates the set of type constraints (x, y) such that x is
 // assignable to y, y is an interface, and both x and y have methods.
@@ -102,9 +110,11 @@ func (f *Finder) Find(info *types.Info, files []*ast.File) {
 
 			case *ast.FuncDecl:
 				if d.Body != nil {
-					f.sig = f.info.Defs[d.Name].Type().(*types.Signature)
-					f.stmt(d.Body)
-					f.sig = nil
+					if sig, ok := asSignature(f.info.Defs[d.Name].Type()); ok {
+						f.sig = sig
+						f.stmt(d.Body)
+						f.sig = nil
+					}
 				}
 			}
 		}
@@ -127,8 +137,9 @@ func (f *Finder) exprN(e ast.Expr) types.Type {
 
 	case *ast.CallExpr:
 		// x, err := f(args)
-		sig := typeparams.CoreType(f.expr(e.Fun)).(*types.Signature)
-		f.call(sig, e.Args)
+		if sig, ok := asSignature(f.expr(e.Fun)); ok {
+			f.call(sig, e.Args)
+		}
 
 	case *ast.IndexExpr:
 		// y, ok := x[i]
@@ -343,7 +354,10 @@ func (f *Finder) expr(e ast.Expr) types.Type {
 		if e.Name == "_" { // e.g. "for _ = range x"
 			return tInvalid
 		}
-		panic("undefined ident: " + e.Name)
+		if obj := types.Universe.Lookup(e.Name); obj != nil {
+			return obj.Type()
+		}
+		return tInvalid
 
 	case *ast.Ellipsis:
 		if e.Elt != nil {
@@ -352,8 +366,10 @@ func (f *Finder) expr(e ast.Expr) types.Type {
 
 	case *ast.FuncLit:
 		saved := f.sig
-		f.sig = tv.Type.(*types.Signature)
-		f.stmt(e.Body)
+		if sig, ok := tv.Type.(*types.Signature); ok {
+			f.sig = sig
+			f.stmt(e.Body)
+		}
 		f.sig = saved
 
 	case *ast.CompositeLit:
@@ -401,7 +417,10 @@ func (f *Finder) expr(e ast.Expr) types.Type {
 				f.expr(e.X)
 			}
 		} else {
-			return f.info.Uses[e.Sel].Type() // qualified identifier
+			if obj, ok := f.info.Uses[e.Sel]; ok {
+				return obj.Type()
+			}
+			return tInvalid
 		}
 
 	case *ast.IndexExpr:
@@ -440,6 +459,10 @@ func (f *Finder) expr(e ast.Expr) types.Type {
 			// conversion
 			arg0 := f.expr(e.Args[0])
 			f.assign(tvFun.Type, arg0)
+			if tv.Type != nil {
+				return tv.Type
+			}
+			return tvFun.Type
 		} else {
 			// function call
 
@@ -448,8 +471,9 @@ func (f *Finder) expr(e ast.Expr) types.Type {
 			// Without this special handling, f.expr(e.Fun) would fail below.
 			if s, ok := ast.Unparen(e.Fun).(*ast.SelectorExpr); ok {
 				if obj, ok := f.info.Uses[s.Sel].(*types.Builtin); ok && obj.Pkg().Path() == "unsafe" {
-					sig := f.info.Types[e.Fun].Type.(*types.Signature)
-					f.call(sig, e.Args)
+					if sig, ok := asSignature(f.info.Types[e.Fun].Type); ok {
+						f.call(sig, e.Args)
+					}
 					return tv.Type
 				}
 			}
@@ -457,15 +481,19 @@ func (f *Finder) expr(e ast.Expr) types.Type {
 			// builtin call
 			if id, ok := ast.Unparen(e.Fun).(*ast.Ident); ok {
 				if obj, ok := f.info.Uses[id].(*types.Builtin); ok {
-					sig := f.info.Types[id].Type.(*types.Signature)
-					f.builtin(obj, sig, e.Args)
+					if sig, ok := asSignature(f.info.Types[id].Type); ok {
+						f.builtin(obj, sig, e.Args)
+					}
 					return tv.Type
 				}
 			}
 
 			// ordinary call
-			f.call(typeparams.CoreType(f.expr(e.Fun)).(*types.Signature), e.Args)
+			if sig, ok := asSignature(f.expr(e.Fun)); ok {
+				f.call(sig, e.Args)
+			}
 		}
+		return tv.Type
 
 	case *ast.StarExpr:
 		f.expr(e.X)
@@ -494,7 +522,7 @@ func (f *Finder) expr(e ast.Expr) types.Type {
 	}
 
 	if tv.Type == nil {
-		panic(fmt.Sprintf("no type for %T", e))
+		return tInvalid
 	}
 
 	return tv.Type

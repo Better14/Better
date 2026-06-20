@@ -65,12 +65,12 @@ func (check *Checker) switchExpr(x *operand, e *syntax.SwitchExpr) {
 	}
 
 	if len(arms) == 0 {
-		check.errorf(e, InvalidSyntaxTree, "switch expression must have at least one case")
+		check.error(e, InvalidSyntaxTree, "switch expression must have at least one case")
 		x.invalidate()
 		return
 	}
 	if !hasDefault {
-		check.errorf(e, InvalidSyntaxTree, "switch expression requires default case")
+		check.error(e, InvalidSyntaxTree, "switch expression requires default case")
 		x.invalidate()
 		return
 	}

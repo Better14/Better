@@ -402,7 +402,7 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []syntax.Expr, returnStmt sy
 
 	// return r for func () T! when r has type T! (value type): return r.value, r.err
 	if returnStmt != nil && l == 2 && r == 1 && check.sig != nil && check.sig.ResultQuery() {
-		if rhs, ok := check.multiExpr(orig_rhs[0], true); ok && len(rhs) == 2 {
+		if rhs, _ := check.multiExpr(orig_rhs[0], true); len(rhs) == 2 {
 			if rhs[0].isValid() && Identical(rhs[0].typ(), lhs[0].typ) && Identical(rhs[1].typ(), lhs[1].typ) {
 				check.initVar(lhs[0], rhs[0], context)
 				check.initVar(lhs[1], rhs[1], context)
@@ -492,7 +492,8 @@ func (check *Checker) initVars(lhs []*Var, orig_rhs []syntax.Expr, returnStmt sy
 		return
 	}
 
-	rhs, commaOk := check.multiExpr(orig_rhs[0], l == 2 && returnStmt == nil)
+	allowCommaOk := l == 2 && (returnStmt == nil || (check.sig != nil && check.sig.ResultQuery()))
+	rhs, commaOk := check.multiExpr(orig_rhs[0], allowCommaOk)
 	r = len(rhs)
 	if l == r {
 		for i, lhs := range lhs {

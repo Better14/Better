@@ -17,7 +17,7 @@ func (check *Checker) ifExpr(x *operand, e *syntax.IfExpr) {
 		return
 	}
 	if !isBoolean(cond.typ()) {
-		check.errorf(e.Cond, InvalidCond, "non-boolean condition in if expression")
+		check.error(e.Cond, InvalidCond, "non-boolean condition in if expression")
 		x.invalidate()
 		return
 	}

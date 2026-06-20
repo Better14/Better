@@ -5,10 +5,12 @@
 package types
 
 import (
+	"cmp"
 	"fmt"
 	"go/ast"
 	"go/token"
 	. "internal/types/errors"
+	"slices"
 	"strings"
 )
 
@@ -200,6 +202,9 @@ func (check *Checker) checkMethodOverloadDuplicates() {
 		merged[mk] = append(merged[mk], cands...)
 	}
 	for key, cands := range merged {
+		slices.SortFunc(cands, func(a, b *Func) int {
+			return cmp.Compare(a.order(), b.order())
+		})
 		var seen []*Func
 		for _, fn := range cands {
 			if fn == nil || fn.typ == nil {

@@ -1226,7 +1226,7 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		goto Error
 
 	case *syntax.NullCondExpr:
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: standalone ?.; use ?.field or ?.[index]")
+		check.error(e, InvalidSyntaxTree, "invalid operation: standalone ?.; use ?.field or ?.[index]")
 		goto Error
 
 	case *syntax.TryExpr:

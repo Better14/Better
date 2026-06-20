@@ -171,12 +171,12 @@ func (check *Checker) buildEnum(named *Named, obj *TypeName, edecl *ast.EnumDecl
 				continue
 			}
 			if tv.mode() != constant_ {
-				check.errorf(sv.Tag, InvalidSyntaxTree, "enum variant tag must be an integer constant")
+				check.error(sv.Tag, InvalidSyntaxTree, "enum variant tag must be an integer constant")
 				continue
 			}
 			tag, _ = constant.Int64Val(tv.val)
 			if tag < 0 {
-				check.errorf(sv.Tag, InvalidSyntaxTree, "enum variant tag must be non-negative")
+				check.error(sv.Tag, InvalidSyntaxTree, "enum variant tag must be non-negative")
 				continue
 			}
 			nextTag = tag + 1
@@ -549,7 +549,7 @@ func (check *Checker) tryEnumVariantCall(x *operand, call *ast.CallExpr, hint Ty
 	sig := fn.typ.(*Signature)
 	args := call.Args
 	if hasDots(call) {
-		check.errorf(call, BadDotDotDotSyntax, "invalid use of ... in enum variant call")
+		check.error(call, BadDotDotDotSyntax, "invalid use of ... in enum variant call")
 		x.invalidate()
 		x.expr = call
 		return true
@@ -772,7 +772,7 @@ func (check *Checker) enumSwitchExpr(x *operand, e *ast.SwitchExpr, tag Type, en
 	}
 
 	if len(arms) == 0 {
-		check.errorf(e, InvalidSyntaxTree, "switch expression must have at least one case")
+		check.error(e, InvalidSyntaxTree, "switch expression must have at least one case")
 		x.invalidate()
 		return
 	}
@@ -835,7 +835,7 @@ func (check *Checker) enumCasePattern(tag Type, enumTyp *Enum, pattern ast.Expr,
 		for i, arg := range args {
 			n, ok := arg.(*ast.Ident)
 			if !ok || (n.Name != "_" && !isValidName(n.Name)) {
-				check.errorf(arg, InvalidSyntaxTree, "enum case pattern requires identifier bindings")
+				check.error(arg, InvalidSyntaxTree, "enum case pattern requires identifier bindings")
 				continue
 			}
 			if n.Name != "_" {

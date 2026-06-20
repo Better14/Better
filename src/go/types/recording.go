@@ -177,6 +177,18 @@ func (check *Checker) recordScope(node ast.Node, scope *Scope) {
 	}
 }
 
+func (check *Checker) recordIndexOperatorCall(idx ast.Expr, call *ast.CallExpr) {
+	if m := check.IndexOperatorCalls; m != nil {
+		m[idx] = call
+	}
+}
+
+func (check *Checker) recordIndexAssignCall(idx ast.Expr, call *ast.CallExpr) {
+	if m := check.IndexAssignCalls; m != nil {
+		m[idx] = call
+	}
+}
+
 func (check *Checker) recordCallOverloads(expr ast.Expr, funcs []*Func) {
 	if len(funcs) <= 1 {
 		return
@@ -200,17 +212,5 @@ func (check *Checker) recordOverloadSets() {
 				m[MethodOverloadKey{RecvName: key.recvName, Name: key.name}] = funcs
 			}
 		}
-	}
-}
-
-func (check *Checker) recordIndexOperatorCall(idx ast.Expr, call *ast.CallExpr) {
-	if m := check.IndexOperatorCalls; m != nil {
-		m[idx] = call
-	}
-}
-
-func (check *Checker) recordIndexAssignCall(idx ast.Expr, call *ast.CallExpr) {
-	if m := check.IndexAssignCalls; m != nil {
-		m[idx] = call
 	}
 }
