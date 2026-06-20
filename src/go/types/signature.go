@@ -244,7 +244,7 @@ func (check *Checker) collectRecv(rparam *ast.Field, scopePos token.Pos) (*Var, 
 	if rtparams != nil {
 		declareParams := false
 		for _, rp := range rtparams {
-			if rp.Name != "_" && check.lookup(rp.Name) == nil {
+			if check.lookup(rp.Name) == nil {
 				declareParams = true
 				break
 			}

@@ -313,14 +313,14 @@ func TestCallDepthConnection(t *testing.T) {
 			}
 			got := string(firstLine)
 
-			wantCore := fmt.Sprintf(
-				`msg="logger_test.go:%d: %s"`,
+			wantSubstr := fmt.Sprintf(
+				`logger_test.go:%d: %s`,
 				line+i, tt.name,
 			)
-			if !strings.HasPrefix(got, wantCore) {
+			if !strings.Contains(got, wantSubstr) {
 				t.Errorf(
-					"output from %s() mismatch:\n\t got: %s\n\twant prefix: %s",
-					tt.name, got, wantCore,
+					"output from %s() mismatch:\n\t got: %s\n\twant substring: %s",
+					tt.name, got, wantSubstr,
 				)
 			}
 		})

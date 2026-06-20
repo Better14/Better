@@ -790,8 +790,10 @@ func (check *Checker) genericExprListHinted(elist []ast.Expr, sig *Signature, pa
 			check.record(&x)
 			return []*operand{&x}, nil
 		}
-		if list, _ := check.multiExpr(e, false); len(list) > 1 {
-			return list, nil
+		if _, ok := ast.Unparen(e).(*ast.CallExpr); ok {
+			if list, _ := check.multiExpr(e, false); len(list) > 1 {
+				return list, nil
+			}
 		}
 		var hint Type
 		if params != nil && params.Len() > 0 {
