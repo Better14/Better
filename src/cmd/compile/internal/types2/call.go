@@ -85,7 +85,7 @@ func (check *Checker) funcInst(T *target, pos syntax.Pos, x *operand, inst *synt
 		var args []*operand
 		var params []*Var
 		var reverse bool
-		if T != nil && T.sig != nil && sig.tparams != nil {
+		if T != nil && sig.tparams != nil {
 			if !versionErr && !check.allowVersion(go1_21) {
 				if inst != nil {
 					check.versionErrorf(instErrPos, go1_21, "partially instantiated function in assignment")
@@ -726,17 +726,26 @@ func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature,
 			check.record(&x)
 			return []*operand{&x}, nil
 		}
-		// Expand multi-value expressions before singleValue checking (e.g. f() for g(..., ...)).
-		if _, ok := syntax.Unparen(e).(*syntax.CallExpr); ok {
-			if list, _ := check.multiExpr(e, false); len(list) > 1 {
-				return list, nil
-			}
-		}
 		var hint Type
 		if params != nil && params.Len() > 0 {
 			hint = params.At(0).typ
 			if r := hintRecv(0); r != nil {
 				hint = check.substHintFromRecv(hint, sig, r)
+			}
+		}
+		// Expand multi-value expressions before singleValue checking (e.g. f() for g(..., ...)).
+		if _, ok := syntax.Unparen(e).(*syntax.CallExpr); ok {
+			list, _ := check.multiExpr(e, false)
+			if len(list) > 1 {
+				return list, nil
+			}
+			if len(list) == 1 {
+				x = *list[0]
+				if asig, _ := x.typ().(*Signature); asig != nil && asig.TypeParams().Len() > 0 && x.isValid() {
+					check.rawExpr(nil, &x, e, hint, true)
+					check.exclude(&x, 1<<novalue|1<<builtin|1<<typexpr)
+				}
+				return []*operand{&x}, nil
 			}
 		}
 		check.genericExpr(&x, e, hint)
@@ -1192,13 +1201,24 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 			cands := check.overloadMeths[methodKey{recvName: recvBaseNameFromType(x.typ()), name: sel}]
 			if len(cands) == 0 {
 				for k, v := range check.overloadMeths {
-					if k.name == sel && len(v) > 1 {
+					if k.name == sel && len(v) > 0 {
 						cands = v
 						break
 					}
 				}
 			}
-			if len(cands) > 1 {
+			// Don't let an unrelated package-level function or method overload
+			// suppress ambiguous field selectors (see issues0.go:350).
+			if len(cands) > 0 {
+				if alt := check.pkg.scope.Lookup(sel); alt != nil {
+					if fn, ok := alt.(*Func); ok && fn.typ != nil {
+						if sig, _ := fn.typ.(*Signature); sig != nil && sig.recv == nil {
+							cands = nil
+						}
+					}
+				}
+			}
+			if len(cands) > 0 {
 				obj = cands[0]
 				if m := methodIndexInNamed(x.typ(), obj.(*Func)); m >= 0 {
 					index = []int{m}

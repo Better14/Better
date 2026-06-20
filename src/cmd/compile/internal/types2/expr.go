@@ -1013,22 +1013,20 @@ const (
 // variable of an assignment, or of a function result variable.
 type target struct {
 	sig  *Signature
-	typ  Type
 	desc string
 }
 
 // newTarget creates a new target for the given type and description.
-// If typ is a signature type, sig is set for reverse function inference.
+// The result is nil if typ is not a signature.
 func newTarget(typ Type, desc string) *target {
-	t := &target{typ: typ, desc: desc}
 	if typ != nil {
 		if u, _ := commonUnder(typ, nil); u != nil {
 			if sig, _ := u.(*Signature); sig != nil {
-				t.sig = sig
+				return &target{sig: sig, desc: desc}
 			}
 		}
 	}
-	return t
+	return nil
 }
 
 // rawExpr typechecks expression e and initializes x with the expression
@@ -1039,9 +1037,9 @@ func newTarget(typ Type, desc string) *target {
 // If allowGeneric is set, the operand type may be an uninstantiated
 // parameterized type or function value.
 func (check *Checker) rawExpr(T *target, x *operand, e syntax.Expr, hint Type, allowGeneric bool) exprKind {
-	if T != nil && T.typ != nil {
+	if hint != nil {
 		saved := check.callExpectedType
-		check.callExpectedType = T.typ
+		check.callExpectedType = hint
 		defer func() { check.callExpectedType = saved }()
 	}
 	if check.conf.Trace {

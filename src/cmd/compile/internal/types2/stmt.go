@@ -7,7 +7,6 @@
 package types2
 
 import (
-	"bytes"
 	"cmd/compile/internal/syntax"
 	"go/constant"
 	. "internal/types/errors"
@@ -304,21 +303,7 @@ func (check *Checker) isNil(e syntax.Expr) bool {
 // If there is exactly one type expression, T is the type of that expression. If there
 // are multiple type expressions, or if predeclared nil is among the types, the result
 // is the type of x. If x is invalid (nil), the result is the invalid type.
-// typeSwitchCaseKey returns a map key for duplicate detection in type switches.
-// Identical types must produce the same key even when they are distinct Type values.
-func (check *Checker) typeSwitchCaseKey(T Type) string {
-	if T == nil {
-		return "<nil>"
-	}
-	if check.ctxt != nil {
-		var buf bytes.Buffer
-		newTypeHasher(&buf, check.ctxt).typ(T)
-		return buf.String()
-	}
-	return TypeString(T, check.qualifier)
-}
-
-func (check *Checker) caseTypes(x *operand, types []syntax.Expr, seen map[string]syntax.Expr) Type {
+func (check *Checker) caseTypes(x *operand, types []syntax.Expr, seen map[Type]syntax.Expr) Type {
 	var T Type
 	var dummy operand
 L:
@@ -333,20 +318,23 @@ L:
 				continue L
 			}
 		}
-		key := check.typeSwitchCaseKey(T)
-		if other, ok := seen[key]; ok {
-			// talk about "case" rather than "type" because of nil case
-			Ts := "nil"
-			if T != nil {
-				Ts = TypeString(T, check.qualifier)
+		// look for duplicate types
+		// (quadratic algorithm, but type switches tend to be reasonably small)
+		for t, other := range seen {
+			if T == nil && t == nil || T != nil && t != nil && Identical(T, t) {
+				// talk about "case" rather than "type" because of nil case
+				Ts := "nil"
+				if T != nil {
+					Ts = TypeString(T, check.qualifier)
+				}
+				err := check.newError(DuplicateCase)
+				err.addf(e, "duplicate case %s in type switch", Ts)
+				err.addf(other, "previous case")
+				err.report()
+				continue L
 			}
-			err := check.newError(DuplicateCase)
-			err.addf(e, "duplicate case %s in type switch", Ts)
-			err.addf(other, "previous case")
-			err.report()
-			continue L
 		}
-		seen[key] = e
+		seen[T] = e
 		if x != nil && T != nil {
 			check.typeAssertion(e, x, T, true)
 		}
@@ -842,7 +830,7 @@ func (check *Checker) typeSwitchStmt(inner stmtContext, s *syntax.SwitchStmt, gu
 	check.multipleSwitchDefaults(s.Body)
 
 	var lhsVars []*Var                 // list of implicitly declared lhs variables
-	seen := make(map[string]syntax.Expr) // map of seen type keys to positions
+	seen := make(map[Type]syntax.Expr) // map of seen types to positions
 	for _, clause := range s.Body {
 		if clause == nil {
 			check.error(s, InvalidSyntaxTree, "incorrect type switch case")

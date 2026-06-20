@@ -790,16 +790,26 @@ func (check *Checker) genericExprListHinted(elist []ast.Expr, sig *Signature, pa
 			check.record(&x)
 			return []*operand{&x}, nil
 		}
-		if _, ok := ast.Unparen(e).(*ast.CallExpr); ok {
-			if list, _ := check.multiExpr(e, false); len(list) > 1 {
-				return list, nil
-			}
-		}
 		var hint Type
 		if params != nil && params.Len() > 0 {
 			hint = params.At(0).typ
 			if r := hintRecv(0); r != nil {
 				hint = check.substHintFromRecv(hint, sig, r)
+			}
+		}
+		// Expand multi-value expressions before singleValue checking (e.g. f() for g(..., ...)).
+		if _, ok := ast.Unparen(e).(*ast.CallExpr); ok {
+			list, _ := check.multiExpr(e, false)
+			if len(list) > 1 {
+				return list, nil
+			}
+			if len(list) == 1 {
+				x = *list[0]
+				if asig, _ := x.typ().(*Signature); asig != nil && asig.TypeParams().Len() > 0 && x.isValid() {
+					check.rawExpr(nil, &x, e, hint, true)
+					check.exclude(&x, 1<<novalue|1<<builtin|1<<typexpr)
+				}
+				return []*operand{&x}, nil
 			}
 		}
 		check.genericExpr(&x, e, hint)
