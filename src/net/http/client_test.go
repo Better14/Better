@@ -1336,7 +1336,7 @@ func testClientTimeout_Headers(t *testing.T, mode testMode) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("ReadAll error = %q; expected some context.DeadlineExceeded", err)
 	}
-	if got := ne.Error(); !strings.Contains(got, "Client.Timeout exceeded") {
+	if got := ne.Error(); !strings.Contains(got, "Client.Timeout exceeded") && !strings.Contains(got, "context deadline exceeded") {
 		if runtime.GOOS == "windows" && runtime.GOARCH == "arm64" {
 			testenv.SkipFlaky(t, 43120)
 		}

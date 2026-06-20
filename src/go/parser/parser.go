@@ -2543,11 +2543,14 @@ func (p *parser) parseEnumCasePattern() ast.Expr {
 	lbrace := p.pos
 	p.next() // '{'
 	if p.tok != token.IDENT {
+		if p.tok == token.RBRACE {
+			rbrace := p.expectClosing(token.RBRACE, "enum case pattern")
+			pat := &ast.EnumPatternExpr{Variant: name, Rbrace: rbrace}
+			return pat
+		}
 		p.exprLev++
 		var elts []ast.Expr
-		if p.tok != token.RBRACE {
-			elts = p.parseElementList()
-		}
+		elts = p.parseElementList()
 		p.exprLev--
 		rbrace := p.expectClosing(token.RBRACE, "composite literal")
 		expr := &ast.CompositeLit{Type: name, Lbrace: lbrace, Elts: elts, Rbrace: rbrace}

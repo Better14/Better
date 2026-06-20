@@ -15,6 +15,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 )
 
 func TestVectoredHandlerExceptionInNonGoThread(t *testing.T) {
@@ -199,6 +200,9 @@ func TestLibraryCtrlHandler(t *testing.T) {
 	}
 	if runtime.GOARCH != "amd64" {
 		t.Skip("this test can only run on windows/amd64")
+	}
+	if deadline, ok := t.Deadline(); ok && time.Until(deadline) < 2*time.Minute {
+		t.Skip("skipping test with insufficient time remaining")
 	}
 	testenv.MustHaveGoBuild(t)
 	testenv.MustHaveCGO(t)

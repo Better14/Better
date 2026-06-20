@@ -107,6 +107,13 @@ func linkCmd(t *testing.T, args ...string) *exec.Cmd {
 	return cmd
 }
 
+func setTestTmp(cmd *exec.Cmd, tmpdir string) {
+	if cmd.Env == nil {
+		cmd.Env = os.Environ()
+	}
+	cmd.Env = append(cmd.Env, "TMP="+tmpdir, "TMPDIR="+tmpdir)
+}
+
 var AuthorPaidByTheColumnInch struct {
 	fog int `text:"London. Michaelmas term lately over, and the Lord Chancellor sitting in Lincoln’s Inn Hall. Implacable November weather. As much mud in the streets as if the waters had but newly retired from the face of the earth, and it would not be wonderful to meet a Megalosaurus, forty feet long or so, waddling like an elephantine lizard up Holborn Hill. Smoke lowering down from chimney-pots, making a soft black drizzle, with flakes of soot in it as big as full-grown snowflakes—gone into mourning, one might imagine, for the death of the sun. Dogs, undistinguishable in mire. Horses, scarcely better; splashed to their very blinkers. Foot passengers, jostling one another’s umbrellas in a general infection of ill temper, and losing their foot-hold at street-corners, where tens of thousands of other foot passengers have been slipping and sliding since the day broke (if this day ever broke), adding new deposits to the crust upon crust of mud, sticking at those points tenaciously to the pavement, and accumulating at compound interest.  	Fog everywhere. Fog up the river, where it flows among green aits and meadows; fog down the river, where it rolls defiled among the tiers of shipping and the waterside pollutions of a great (and dirty) city. Fog on the Essex marshes, fog on the Kentish heights. Fog creeping into the cabooses of collier-brigs; fog lying out on the yards and hovering in the rigging of great ships; fog drooping on the gunwales of barges and small boats. Fog in the eyes and throats of ancient Greenwich pensioners, wheezing by the firesides of their wards; fog in the stem and bowl of the afternoon pipe of the wrathful skipper, down in his close cabin; fog cruelly pinching the toes and fingers of his shivering little ‘prentice boy on deck. Chance people on the bridges peeping over the parapets into a nether sky of fog, with fog all round them, as if they were up in a balloon and hanging in the misty clouds.  	Gas looming through the fog in divers places in the streets, much as the sun may, from the spongey fields, be seen to loom by husbandman and ploughboy. Most of the shops lighted two hours before their time—as the gas seems to know, for it has a haggard and unwilling look.  	The raw afternoon is rawest, and the dense fog is densest, and the muddy streets are muddiest near that leaden-headed old obstruction, appropriate ornament for the threshold of a leaden-headed old corporation, Temple Bar. And hard by Temple Bar, in Lincoln’s Inn Hall, at the very heart of the fog, sits the Lord High Chancellor in his High Court of Chancery."`
 
@@ -298,14 +305,22 @@ func TestIssue33979(t *testing.T) {
 	run := func(name string, args ...string) string {
 		cmd := testenv.Command(t, name, args...)
 		cmd.Dir = tmpdir
+		setTestTmp(cmd, tmpdir)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("'go %s' failed: %v, output: %s", strings.Join(args, " "), err, out)
+			t.Fatalf("'%s %s' failed: %v, output: %s", name, strings.Join(args, " "), err, out)
 		}
 		return string(out)
 	}
 	runGo := func(args ...string) string {
-		return run(testenv.GoToolPath(t), args...)
+		cmd := testenv.Command(t, testenv.GoToolPath(t), args...)
+		cmd.Dir = tmpdir
+		setTestTmp(cmd, tmpdir)
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("'go %s' failed: %v, output: %s", strings.Join(args, " "), err, out)
+		}
+		return string(out)
 	}
 
 	// Test object with undefined reference that was not generated

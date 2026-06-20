@@ -3098,6 +3098,14 @@ func (p *parser) enumCasePattern() Expr {
 	}
 	p.next() // '{'
 	if p.tok != _Name {
+		if p.tok == _Rbrace {
+			pat := new(EnumPattern)
+			pat.pos = name.Pos()
+			pat.Variant = name
+			pat.Rbrace = p.pos()
+			p.want(_Rbrace)
+			return pat
+		}
 		cl := p.compositeLitElems(name)
 		p.xnest++
 		x := p.binaryExpr(cl, 0)
