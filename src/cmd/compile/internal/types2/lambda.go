@@ -74,12 +74,20 @@ func (check *Checker) lambdaExpr(x *operand, e *syntax.LambdaExpr, hint Type) {
 
 	resultType := hintSig.results.At(0).typ
 	bodyChecked := false
-	if _, ok := resultType.(*TypeParam); ok {
+	if lambdaResultNeedsInference(resultType) {
 		var bodyVal operand
 		check.expr(nil, &bodyVal, e.Body)
 		if bodyVal.isValid() {
-			resultType = bodyVal.typ()
-			bodyChecked = true
+			if inferred, ok := lambdaInferResultFromBody(resultType, bodyVal.typ()); ok {
+				resultType = inferred
+				bodyChecked = true
+			}
+		}
+		if !bodyChecked {
+			check.closeScope()
+			x.invalidate()
+			x.expr = e
+			return
 		}
 	}
 
@@ -129,4 +137,78 @@ func (check *Checker) signatureFromHint(hint Type) *Signature {
 			return nil
 		}
 	}
+}
+
+func (check *Checker) lambdaSubstFromParams(params []*Var, tparams *TypeParamList) substMap {
+	if tparams == nil || tparams.Len() == 0 {
+		return nil
+	}
+	var smap substMap
+	for i, p := range params {
+		if i >= tparams.Len() {
+			break
+		}
+		if p == nil || p.typ == nil {
+			continue
+		}
+		smap[tparams.At(i)] = p.typ
+	}
+	if len(smap) == 0 {
+		return nil
+	}
+	return smap
+}
+
+// lambdaResultNeedsInference reports whether hint result type needs body
+// typing to infer a concrete result (e.g. U, []U, iter.Seq[U]).
+func lambdaResultNeedsInference(hintResult Type) bool {
+	if !isValid(hintResult) {
+		return false
+	}
+	hintResult = Unalias(hintResult)
+	if _, ok := hintResult.(*TypeParam); ok {
+		return true
+	}
+	if sl, ok := hintResult.Underlying().(*Slice); ok {
+		if _, ok := Unalias(sl.elem).(*TypeParam); ok {
+			return true
+		}
+	}
+	if elem := iterSeqElem(hintResult); elem != nil {
+		if _, ok := Unalias(elem).(*TypeParam); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// lambdaInferResultFromBody maps a generic lambda result hint to a concrete
+// type from the body expression, when possible.
+func lambdaInferResultFromBody(hintResult, bodyType Type) (Type, bool) {
+	if !isValid(hintResult) || !isValid(bodyType) {
+		return nil, false
+	}
+	hintResult = Unalias(hintResult)
+	bodyType = Unalias(bodyType)
+
+	if _, ok := hintResult.(*TypeParam); ok {
+		return bodyType, true
+	}
+	if sl, ok := hintResult.Underlying().(*Slice); ok {
+		if _, ok := Unalias(sl.elem).(*TypeParam); ok {
+			if _, ok := bodyType.Underlying().(*Slice); ok {
+				return bodyType, true
+			}
+			return nil, false
+		}
+	}
+	if elem := iterSeqElem(hintResult); elem != nil {
+		if _, ok := Unalias(elem).(*TypeParam); ok {
+			if iterSeqElem(bodyType) != nil {
+				return bodyType, true
+			}
+			return nil, false
+		}
+	}
+	return nil, false
 }

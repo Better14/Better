@@ -309,6 +309,12 @@ type Var struct {
 	defVal   constant.Value   // compile-time default; invalid if defExpr is nil
 }
 
+// DefaultVal returns the compile-time default value for a parameter, if any.
+func (v *Var) DefaultVal() constant.Value { return v.defVal }
+
+// SetDefaultVal sets the compile-time default value for a parameter.
+func (v *Var) SetDefaultVal(val constant.Value) { v.defVal = val }
+
 // A VarKind discriminates the various kinds of variables.
 type VarKind uint8
 

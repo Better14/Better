@@ -173,6 +173,15 @@ func (check *Checker) indexOperatorCall(pos syntax.Pos, name string, recvExpr sy
 	if value != nil {
 		args = append(args, value)
 	}
+	if pkgName := check.importNameFor(fn.pkg); pkgName != "" {
+		return &syntax.CallExpr{
+			Fun: &syntax.SelectorExpr{
+				X:     syntax.NewName(pos, pkgName),
+				Sel:   syntax.NewName(pos, name),
+			},
+			ArgList: args,
+		}
+	}
 	return &syntax.CallExpr{
 		Fun:     syntax.NewName(pos, name),
 		ArgList: args,
@@ -189,9 +198,37 @@ func (check *Checker) selectIndexOperator(cands []*Func, call *syntax.CallExpr, 
 	return check.selectOverloadSilent(call, cands, args)
 }
 
+func (check *Checker) importNameFor(pkg *Package) string {
+	if pkg == nil || pkg == check.pkg {
+		return ""
+	}
+	for _, imp := range check.imports {
+		if imp != nil && imp.imported == pkg {
+			return imp.name
+		}
+	}
+	return ""
+}
+
+func (check *Checker) operatorCallExpr(pos syntax.Pos, fn *Func, argExprs []syntax.Expr) *syntax.CallExpr {
+	if fn == nil {
+		return &syntax.CallExpr{Fun: syntax.NewName(pos, ""), ArgList: argExprs}
+	}
+	if pkgName := check.importNameFor(fn.pkg); pkgName != "" {
+		return &syntax.CallExpr{
+			Fun: &syntax.SelectorExpr{
+				X:     syntax.NewName(pos, pkgName),
+				Sel:   syntax.NewName(pos, fn.name),
+			},
+			ArgList: argExprs,
+		}
+	}
+	return &syntax.CallExpr{Fun: syntax.NewName(pos, fn.name), ArgList: argExprs}
+}
+
 func (check *Checker) callOperator(x *operand, pos syntax.Pos, fn *Func, call *syntax.CallExpr, argExprs []syntax.Expr, args []*operand, recordExpr syntax.Expr) *syntax.CallExpr {
 	if call == nil {
-		call = &syntax.CallExpr{Fun: syntax.NewName(pos, fn.name), ArgList: argExprs}
+		call = check.operatorCallExpr(pos, fn, argExprs)
 	}
 	check.expr(nil, x, call)
 	if !x.isValid() {

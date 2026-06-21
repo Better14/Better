@@ -303,9 +303,17 @@ func (check *Checker) hasCallOverloads() bool {
 		if imp == nil || imp.imported == nil {
 			continue
 		}
+		EnsurePackageOperatorIndexes(imp.imported)
 		for _, cands := range imp.imported.overloadFuncs {
 			if len(cands) > 1 {
 				return true
+			}
+		}
+		if imp.imported.operatorFuncIndex != nil {
+			for _, cands := range imp.imported.operatorFuncIndex {
+				if len(cands) > 1 {
+					return true
+				}
 			}
 		}
 	}

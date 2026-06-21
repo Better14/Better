@@ -956,6 +956,10 @@ func (check *Checker) enumStructCasePattern(variant *syntax.Name, fieldNames []*
 		covered[v.name] = true
 		return
 	}
+	if len(fieldNames) > len(v.fields) {
+		check.errorf(variant, WrongArgCount, "enum pattern for %s has too many fields (got %d, variant has %d)", variant.Value, len(fieldNames), len(v.fields))
+		return
+	}
 	allWildcard := true
 	for _, f := range fieldNames {
 		if f == nil || f.Value != "_" {
@@ -964,6 +968,10 @@ func (check *Checker) enumStructCasePattern(variant *syntax.Name, fieldNames []*
 		}
 	}
 	if allWildcard {
+		if len(fieldNames) != len(v.fields) {
+			check.errorf(variant, WrongArgCount, "enum pattern for %s must list every field as _ or use an empty pattern (got %d, want %d)", variant.Value, len(fieldNames), len(v.fields))
+			return
+		}
 		covered[v.name] = true
 		return
 	}

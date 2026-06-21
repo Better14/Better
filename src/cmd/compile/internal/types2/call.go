@@ -301,14 +301,30 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 			check.recordUse(fun, sel)
 		case *syntax.SelectorExpr:
 			check.recordUse(fun.Sel, sel)
-			var recv operand
-			check.rawExpr(nil, &recv, fun.X, nil, true)
-			if recv.isValid() {
-				ix := []int{0}
-				if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
-					ix = []int{i}
+			if id, ok := fun.X.(*syntax.Name); ok {
+				if obj := check.lookup(id.Value); obj != nil {
+					if _, isPkg := obj.(*PkgName); !isPkg {
+						var recv operand
+						check.rawExpr(nil, &recv, fun.X, nil, true)
+						if recv.isValid() {
+							ix := []int{0}
+							if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
+								ix = []int{i}
+							}
+							check.recordSelection(fun, MethodVal, recv.typ(), sel, ix, false)
+						}
+					}
 				}
-				check.recordSelection(fun, MethodVal, recv.typ(), sel, ix, false)
+			} else {
+				var recv operand
+				check.rawExpr(nil, &recv, fun.X, nil, true)
+				if recv.isValid() {
+					ix := []int{0}
+					if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
+						ix = []int{i}
+					}
+					check.recordSelection(fun, MethodVal, recv.typ(), sel, ix, false)
+				}
 			}
 		}
 		selectedOverload = true
@@ -692,11 +708,13 @@ func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature,
 		return nil
 	}
 
-	eval := func(i int, e syntax.Expr) (operand, []Type) {
+	eval := func(i int, e syntax.Expr, prior []*operand) (operand, []Type) {
 		var hint Type
 		if params != nil && i < params.Len() {
 			hint = params.At(i).typ
-			if r := hintRecv(i); r != nil {
+			if len(prior) > 0 {
+				hint = check.substHintFromPriorArgs(hint, sig, prior)
+			} else if r := hintRecv(i); r != nil {
 				hint = check.substHintFromRecv(hint, sig, r)
 			}
 		}
@@ -755,7 +773,7 @@ func (check *Checker) genericExprListHinted(elist []syntax.Expr, sig *Signature,
 	resList = make([]*operand, n)
 	targsList = make([][]Type, n)
 	for i, e := range elist {
-		x, targs := eval(i, e)
+		x, targs := eval(i, e, resList[:i])
 		resList[i] = &x
 		targsList[i] = targs
 	}
@@ -798,6 +816,58 @@ func (check *Checker) substHintFromRecv(hint Type, sig *Signature, recv *operand
 	pos := recv.Pos()
 	m := makeSubstMap([]*TypeParam{sig.TypeParams().At(0)}, []Type{elem})
 	return check.subst(pos, hint, m, nil, check.context())
+}
+
+func (check *Checker) seqElemType(typ Type) Type {
+	if elem := iterSeqElem(typ); elem != nil {
+		return elem
+	}
+	typ = Unalias(typ)
+	switch u := typ.Underlying().(type) {
+	case *Slice:
+		return u.elem
+	case *Array:
+		return u.elem
+	}
+	return nil
+}
+
+// substHintFromPriorArgs substitutes type parameters in hint using types
+// inferred from earlier call arguments (e.g. Join inner seq for U, key lambdas for K).
+func (check *Checker) substHintFromPriorArgs(hint Type, sig *Signature, prior []*operand) Type {
+	if hint == nil || sig == nil || sig.TypeParams().Len() == 0 || len(prior) == 0 {
+		return hint
+	}
+	tparams := sig.TypeParams()
+	smap := make(substMap)
+	pos := nopos
+
+	if tparams.Len() > 0 && prior[0] != nil && prior[0].isValid() {
+		if elem := check.seqElemType(prior[0].typ()); elem != nil {
+			smap[tparams.At(0)] = elem
+			pos = prior[0].Pos()
+		}
+	}
+	if tparams.Len() > 1 && len(prior) > 1 && prior[1] != nil && prior[1].isValid() {
+		if elem := check.seqElemType(prior[1].typ()); elem != nil {
+			smap[tparams.At(1)] = elem
+			if pos == nopos {
+				pos = prior[1].Pos()
+			}
+		}
+	}
+	if tparams.Len() > 2 && len(prior) > 2 && prior[2] != nil && prior[2].isValid() {
+		if fn, ok := prior[2].typ().(*Signature); ok && fn.Results().Len() == 1 {
+			smap[tparams.At(2)] = fn.Results().At(0).Type()
+			if pos == nopos {
+				pos = prior[2].Pos()
+			}
+		}
+	}
+	if len(smap) == 0 {
+		return hint
+	}
+	return check.subst(pos, hint, smap, nil, check.context())
 }
 
 // arguments type-checks arguments passed to a function call with the given signature.
@@ -1110,7 +1180,7 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 					}
 					goto Error
 				}
-				if !exp.Exported() {
+				if !exp.Exported() && !ExportNameVisible(sel) {
 					if !isLinqCompilerSliceFast(pkg.path, sel) {
 						check.errorf(e.Sel, UnexportedName, "name %s not exported by package %s", sel, pkg.name)
 						// ok to continue
