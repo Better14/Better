@@ -785,6 +785,19 @@ func (check *Checker) seqElemType(typ Type) Type {
 	return nil
 }
 
+// typeParamFromLambdaResult maps a lambda result type to an inferred type
+// parameter value (e.g. []string -> string for []U, string -> string for U).
+func typeParamFromLambdaResult(res Type) Type {
+	res = Unalias(res)
+	if sl, ok := res.Underlying().(*Slice); ok {
+		return sl.elem
+	}
+	if elem := iterSeqElem(res); elem != nil {
+		return elem
+	}
+	return res
+}
+
 // substHintFromPriorArgs substitutes type parameters in hint using types
 // inferred from earlier call arguments (e.g. linq.Select seq for T, key lambdas for K).
 func (check *Checker) substHintFromPriorArgs(hint Type, sig *Signature, prior []*operand) Type {
@@ -803,7 +816,7 @@ func (check *Checker) substHintFromPriorArgs(hint Type, sig *Signature, prior []
 	}
 	if tparams.Len() > 1 && len(prior) > 1 && prior[1] != nil && prior[1].isValid() {
 		if fn, ok := prior[1].typ().(*Signature); ok && fn.Results().Len() == 1 {
-			smap[tparams.At(1)] = fn.Results().At(0).Type()
+			smap[tparams.At(1)] = typeParamFromLambdaResult(fn.Results().At(0).Type())
 			if pos == nopos {
 				pos = prior[1].Pos()
 			}
@@ -816,7 +829,7 @@ func (check *Checker) substHintFromPriorArgs(hint Type, sig *Signature, prior []
 	}
 	if tparams.Len() > 2 && len(prior) > 2 && prior[2] != nil && prior[2].isValid() {
 		if fn, ok := prior[2].typ().(*Signature); ok && fn.Results().Len() == 1 {
-			smap[tparams.At(2)] = fn.Results().At(0).Type()
+			smap[tparams.At(2)] = typeParamFromLambdaResult(fn.Results().At(0).Type())
 			if pos == nopos {
 				pos = prior[2].Pos()
 			}
