@@ -469,58 +469,49 @@ func (check *Checker) selectOverloadEx(call *ast.CallExpr, cands []*Func, args [
 		}
 	}
 
+	wasProbe := check.inOverloadProbe
+	check.inOverloadProbe = true
+	defer func() { check.inOverloadProbe = wasProbe }()
+
 	var matches []*Func
 	var scores []int
 	for _, fn := range cands {
 		if fn == nil || fn.typ == nil {
 			continue
 		}
+		args, ok := check.overloadOperandsForFunc(call, fn)
+		if !ok {
+			continue
+		}
 		sig := fn.typ.(*Signature)
 		nargs := len(args)
 		npars := sig.params.Len()
-		if sig.variadic {
-			if hasDots(call) {
-				if nargs != npars {
-					continue
-				}
-			} else if nargs < npars-1 {
-				continue
-			}
-		} else {
-			min := sigMinParams(sig)
-			if nargs < min || nargs > npars {
-				continue
-			}
-		}
 
-		ok := true
+		matched := true
 		score := 0
 		fixed := npars
 		if sig.variadic && !hasDots(call) {
 			fixed = npars - 1
 		}
 		for i := 0; i < fixed; i++ {
-			arg, okArg := check.overloadArgOperand(args, nargs, i, sig.params.vars[i])
-			if !okArg {
-				ok = false
+			arg := *args[i]
+			paramType := sig.params.At(i).Type()
+			if !check.overloadArgAssignable(&arg, paramType, sig, args[:i]) {
+				matched = false
 				break
 			}
-			if okAssign, _ := arg.assignableTo(check, sig.params.vars[i].typ, nil); !okAssign {
-				ok = false
-				break
-			}
-			if Identical(arg.typ(), sig.params.vars[i].typ) {
+			if Identical(arg.typ(), paramType) {
 				score += 2
-			} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), sig.params.vars[i].typ) {
+			} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), paramType) {
 				score++
 			}
 		}
-		if ok && sig.variadic && !hasDots(call) {
-			elem := sig.params.vars[npars-1].typ.(*Slice).elem
+		if matched && sig.variadic && !hasDots(call) {
+			elem := sig.params.At(npars - 1).Type().(*Slice).elem
 			for i := npars - 1; i < nargs; i++ {
 				arg := *args[i]
-				if okAssign, _ := arg.assignableTo(check, elem, nil); !okAssign {
-					ok = false
+				if !check.overloadArgAssignable(&arg, elem, sig, args[:i]) {
+					matched = false
 					break
 				}
 				if Identical(arg.typ(), elem) {
@@ -530,7 +521,7 @@ func (check *Checker) selectOverloadEx(call *ast.CallExpr, cands []*Func, args [
 				}
 			}
 		}
-		if ok {
+		if matched {
 			matches = append(matches, fn)
 			scores = append(scores, score)
 		}
@@ -708,11 +699,13 @@ func (check *Checker) genericExprListHinted(elist []ast.Expr, sig *Signature, pa
 		return nil
 	}
 
-	eval := func(i int, e ast.Expr) (operand, []Type) {
+	eval := func(i int, e ast.Expr, prior []*operand) (operand, []Type) {
 		var hint Type
 		if params != nil && i < params.Len() {
 			hint = params.At(i).typ
-			if r := hintRecv(i); r != nil {
+			if len(prior) > 0 {
+				hint = check.substHintFromPriorArgs(hint, sig, prior)
+			} else if r := hintRecv(i); r != nil {
 				hint = check.substHintFromRecv(hint, sig, r)
 			}
 		}
@@ -771,11 +764,145 @@ func (check *Checker) genericExprListHinted(elist []ast.Expr, sig *Signature, pa
 	resList = make([]*operand, n)
 	targsList = make([][]Type, n)
 	for i, e := range elist {
-		x, targs := eval(i, e)
+		x, targs := eval(i, e, resList[:i])
 		resList[i] = &x
 		targsList[i] = targs
 	}
 	return resList, targsList
+}
+
+func (check *Checker) seqElemType(typ Type) Type {
+	if elem := iterSeqElem(typ); elem != nil {
+		return elem
+	}
+	typ = Unalias(typ)
+	switch u := typ.Underlying().(type) {
+	case *Slice:
+		return u.elem
+	case *Array:
+		return u.elem
+	}
+	return nil
+}
+
+// substHintFromPriorArgs substitutes type parameters in hint using types
+// inferred from earlier call arguments (e.g. linq.Select seq for T, key lambdas for K).
+func (check *Checker) substHintFromPriorArgs(hint Type, sig *Signature, prior []*operand) Type {
+	if hint == nil || sig == nil || sig.TypeParams().Len() == 0 || len(prior) == 0 {
+		return hint
+	}
+	tparams := sig.TypeParams()
+	smap := make(substMap)
+	pos := nopos
+
+	if tparams.Len() > 0 && prior[0] != nil && prior[0].isValid() {
+		if elem := check.seqElemType(prior[0].typ()); elem != nil {
+			smap[tparams.At(0)] = elem
+			pos = prior[0].Pos()
+		}
+	}
+	if tparams.Len() > 1 && len(prior) > 1 && prior[1] != nil && prior[1].isValid() {
+		if fn, ok := prior[1].typ().(*Signature); ok && fn.Results().Len() == 1 {
+			smap[tparams.At(1)] = fn.Results().At(0).Type()
+			if pos == nopos {
+				pos = prior[1].Pos()
+			}
+		} else if elem := check.seqElemType(prior[1].typ()); elem != nil {
+			smap[tparams.At(1)] = elem
+			if pos == nopos {
+				pos = prior[1].Pos()
+			}
+		}
+	}
+	if tparams.Len() > 2 && len(prior) > 2 && prior[2] != nil && prior[2].isValid() {
+		if fn, ok := prior[2].typ().(*Signature); ok && fn.Results().Len() == 1 {
+			smap[tparams.At(2)] = fn.Results().At(0).Type()
+			if pos == nopos {
+				pos = prior[2].Pos()
+			}
+		}
+	}
+	if len(smap) == 0 {
+		return hint
+	}
+	return check.subst(pos, hint, smap, nil, check.context())
+}
+
+// overloadArgAssignable reports whether arg matches paramType for overload
+// resolution, inferring type arguments from arg and prior operands when needed.
+func (check *Checker) overloadArgAssignable(arg *operand, paramType Type, sig *Signature, prior []*operand) bool {
+	if !arg.isValid() {
+		return true
+	}
+	all := append(append([]*operand(nil), prior...), arg)
+	pt := check.substHintFromPriorArgs(paramType, sig, all)
+	ok, _ := arg.assignableTo(check, pt, nil)
+	return ok
+}
+
+// overloadOperandsForFunc type-checks call arguments against fn using parameter
+// types as hints so => lambdas can infer their parameter and result types.
+func (check *Checker) overloadOperandsForFunc(call *ast.CallExpr, fn *Func) ([]*operand, bool) {
+	if fn == nil || fn.typ == nil {
+		return nil, false
+	}
+	sig, ok := fn.typ.(*Signature)
+	if !ok || sig.params == nil {
+		return nil, false
+	}
+	npars := sig.params.Len()
+	min := sigMinParams(sig)
+	nexpr := len(call.Args)
+	if sig.variadic {
+		if hasDots(call) {
+			if nexpr != npars {
+				return nil, false
+			}
+		} else if nexpr < npars-1 {
+			return nil, false
+		}
+	} else if nexpr < min || nexpr > npars {
+		return nil, false
+	}
+
+	var ops []*operand
+	for i := 0; i < npars; i++ {
+		v := sig.params.At(i)
+		paramType := v.Type()
+		if i > 0 {
+			paramType = check.substHintFromPriorArgs(paramType, sig, ops)
+		}
+		var op operand
+		if i < nexpr {
+			check.rawExpr(nil, &op, call.Args[i], paramType, true)
+		} else if v.defExpr != nil {
+			check.rawExpr(nil, &op, v.defExpr, paramType, false)
+		} else {
+			return nil, false
+		}
+		if !op.isValid() {
+			return nil, false
+		}
+		if !check.overloadArgAssignable(&op, paramType, sig, ops) {
+			return nil, false
+		}
+		ops = append(ops, &op)
+	}
+	if sig.variadic && !hasDots(call) {
+		elem := sig.params.At(npars - 1).Type().(*Slice).elem
+		for i := npars - 1; i < nexpr; i++ {
+			var op operand
+			check.rawExpr(nil, &op, call.Args[i], elem, true)
+			if !op.isValid() {
+				return nil, false
+			}
+			if !check.overloadArgAssignable(&op, elem, sig, ops) {
+				return nil, false
+			}
+			ops = append(ops, &op)
+		}
+	}
+	return ops, true
 }
 
 func (check *Checker) recvElemType(recv *operand) Type {
