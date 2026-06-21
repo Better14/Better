@@ -203,6 +203,18 @@ func (check *Checker) recordIndexAssignCall(idx syntax.Expr, call *syntax.CallEx
 	}
 }
 
+func (check *Checker) recordOperatorCall(expr syntax.Expr, call *syntax.CallExpr) {
+	if m := check.OperatorCalls; m != nil && expr != nil && call != nil {
+		m[expr] = call
+	}
+}
+
+func (check *Checker) recordOperatorAssignCall(stmt *syntax.AssignStmt, call *syntax.CallExpr) {
+	if m := check.OperatorAssignCalls; m != nil && stmt != nil && call != nil {
+		m[stmt] = call
+	}
+}
+
 func (check *Checker) recordCallOverloads(expr syntax.Expr, funcs []*Func) {
 	if len(funcs) <= 1 {
 		return

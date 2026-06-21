@@ -326,6 +326,12 @@ type Info struct {
 
 	// IndexAssignCalls maps index assignment left-hand sides a[i] to desugared []=(a, i, v) calls.
 	IndexAssignCalls map[syntax.Expr]*syntax.CallExpr
+
+	// OperatorCalls maps binary/unary operator expressions to desugared operator calls.
+	OperatorCalls map[syntax.Expr]*syntax.CallExpr
+
+	// OperatorAssignCalls maps +=, ++, and similar assignment statements to desugared rhs calls.
+	OperatorAssignCalls map[*syntax.AssignStmt]*syntax.CallExpr
 }
 
 // MethodOverloadKey identifies an overloaded method set.

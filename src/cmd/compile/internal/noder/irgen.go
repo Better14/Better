@@ -77,6 +77,8 @@ recheck:
 		FileVersions:       make(map[*syntax.PosBase]string),
 		IndexOperatorCalls: make(map[syntax.Expr]*syntax.CallExpr),
 		IndexAssignCalls:   make(map[syntax.Expr]*syntax.CallExpr),
+		OperatorCalls:      make(map[syntax.Expr]*syntax.CallExpr),
+		OperatorAssignCalls: make(map[*syntax.AssignStmt]*syntax.CallExpr),
 	}
 	conf.Error = func(err error) {
 		terr := err.(types2.Error)
