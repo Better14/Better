@@ -33,19 +33,23 @@ func (check *Checker) extensionArgsMatch(recv Type, args []ast.Expr, fn *Func) b
 		return false
 	}
 	smap := check.extensionSubstFromRecv(recv, sig)
+	recvOp := &operand{mode_: value, typ_: recv}
+	prior := []*operand{recvOp}
 	for i, arg := range args {
 		paramType := sig.Params().At(i + 1).Type()
 		if len(smap) > 0 {
 			paramType = check.subst(nopos, paramType, smap, nil, check.context())
 		}
+		paramType = check.substHintFromPriorArgs(paramType, sig, prior)
 		var x operand
 		check.rawExpr(nil, &x, arg, paramType, true)
 		if !x.isValid() {
 			return false
 		}
-		if ok, _ := x.assignableTo(check, paramType, nil); !ok {
+		if !check.overloadArgAssignable(&x, paramType, sig, prior) {
 			return false
 		}
+		prior = append(prior, &x)
 	}
 	return true
 }
@@ -190,16 +194,27 @@ func (check *Checker) selectExtensionMatch(call *ast.CallExpr, recv *operand, ma
 			if smap := check.extensionSubstFromRecv(recv.typ(), sig); len(smap) > 0 {
 				paramType = check.subst(call.Pos(), paramType, smap, nil, check.context())
 			}
+			var prior []*operand
+			recvArg := *recv
+			prior = append(prior, &recvArg)
+			for j := 0; j < i; j++ {
+				prior = append(prior, argOps[j+1])
+			}
+			paramType = check.substHintFromPriorArgs(paramType, sig, prior)
 			check.rawExpr(nil, &a, arg, paramType, true)
-			if a.isValid() {
-				if _, ok := ast.Unparen(arg).(*ast.LambdaExpr); ok {
+			if !a.isValid() {
+				continue
+			}
+			if _, ok := ast.Unparen(arg).(*ast.LambdaExpr); ok {
+				if check.overloadArgAssignable(&a, paramType, sig, prior) {
 					typed = true
 					break
 				}
-				if ok, _ := a.assignableTo(check, paramType, nil); ok {
-					typed = true
-					break
-				}
+				continue
+			}
+			if ok, _ := a.assignableTo(check, paramType, nil); ok {
+				typed = true
+				break
 			}
 		}
 		if !typed {
