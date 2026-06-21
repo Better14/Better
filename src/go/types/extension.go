@@ -6,6 +6,7 @@ package types
 
 import (
 	"go/ast"
+	"go/token"
 	"strings"
 	. "internal/types/errors"
 )
@@ -799,6 +800,9 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 		if n, ok := recvExpr.(*ast.CallExpr).Fun.(*ast.SelectorExpr).X.(*ast.Ident); ok {
 			check.recordUse(n, slicesPkg)
 		}
+		if check.UsedImportNames != nil && slicesPkg.name != "" && slicesPkg.name != "." && slicesPkg.name != "_" {
+			check.UsedImportNames[slicesPkg.name] = true
+		}
 	}
 
 	pkgIdent := m.pkgName
@@ -832,8 +836,57 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 
 	argList := make([]ast.Expr, 1+len(call.Args))
 	argList[0] = recvExpr
-	copy(argList[1:], call.Args)
+	sig := m.fn.Signature()
+	for i, arg := range call.Args {
+		paramIdx := i + 1
+		if sig != nil && sig.Params() != nil && sig.Params().Len() > paramIdx {
+			paramType := sig.Params().At(paramIdx).Type()
+			if smap := check.extensionSubstFromRecv(recv.typ(), sig); len(smap) > 0 {
+				paramType = check.subst(call.Pos(), paramType, smap, nil, check.context())
+			}
+			arg = check.adaptSliceArgToSeq(call.Pos(), arg, paramType)
+		}
+		argList[paramIdx] = arg
+	}
 	call.Args = argList
 
 	return check.callExpr(x, call, nil), true
+}
+
+// adaptSliceArgToSeq wraps a slice or array argument with slices.Values when
+// the parameter type is iter.Seq[T].
+func (check *Checker) adaptSliceArgToSeq(pos token.Pos, arg ast.Expr, paramType Type) ast.Expr {
+	if iterSeqElem(paramType) == nil {
+		return arg
+	}
+	var x operand
+	check.expr(nil, &x, arg)
+	if !x.isValid() {
+		return arg
+	}
+	typ := Unalias(x.typ())
+	switch typ.Underlying().(type) {
+	case *Slice, *Array:
+		// ok
+	default:
+		return arg
+	}
+	if !check.verifyVersionf(arg, go1_27, "slices.Values") {
+		return arg
+	}
+	slicesPkg := check.ensureImported(pos, "slices")
+	if slicesPkg == nil {
+		return arg
+	}
+	wrapped := &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   astNewIdent(pos, slicesPkg.name),
+			Sel: astNewIdent(pos, "Values"),
+		},
+		Args: []ast.Expr{arg},
+	}
+	if n, ok := wrapped.Fun.(*ast.SelectorExpr).X.(*ast.Ident); ok {
+		check.recordUse(n, slicesPkg)
+	}
+	return wrapped
 }
