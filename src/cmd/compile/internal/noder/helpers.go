@@ -6,6 +6,7 @@ package noder
 
 import (
 	"go/constant"
+	"go/token"
 
 	"cmd/compile/internal/ir"
 	"cmd/compile/internal/syntax"
@@ -111,6 +112,37 @@ func idealType(tv syntax.TypeAndValue) types2.Type {
 func isTypeParam(t types2.Type) bool {
 	_, ok := types2.Unalias(t).(*types2.TypeParam)
 	return ok
+}
+
+var litKind2tok = [...]token.Token{
+	syntax.IntLit:    token.INT,
+	syntax.FloatLit:  token.FLOAT,
+	syntax.ImagLit:   token.IMAG,
+	syntax.RuneLit:   token.CHAR,
+	syntax.StringLit: token.STRING,
+}
+
+func basicLitConstant(lit *syntax.BasicLit) constant.Value {
+	return constant.MakeFromLiteral(lit.Value, litKind2tok[lit.Kind], 0)
+}
+
+// nullableBasicElemType reports whether typ is a nullable basic (T? -> *T)
+// or result basic wrapper, and returns the element/basic type for literals.
+func nullableBasicElemType(typ types2.Type) (types2.Type, bool) {
+	if p, ok := types2.CoreType(typ).(*types2.Pointer); ok {
+		if b, ok := p.Elem().Underlying().(*types2.Basic); ok {
+			return b, true
+		}
+	}
+	if o, ok := types2.AsOptional(typ); ok {
+		if b, ok := o.Elem().Underlying().(*types2.Basic); ok {
+			return b, true
+		}
+	}
+	if r, ok := types2.AsResult(typ); ok {
+		return r.Elem(), true
+	}
+	return nil, false
 }
 
 // isNotInHeap reports whether typ is or contains an element of type

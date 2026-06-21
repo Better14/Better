@@ -326,6 +326,14 @@ func (p *parser) expect(tok token.Token) token.Pos {
 	return pos
 }
 
+// skipImplicitSemi consumes an automatically inserted semicolon before a
+// closing brace in if/switch expression bodies.
+func (p *parser) skipImplicitSemi() {
+	if p.tok == token.SEMICOLON && p.lit == "\n" {
+		p.next()
+	}
+}
+
 // expect2 is like expect, but it returns an invalid position
 // if the expected token is not found.
 func (p *parser) expect2(tok token.Token) (pos token.Pos) {
@@ -1451,6 +1459,16 @@ func (p *parser) parseMapType() *ast.MapType {
 		p.errorExpected(pos, "type")
 		value = &ast.BadExpr{From: pos, To: pos}
 	}
+	for value != nil && p.tok == token.NOT {
+		b := p.pos
+		p.next()
+		value = &ast.ResultTypeExpr{X: value, Bang: b}
+	}
+	for value != nil && p.tok == token.QUESTION {
+		q := p.pos
+		p.next()
+		value = &ast.NullableTypeExpr{X: value, QPos: q}
+	}
 
 	return &ast.MapType{Map: pos, Key: key, Value: value}
 }
@@ -2156,6 +2174,7 @@ func (p *parser) parseIfExpr() ast.Expr {
 	p.exprLev = outer
 	lbrace := p.expect(token.LBRACE)
 	then := p.parseExpr()
+	p.skipImplicitSemi()
 	rbrace := p.expect(token.RBRACE)
 	if p.tok != token.ELSE {
 		p.errorExpected(p.pos, "'else'")
@@ -2165,6 +2184,7 @@ func (p *parser) parseIfExpr() ast.Expr {
 	p.next()
 	lbrace2 := p.expect(token.LBRACE)
 	els := p.parseExpr()
+	p.skipImplicitSemi()
 	rbrace2 := p.expect(token.RBRACE)
 	return &ast.IfExpr{
 		If: ifPos, Cond: cond,

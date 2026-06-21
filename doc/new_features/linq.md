@@ -43,8 +43,11 @@ allPositive := nums.Select(n => n - 1).All(n => n >= 0)
 names := []string{"alice", "", "bob", "carol"}
 line := names.Where(s => len(s) > 0).Select(s => strings.ToUpper(s)).Aggregate((a, b) => a + ", " + b)
 
-// grouping (lazy until enumerated)
-byMod := nums.GroupBy(n => n % 3).Select(g => (g.Key, g.Count())).ToList()
+// grouping (lazy until enumerated) — struct literal, not a C# tuple
+byMod := nums.GroupBy(n => n % 3).Select(g => struct {
+	Key   int
+	Count int
+}{g.Key, g.Count()}).ToList()
 
 // distinct after transform
 unique := nums.Select(n => n / 2).Distinct().OrderBy(n => n).ToList()

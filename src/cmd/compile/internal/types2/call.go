@@ -1093,6 +1093,11 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 			} else {
 				exp = pkg.scope.Lookup(sel)
 				if exp == nil {
+					if cands := operatorFuncsInPackage(pkg, sel); len(cands) > 0 {
+						exp = cands[0]
+					}
+				}
+				if exp == nil {
 					if !pkg.fake && isValidName(sel) {
 						// Try to give a better error message when selector matches an object name ignoring case.
 						exps := pkg.scope.lookupIgnoringCase(sel, true)

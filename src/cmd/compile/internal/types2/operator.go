@@ -35,10 +35,44 @@ func (check *Checker) validateOperatorPairs() {
 }
 
 func (check *Checker) operatorFuncs(name string) []*Func {
-	if check.overloadFuncs == nil {
-		return nil
+	return operatorFuncsInPackage(check.pkg, name)
+}
+
+func (check *Checker) operatorOverloads(name string) []*Func {
+	var funcs []*Func
+	if c := check.operatorFuncs(name); len(c) > 0 {
+		funcs = append(funcs, c...)
 	}
-	return check.overloadFuncs[name]
+	for _, imp := range check.imports {
+		if imp == nil || imp.imported == nil {
+			continue
+		}
+		if c := operatorFuncsInPackage(imp.imported, name); len(c) > 0 {
+			funcs = append(funcs, c...)
+		}
+	}
+	return funcs
+}
+
+func (check *Checker) operatorPackagesForOperands(args ...*operand) []*Package {
+	seen := make(map[*Package]bool)
+	var pkgs []*Package
+	add := func(p *Package) {
+		if p != nil && !seen[p] {
+			seen[p] = true
+			pkgs = append(pkgs, p)
+		}
+	}
+	add(check.pkg)
+	for _, a := range args {
+		add(check.pkgForRecv(a.typ()))
+	}
+	for _, imp := range check.imports {
+		if imp != nil {
+			add(imp.imported)
+		}
+	}
+	return pkgs
 }
 
 func (check *Checker) pkgForRecv(typ Type) *Package {
@@ -89,7 +123,7 @@ func (check *Checker) selectOperatorFunc(name string, nargs int, args []*operand
 	if fn := check.lookupOverloadByArgTypes(name, args); fn != nil {
 		return fn
 	}
-	cands := check.operatorFuncs(name)
+	cands := check.operatorOverloads(name)
 	if len(cands) == 0 {
 		return nil
 	}
@@ -185,7 +219,7 @@ func (check *Checker) applyBinaryOperatorOverload(x, y *operand, e syntax.Expr, 
 		return false
 	}
 	name := op.String()
-	if len(check.operatorFuncs(name)) == 0 {
+	if len(check.operatorOverloads(name)) == 0 {
 		return false
 	}
 	if !x.isValid() || !y.isValid() {
@@ -217,7 +251,7 @@ func (check *Checker) tryUnaryOperatorOverload(x *operand, e *syntax.Operation) 
 		return false
 	}
 	name := op.String()
-	if len(check.operatorFuncs(name)) == 0 {
+	if len(check.operatorOverloads(name)) == 0 {
 		return false
 	}
 	fn := check.lookupUnaryOperatorExact(name, x)

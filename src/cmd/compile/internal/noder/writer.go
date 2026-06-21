@@ -2051,6 +2051,9 @@ func (w *writer) expr(expr syntax.Expr) {
 	default:
 		w.p.unexpected("expression", expr)
 
+	case *syntax.BasicLit:
+		w.emitBasicLit(expr, nil)
+
 	case *syntax.CompositeLit:
 		w.Code(exprCompLit)
 		w.compLit(expr)
@@ -2726,7 +2729,62 @@ func (w *writer) implicitConvExpr(dst types2.Type, expr syntax.Expr) {
 	w.convertExpr(dst, expr, true)
 }
 
+func (w *writer) emitBasicLit(lit *syntax.BasicLit, dst types2.Type) {
+	tv := w.p.typeAndValue(lit)
+	if tv.Value != nil {
+		w.Code(exprConst)
+		w.pos(lit)
+		typ := idealType(tv)
+		assert(typ != nil)
+		w.typ(typ)
+		w.Value(tv.Value)
+		if dst != nil && !types2.Identical(typ, dst) {
+			w.p.fatalf(lit, "unexpected typed constant %v for destination %v", typ, dst)
+		}
+		return
+	}
+
+	elem, ok := nullableBasicElemType(tv.Type)
+	if !ok {
+		w.p.fatalf(lit, "non-constant basic literal %v", syntax.String(lit))
+	}
+	val := basicLitConstant(lit)
+	if dst == nil {
+		dst = tv.Type
+	}
+	constTyp := idealType(syntax.TypeAndValue{Type: elem, Value: val})
+	assert(constTyp != nil)
+	if types2.Identical(constTyp, dst) {
+		w.Code(exprConst)
+		w.pos(lit)
+		w.typ(constTyp)
+		w.Value(val)
+		return
+	}
+
+	w.Code(exprConvert)
+	w.Bool(true)
+	w.typ(dst)
+	w.pos(lit)
+	w.convRTTI(constTyp, dst)
+	w.Bool(isTypeParam(dst))
+	w.Bool(false)
+	w.Code(exprConst)
+	w.pos(lit)
+	w.typ(constTyp)
+	w.Value(val)
+}
+
 func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
+	if lit, ok := expr.(*syntax.BasicLit); ok {
+		if tv, ok := w.p.maybeTypeAndValue(lit); ok && tv.Value == nil {
+			if _, ok := nullableBasicElemType(tv.Type); ok {
+				w.emitBasicLit(lit, dst)
+				return
+			}
+		}
+	}
+
 	src := w.p.typeOf(expr)
 
 	// Omit implicit no-op conversions.

@@ -299,6 +299,16 @@ func (check *Checker) hasCallOverloads() bool {
 			return true
 		}
 	}
+	for _, imp := range check.imports {
+		if imp == nil || imp.imported == nil {
+			continue
+		}
+		for _, cands := range imp.imported.overloadFuncs {
+			if len(cands) > 1 {
+				return true
+			}
+		}
+	}
 	return false
 }
 
@@ -354,8 +364,8 @@ func (check *Checker) overloadCandidatesForCall(call *syntax.CallExpr) []*Func {
 	case *syntax.SelectorExpr:
 		if id, ok := fun.X.(*syntax.Name); ok {
 			if obj := check.lookup(id.Value); obj != nil {
-				if _, isPkg := obj.(*PkgName); isPkg {
-					return nil
+				if pkgName, isPkg := obj.(*PkgName); isPkg {
+					return operatorFuncsInPackage(pkgName.Imported(), fun.Sel.Value)
 				}
 			}
 		}

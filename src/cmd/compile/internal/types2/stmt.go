@@ -45,12 +45,23 @@ func (check *Checker) funcBody(decl *declInfo, name string, sig *Signature, body
 	}
 
 	if sig.results.Len() > 0 && !check.isTerminating(body, "") {
-		check.error(body.Rbrace, MissingReturn, "missing return")
+		if !check.allowImplicitNilReturn(sig) {
+			check.error(body.Rbrace, MissingReturn, "missing return")
+		}
 	}
 
 	// spec: "Implementation restriction: A compiler may make it illegal to
 	// declare a variable inside a function body if the variable is never used."
 	check.usage(sig.scope)
+}
+
+// allowImplicitNilReturn reports whether a function body may end without an
+// explicit return when the only result is error (implicit nil).
+func (check *Checker) allowImplicitNilReturn(sig *Signature) bool {
+	if sig.results.Len() != 1 {
+		return false
+	}
+	return Identical(sig.results.vars[0].typ, universeError)
 }
 
 func (check *Checker) usage(scope *Scope) {

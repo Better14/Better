@@ -40,6 +40,11 @@ func SelectMany[T, U any](seq iter.Seq[T], fn func(T) iter.Seq[U]) iter.Seq[U] {
 	return selectManySeq(seq, fn)
 }
 
+// SelectMany flattens each element to a slice.
+func SelectMany[T, U any](seq iter.Seq[T], fn func(T) []U) iter.Seq[U] {
+	return selectManySliceSeq(seq, fn)
+}
+
 // OrderBy sorts by key when the sequence is enumerated.
 func OrderBy[T any, K cmp.Ordered](seq iter.Seq[T], key func(T) K) Ordered[T] {
 	return orderBySeq(seq, key)

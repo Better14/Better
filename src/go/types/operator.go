@@ -36,10 +36,7 @@ func (check *Checker) validateOperatorPairs() {
 }
 
 func (check *Checker) operatorFuncs(name string) []*Func {
-	if check.overloadFuncs == nil {
-		return nil
-	}
-	return check.overloadFuncs[name]
+	return operatorFuncsInPackage(check.pkg, name)
 }
 
 func (check *Checker) pkgForRecv(typ Type) *Package {

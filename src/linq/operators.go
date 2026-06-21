@@ -88,6 +88,20 @@ func selectManySliceSeq[T, U any](seq iter.Seq[T], fn func(T) []U) iter.Seq[U] {
 	})
 }
 
+func selectManyIndexedSliceSeq[T, U any](seq iter.Seq[T], fn func(T, int) []U) iter.Seq[U] {
+	return func(yield func(U) bool) {
+		i := 0
+		for t := range seq {
+			for u := range slices.Values(fn(t, i)) {
+				if !yield(u) {
+					return
+				}
+			}
+			i++
+		}
+	}
+}
+
 func reverseSeq[T any](seq iter.Seq[T]) iter.Seq[T] {
 	items := slices.Collect(seq)
 	slices.Reverse(items)

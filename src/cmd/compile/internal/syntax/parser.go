@@ -1752,7 +1752,7 @@ func (p *parser) baseTypeOrNil() Expr {
 			p.syntaxError("missing map key type")
 		}
 		p.want(_Rbrack)
-		t.Value = p.baseTypeOrNil()
+		t.Value = p.typeOrNil()
 		if t.Value == nil {
 			t.Value = p.badExpr()
 			p.syntaxError("missing map value type")
@@ -2898,9 +2898,9 @@ func (p *parser) ifExpr() Expr {
 	outer := p.xnest
 	p.xnest = -1
 	ie.Cond = p.expr()
-	p.xnest = outer
 	p.want(_Lbrace)
 	ie.Then = p.expr()
+	p.skipImplicitSemi()
 	p.want(_Rbrace)
 	if !p.got(_Else) {
 		p.syntaxError("if expression requires else clause")
@@ -2909,8 +2909,18 @@ func (p *parser) ifExpr() Expr {
 	}
 	p.want(_Lbrace)
 	ie.Else = p.expr()
+	p.skipImplicitSemi()
 	p.want(_Rbrace)
+	p.xnest = outer
 	return ie
+}
+
+// skipImplicitSemi consumes an automatically inserted semicolon before a
+// closing brace in if/switch expression bodies.
+func (p *parser) skipImplicitSemi() {
+	if p.tok == _Semi && p.lit != "semicolon" {
+		p.next()
+	}
 }
 
 func (p *parser) switchExpr() Expr {
