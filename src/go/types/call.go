@@ -289,11 +289,7 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr, hint Type) exprKi
 
 	// Overloaded call resolution picks a unique candidate by argument count and assignability.
 	if len(overloadCands) > 1 {
-		if sig.params != nil {
-			preloadArgs, preloadAtargs = check.genericExprListHinted(call.Args, sig, sig.params, nil)
-		} else {
-			preloadArgs, preloadAtargs = check.genericExprList(call.Args)
-		}
+		preloadArgs, preloadAtargs = check.genericExprList(call.Args)
 		sel := check.selectOverload(call, overloadCands, preloadArgs)
 		if sel == nil {
 			x.invalidate()
@@ -437,10 +433,24 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr, hint Type) exprKi
 }
 
 func (check *Checker) selectOverloadSilent(call *ast.CallExpr, cands []*Func, args []*operand) *Func {
+	return check.selectOverloadEx(call, cands, args, false)
+}
+
+func (check *Checker) selectOverload(call *ast.CallExpr, cands []*Func, args []*operand) *Func {
+	return check.selectOverloadEx(call, cands, args, true)
+}
+
+func (check *Checker) selectOverloadEx(call *ast.CallExpr, cands []*Func, args []*operand, reportErrors bool) *Func {
 	if len(cands) > 0 && cands[0] != nil {
 		if fn := check.lookupOverloadByArgTypes(cands[0].name, args); fn != nil && containsFunc(cands, fn) {
 			return fn
 		}
+		cacheKey := overloadResolveKey{cand: cands[0], ncand: len(cands), args: operandTypesSuffix(args)}
+		if check.overloadResolveCache != nil {
+			if fn, ok := check.overloadResolveCache[cacheKey]; ok {
+				return fn
+			}
+		}
 	}
 
 	var matches []*Func
@@ -511,9 +521,19 @@ func (check *Checker) selectOverloadSilent(call *ast.CallExpr, cands []*Func, ar
 	}
 
 	if len(matches) == 1 {
-		return matches[0]
+		fn := matches[0]
+		if len(cands) > 0 && cands[0] != nil {
+			if check.overloadResolveCache == nil {
+				check.overloadResolveCache = make(map[overloadResolveKey]*Func)
+			}
+			check.overloadResolveCache[overloadResolveKey{cand: cands[0], ncand: len(cands), args: operandTypesSuffix(args)}] = fn
+		}
+		return fn
 	}
 	if len(matches) == 0 {
+		if reportErrors {
+			check.errorf(call, InvalidCall, "no matching overload for call to %s (%s)", call.Fun, check.overloadList(cands))
+		}
 		return nil
 	}
 	best := -1
@@ -529,102 +549,18 @@ func (check *Checker) selectOverloadSilent(call *ast.CallExpr, cands []*Func, ar
 		}
 	}
 	if bestI >= 0 && !tie {
-		return matches[bestI]
-	}
-	return nil
-}
-
-func (check *Checker) selectOverload(call *ast.CallExpr, cands []*Func, args []*operand) *Func {
-	var matches []*Func
-	var scores []int
-	for _, fn := range cands {
-		if fn == nil || fn.typ == nil {
-			continue
-		}
-		sig := fn.typ.(*Signature)
-		nargs := len(args)
-		npars := sig.params.Len()
-		if sig.variadic {
-			if hasDots(call) {
-				if nargs != npars {
-					continue
-				}
-			} else if nargs < npars-1 {
-				continue
+		fn := matches[bestI]
+		if len(cands) > 0 && cands[0] != nil {
+			if check.overloadResolveCache == nil {
+				check.overloadResolveCache = make(map[overloadResolveKey]*Func)
 			}
-		} else {
-			min := sigMinParams(sig)
-			if nargs < min || nargs > npars {
-				continue
-			}
+			check.overloadResolveCache[overloadResolveKey{cand: cands[0], ncand: len(cands), args: operandTypesSuffix(args)}] = fn
 		}
-
-		ok := true
-		score := 0
-		fixed := npars
-		if sig.variadic && !hasDots(call) {
-			fixed = npars - 1
-		}
-		for i := 0; i < fixed; i++ {
-			arg, okArg := check.overloadArgOperand(args, nargs, i, sig.params.vars[i])
-			if !okArg {
-				ok = false
-				break
-			}
-			if okAssign, _ := arg.assignableTo(check, sig.params.vars[i].typ, nil); !okAssign {
-				ok = false
-				break
-			}
-			if Identical(arg.typ(), sig.params.vars[i].typ) {
-				score += 2
-			} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), sig.params.vars[i].typ) {
-				score++
-			}
-		}
-		if ok && sig.variadic && !hasDots(call) {
-			elem := sig.params.vars[npars-1].typ.(*Slice).elem
-			for i := npars - 1; i < nargs; i++ {
-				arg := *args[i]
-				if okAssign, _ := arg.assignableTo(check, elem, nil); !okAssign {
-					ok = false
-					break
-				}
-				if Identical(arg.typ(), elem) {
-					score += 2
-				} else if isUntyped(arg.typ()) && Identical(Default(arg.typ()), elem) {
-					score++
-				}
-			}
-		}
-		if ok {
-			matches = append(matches, fn)
-			scores = append(scores, score)
-		}
+		return fn
 	}
-
-	if len(matches) == 1 {
-		return matches[0]
+	if reportErrors {
+		check.errorf(call, InvalidCall, "ambiguous overloaded call to %s (%s)", call.Fun, check.overloadList(matches))
 	}
-	if len(matches) == 0 {
-		check.errorf(call, InvalidCall, "no matching overload for call to %s (%s)", call.Fun, check.overloadList(cands))
-		return nil
-	}
-	best := -1
-	bestI := -1
-	tie := false
-	for i, sc := range scores {
-		if sc > best {
-			best = sc
-			bestI = i
-			tie = false
-		} else if sc == best {
-			tie = true
-		}
-	}
-	if bestI >= 0 && !tie {
-		return matches[bestI]
-	}
-	check.errorf(call, InvalidCall, "ambiguous overloaded call to %s (%s)", call.Fun, check.overloadList(matches))
 	return nil
 }
 

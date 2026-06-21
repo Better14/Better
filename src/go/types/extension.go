@@ -6,6 +6,7 @@ package types
 
 import (
 	"go/ast"
+	"strings"
 	. "internal/types/errors"
 )
 
@@ -49,7 +50,51 @@ func (check *Checker) extensionArgsMatch(recv Type, args []ast.Expr, fn *Func) b
 	return true
 }
 
+func extensionMatchSigKey(fn *Func) string {
+	if fn == nil || fn.typ == nil {
+		return ""
+	}
+	sig, ok := fn.typ.(*Signature)
+	if !ok {
+		return ""
+	}
+	base := fn.name
+	if i := strings.Index(base, "·"); i >= 0 {
+		base = base[:i]
+	}
+	return overloadSigKey(base, sig)
+}
+
+func dedupeExtensionMatches(matches []extensionMatch) []extensionMatch {
+	if len(matches) <= 1 {
+		return matches
+	}
+	var out []extensionMatch
+	seen := make(map[string]bool)
+	for _, m := range matches {
+		key := extensionMatchSigKey(m.fn)
+		if key != "" && seen[key] {
+			continue
+		}
+		if key != "" {
+			seen[key] = true
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func preferExtensionMatch(candidates []extensionMatch) extensionMatch {
+	for _, m := range candidates {
+		if m.fn != nil && m.fn.IsExtension() {
+			return m
+		}
+	}
+	return candidates[0]
+}
+
 func (check *Checker) selectExtensionMatch(call *ast.CallExpr, recv *operand, matches []extensionMatch) (extensionMatch, bool) {
+	matches = dedupeExtensionMatches(matches)
 	if len(matches) > 1 {
 		narrowed := check.narrowExtensionMatchesByCallbackArity(recv.typ(), call.Args, matches)
 		if len(narrowed) == 1 {
@@ -77,32 +122,61 @@ func (check *Checker) selectExtensionMatch(call *ast.CallExpr, recv *operand, ma
 			return narrowed[0], true
 		}
 		if len(narrowed) > 0 {
-			fits = narrowed
-			matches = narrowed
+			fits = dedupeExtensionMatches(narrowed)
 		}
 	}
-	funcs := make([]*Func, len(matches))
-	for i, m := range matches {
+	if len(fits) == 0 {
+		return extensionMatch{}, false
+	}
+	if len(fits) == 1 {
+		return fits[0], true
+	}
+	candidates := fits
+	funcs := make([]*Func, len(candidates))
+	for i, m := range candidates {
 		funcs[i] = m.fn
 	}
 	var argOps []*operand
 	recvArg := *recv
 	argOps = append(argOps, &recvArg)
-	for _, arg := range call.Args {
+	for i, arg := range call.Args {
 		var a operand
-		check.expr(nil, &a, arg)
-		if !a.isValid() {
-			// Lambdas and other context-sensitive args are resolved by extensionArgsMatch above.
+		typed := false
+		for _, m := range candidates {
+			sig := m.fn.Signature()
+			if sig == nil || sig.Params() == nil || sig.Params().Len() <= i+1 {
+				continue
+			}
+			paramType := sig.Params().At(i + 1).Type()
+			if smap := check.extensionSubstFromRecv(recv.typ(), sig); len(smap) > 0 {
+				paramType = check.subst(call.Pos(), paramType, smap, nil, check.context())
+			}
+			check.rawExpr(nil, &a, arg, paramType, true)
+			if a.isValid() {
+				if _, ok := ast.Unparen(arg).(*ast.LambdaExpr); ok {
+					typed = true
+					break
+				}
+				if ok, _ := a.assignableTo(check, paramType, nil); ok {
+					typed = true
+					break
+				}
+			}
+		}
+		if !typed {
 			return extensionMatch{}, false
 		}
 		argOps = append(argOps, &a)
 	}
 	if fn := check.selectOverloadSilent(call, funcs, argOps); fn != nil {
-		for _, m := range matches {
+		for _, m := range candidates {
 			if m.fn == fn {
 				return m, true
 			}
 		}
+	}
+	if len(candidates) > 0 {
+		return preferExtensionMatch(candidates), true
 	}
 	return extensionMatch{}, false
 }
@@ -638,8 +712,11 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 		recvExpr = &ast.SliceExpr{X: sel.X}
 	}
 	m = check.attachLinqSliceFast(recv.typ(), m)
-	funcName := m.fn.Name()
+	funcName := m.fn.LinkName()
 	useLinqFast := m.linqFast != ""
+	if useLinqFast && m.pkgName != nil && m.pkgName.imported.scope.Lookup(m.linqFast) == nil {
+		useLinqFast = false
+	}
 	if useLinqFast {
 		funcName = m.linqFast
 	} else if m.adapt {
