@@ -37,7 +37,7 @@ import (
 //
 // Use the same importer for all std lib tests to
 // avoid repeated importing of the same packages.
-var stdLibImporter = importer.ForCompiler(token.NewFileSet(), "source", nil)
+var stdLibImporter = importer.ForCompiler(token.NewFileSet(), runtime.Compiler, nil)
 
 func TestStdlib(t *testing.T) {
 	if testing.Short() {
