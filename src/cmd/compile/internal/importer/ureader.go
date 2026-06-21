@@ -281,6 +281,8 @@ func (r *reader) doTyp() (res types2.Type) {
 		return types2.NewMap(r.typ(), r.typ())
 	case pkgbits.TypePointer:
 		return types2.NewPointer(r.typ())
+	case pkgbits.TypeOptional:
+		return types2.NewOptional(r.typ())
 	case pkgbits.TypeSignature:
 		return r.signature(nil, nil, nil)
 	case pkgbits.TypeSlice:

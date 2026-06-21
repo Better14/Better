@@ -594,7 +594,7 @@ func (pw *pkgWriter) typIdx(typ types2.Type, dict *writerDict) typeInfo {
 		w.typ(typ.Elem())
 
 	case *types2.Optional:
-		w.Code(pkgbits.TypePointer)
+		w.Code(pkgbits.TypeOptional)
 		w.typ(typ.Elem())
 
 	case *types2.Result:
