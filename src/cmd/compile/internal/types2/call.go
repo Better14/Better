@@ -458,7 +458,7 @@ func (check *Checker) selectOverloadSilent(call *syntax.CallExpr, cands []*Func,
 
 func (check *Checker) selectOverloadEx(call *syntax.CallExpr, cands []*Func, args []*operand, reportErrors bool) *Func {
 	if len(cands) > 0 && cands[0] != nil {
-		if fn := check.lookupOverloadByArgTypes(cands[0].name, args); fn != nil && containsFunc(cands, fn) {
+		if fn := check.lookupOverloadByArgTypes(cands[0].name, args, cands); fn != nil {
 			return fn
 		}
 		cacheKey := overloadResolveKey{cand: cands[0], ncand: len(cands), args: operandTypesSuffix(args)}

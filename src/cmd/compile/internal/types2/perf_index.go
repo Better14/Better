@@ -141,6 +141,14 @@ func ensurePackageOperatorTypeIndex(pkg *Package) {
 	pkg.operatorExact, pkg.operatorUnaryExact = buildOperatorTypeIndexes(pkg.operatorFuncIndex)
 }
 
+func ensurePackageOverloadBySig(pkg *Package) {
+	if pkg == nil || pkg.overloadBySig != nil {
+		return
+	}
+	ensurePackageOperatorFuncIndex(pkg)
+	pkg.overloadBySig = buildOverloadBySig(pkg.operatorFuncIndex)
+}
+
 func ensurePackageExtensionIndex(pkg *Package) {
 	if pkg == nil || pkg.extensionByName != nil {
 		return
@@ -201,6 +209,7 @@ func (check *Checker) buildCheckerIndexes() {
 	if len(check.overloadFuncs) > 0 {
 		check.pkg.operatorExact = check.operatorExact
 		check.pkg.operatorUnaryExact = check.operatorUnaryExact
+		check.pkg.overloadBySig = check.overloadBySig
 		check.pkg.operatorFuncIndex = make(map[string][]*Func, len(check.overloadFuncs))
 		for name, funcs := range check.overloadFuncs {
 			check.pkg.operatorFuncIndex[name] = append([]*Func(nil), funcs...)
@@ -263,12 +272,12 @@ func (check *Checker) lookupUnaryOperatorExact(name string, x *operand) *Func {
 	return nil
 }
 
-func (check *Checker) lookupOverloadByArgTypes(name string, args []*operand) *Func {
-	if check.overloadBySig == nil {
+func lookupOverloadByArgTypesInMap(bySig map[string]*Func, name string, args []*operand) *Func {
+	if bySig == nil {
 		return nil
 	}
 	key := name + "·" + operandTypesSuffix(args)
-	if fn, ok := check.overloadBySig[key]; ok {
+	if fn, ok := bySig[key]; ok {
 		return fn
 	}
 	// Retry with default types for untyped operands.
@@ -284,8 +293,28 @@ func (check *Checker) lookupOverloadByArgTypes(name string, args []*operand) *Fu
 		defaulted[i] = &op
 	}
 	key = name + "·" + operandTypesSuffix(defaulted)
-	if fn, ok := check.overloadBySig[key]; ok {
+	if fn, ok := bySig[key]; ok {
 		return fn
+	}
+	return nil
+}
+
+func (check *Checker) lookupOverloadByArgTypes(name string, args []*operand, cands []*Func) *Func {
+	if fn := lookupOverloadByArgTypesInMap(check.overloadBySig, name, args); fn != nil {
+		if len(cands) == 0 || containsFunc(cands, fn) {
+			return fn
+		}
+	}
+	seen := make(map[*Package]bool)
+	for _, cand := range cands {
+		if cand == nil || cand.pkg == nil || seen[cand.pkg] {
+			continue
+		}
+		seen[cand.pkg] = true
+		ensurePackageOverloadBySig(cand.pkg)
+		if fn := lookupOverloadByArgTypesInMap(cand.pkg.overloadBySig, name, args); fn != nil && containsFunc(cands, fn) {
+			return fn
+		}
 	}
 	return nil
 }
