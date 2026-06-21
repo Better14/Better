@@ -64,3 +64,25 @@ func bad(mode Mode = ByName("x")) {}
 		t.Fatal("expected type error for tuple enum default")
 	}
 }
+
+func TestEnumCompositeLitRequiresQualification(t *testing.T) {
+	const src = `package p
+
+enum Section {
+	MatrixOps { size int, operators []string }
+}
+
+func bad() {
+	_ = MatrixOps{size: 2, operators: nil}
+}
+`
+	f, err := syntax.Parse(syntax.NewFileBase("p"), strings.NewReader(src), nil, nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf := &types2.Config{}
+	_, err = conf.Check("p", []*syntax.File{f}, nil)
+	if err == nil {
+		t.Fatal("expected type error for unqualified enum struct composite literal")
+	}
+}
