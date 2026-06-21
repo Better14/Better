@@ -759,6 +759,11 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 		}
 		check.recordUse(call.Fun.(*syntax.SelectorExpr).X.(*syntax.Name), pkgIdent)
 		check.usedPkgNames[pkgIdent] = true
+		if check.UsedImportNames != nil {
+			if name := pkgIdent.name; name != "" && name != "." && name != "_" {
+				check.UsedImportNames[name] = true
+			}
+		}
 	}
 	if inst != nil {
 		call.Fun = &syntax.IndexExpr{X: call.Fun, Index: inst.Index}

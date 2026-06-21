@@ -755,6 +755,11 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 		}
 		check.recordUse(call.Fun.(*ast.SelectorExpr).X.(*ast.Ident), pkgIdent)
 		check.usedPkgNames[pkgIdent] = true
+		if check.UsedImportNames != nil {
+			if name := pkgIdent.name; name != "" && name != "." && name != "_" {
+				check.UsedImportNames[name] = true
+			}
+		}
 		if !useLinqFast {
 			check.recordSelection(call.Fun.(*ast.SelectorExpr), MethodVal, recv.typ(), m.fn, []int{0}, false)
 		}
