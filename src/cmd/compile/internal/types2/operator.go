@@ -153,6 +153,11 @@ func (check *Checker) selectOperatorFunc(name string, nargs int, args []*operand
 	return nil
 }
 
+// inOperatorOverloadImpl reports whether fn is the operator overload currently being implemented.
+func (check *Checker) inOperatorOverloadImpl(fn *Func, name string) bool {
+	return fn != nil && check.sig != nil && fn.name == name && fn.typ == check.sig
+}
+
 func (check *Checker) indexOperatorCall(pos syntax.Pos, name string, recvExpr syntax.Expr, indices []syntax.Expr, value syntax.Expr, fn *Func) *syntax.CallExpr {
 	sig := fn.typ.(*Signature)
 	if sig.Recv() != nil {
@@ -256,6 +261,9 @@ func (check *Checker) applyBinaryOperatorOverload(x, y *operand, e syntax.Expr, 
 	if fn == nil {
 		return false
 	}
+	if check.inOperatorOverloadImpl(fn, name) {
+		return false
+	}
 	pos := lhs.Pos()
 	if e != nil {
 		pos = e.Pos()
@@ -283,6 +291,9 @@ func (check *Checker) tryUnaryOperatorOverload(x *operand, e *syntax.Operation) 
 		fn = check.selectOperatorFunc(name, 1, []*operand{x})
 	}
 	if fn == nil {
+		return false
+	}
+	if check.inOperatorOverloadImpl(fn, name) {
 		return false
 	}
 	call := check.callOperator(x, e.Pos(), fn, nil, []syntax.Expr{e.X}, []*operand{x}, e)
@@ -424,6 +435,9 @@ func (check *Checker) tryIncDecOperatorOverload(s *syntax.AssignStmt, op syntax.
 	}
 	fn := check.selectOperatorFunc(name, 1, []*operand{&arg})
 	if fn == nil {
+		return false
+	}
+	if check.inOperatorOverloadImpl(fn, name) {
 		return false
 	}
 	var res operand

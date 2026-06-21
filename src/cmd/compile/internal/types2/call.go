@@ -1274,14 +1274,6 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 		if index != nil {
 			// Permit overloaded methods to defer final resolution to call checking.
 			cands := check.overloadMeths[methodKey{recvName: recvBaseNameFromType(x.typ()), name: sel}]
-			if len(cands) == 0 {
-				for k, v := range check.overloadMeths {
-					if k.name == sel && len(v) > 0 {
-						cands = v
-						break
-					}
-				}
-			}
 			// Don't let an unrelated package-level function or method overload
 			// suppress ambiguous field selectors (see issues0.go:350).
 			if len(cands) > 0 {
