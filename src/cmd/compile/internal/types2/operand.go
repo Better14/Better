@@ -422,15 +422,6 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 		}
 	}
 
-	// T assignable to *T for nullable basic types (e.g. int? accepts int literals).
-	if p, ok := Tu.(*Pointer); ok && Vp == nil && Tp == nil {
-		if b, ok := p.base.(*Basic); ok {
-			if Identical(V, b) || Identical(Vu, b) {
-				return true, 0
-			}
-		}
-	}
-
 	// T assignable to Result(T); error assignable to Result(T) (zero value + err);
 	// Result(T) assignable to Result(T)
 	if res, ok := Tu.(*Result); ok && Vp == nil && Tp == nil {
