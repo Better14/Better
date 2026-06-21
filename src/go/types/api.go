@@ -343,6 +343,11 @@ type Info struct {
 
 	// IndexAssignCalls maps index assignment left-hand sides a[i] to desugared []=(a, i, v) calls.
 	IndexAssignCalls map[ast.Expr]*ast.CallExpr
+
+	// UsedImportNames maps local import identifiers to true for imports referenced
+	// during type-checking, including side-effect imports required for extension
+	// methods (e.g. import "linq" for .Where on slices).
+	UsedImportNames map[string]bool
 }
 
 // MethodOverloadKey identifies an overloaded method set.

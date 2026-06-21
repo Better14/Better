@@ -479,6 +479,8 @@ func (check *Checker) checkFiles(files []*ast.File) {
 		check.unusedImports()
 	}
 
+	check.recordUsedImportNames()
+
 	print("== recordUntyped ==")
 	check.recordUntyped()
 
@@ -503,6 +505,18 @@ func (check *Checker) checkFiles(files []*ast.File) {
 
 	// TODO(gri): shouldn't the cleanup above occur after the bailout?
 	// TODO(gri) There's more memory we should release at this point.
+}
+
+func (check *Checker) recordUsedImportNames() {
+	if m := check.UsedImportNames; m != nil {
+		for pkgName := range check.usedPkgNames {
+			name := pkgName.name
+			if name == "" || name == "." {
+				continue
+			}
+			m[name] = true
+		}
+	}
 }
 
 // processDelayed processes all delayed actions pushed after top.
