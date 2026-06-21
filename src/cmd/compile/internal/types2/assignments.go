@@ -87,12 +87,6 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 				// Keep untyped/typed constant as elem type; conversion to T? happens at compile time.
 				newType = o.elem
 			}
-			if p, ok := newType.Underlying().(*Pointer); ok && x.mode() == constant_ {
-				if _, ok := p.base.(*Basic); ok {
-					x.mode_ = value
-					x.val = nil
-				}
-			}
 			if r, ok := newType.Underlying().(*Result); ok && x.mode() == constant_ {
 				// Keep untyped/typed constant as elem type; conversion to T! happens at compile time.
 				newType = r.elem
