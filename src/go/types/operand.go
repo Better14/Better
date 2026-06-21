@@ -426,10 +426,10 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 		}
 	}
 
-	// T assignable to *T for nullable basic types (int? lowers to *int)
+	// T assignable to *T for nullable basic types (e.g. int? accepts int literals).
 	if p, ok := Tu.(*Pointer); ok && Vp == nil && Tp == nil {
-		if _, ok := p.base.Underlying().(*Basic); ok {
-			if Identical(V, p.base) || Identical(Vu, p.base.Underlying()) {
+		if b, ok := p.base.(*Basic); ok {
+			if Identical(V, b) || Identical(Vu, b) {
 				return true, 0
 			}
 		}

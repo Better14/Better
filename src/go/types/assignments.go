@@ -91,7 +91,7 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 				newType = o.elem
 			}
 			if p, ok := newType.Underlying().(*Pointer); ok && x.mode() == constant_ {
-				if _, ok := p.base.Underlying().(*Basic); ok {
+				if _, ok := p.base.(*Basic); ok {
 					x.mode_ = value
 					x.val = nil
 				}

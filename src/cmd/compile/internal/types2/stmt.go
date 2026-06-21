@@ -521,7 +521,7 @@ func (check *Checker) stmt(ctxt stmtContext, s syntax.Stmt) {
 
 		var x operand
 		opExpr := &syntax.Operation{Op: s.Op, X: lhs[0], Y: rhs[0]}
-		check.binary(&x, opExpr, lhs[0], rhs[0], s.Op)
+		check.binary(&x, opExpr, lhs[0], rhs[0], s.Op, true)
 		if call := check.OperatorCalls[opExpr]; call != nil {
 			check.recordOperatorAssignCall(s, call)
 		}

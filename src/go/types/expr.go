@@ -492,12 +492,14 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 		if x.isNil() {
 			return target, nil, 0
 		}
-		if x.mode() == constant_ && isConstType(u.base) {
-			_, val, code := check.implicitTypeAndValue(x, u.base)
-			if code != 0 {
-				return nil, nil, code
+		if x.mode() == constant_ {
+			if b, ok := u.base.(*Basic); ok && isConstType(b) {
+				_, val, code := check.implicitTypeAndValue(x, b)
+				if code != 0 {
+					return nil, nil, code
+				}
+				return target, val, code
 			}
-			return target, val, code
 		}
 		return nil, nil, InvalidUntypedConversion
 

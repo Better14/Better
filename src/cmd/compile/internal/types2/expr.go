@@ -521,12 +521,14 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 		if x.isNil() {
 			return target, nil, 0
 		}
-		if x.mode() == constant_ && isConstType(u.base) {
-			_, val, code := check.implicitTypeAndValue(x, u.base)
-			if code != 0 {
-				return nil, nil, code
+		if x.mode() == constant_ {
+			if b, ok := u.base.(*Basic); ok && isConstType(b) {
+				_, val, code := check.implicitTypeAndValue(x, b)
+				if code != 0 {
+					return nil, nil, code
+				}
+				return target, val, code
 			}
-			return target, val, code
 		}
 		return nil, nil, InvalidUntypedConversion
 
@@ -854,7 +856,7 @@ func init() {
 
 // If e != nil, it must be the binary expression; it may be nil for non-constant expressions
 // (when invoked for an assignment operation where the binary expression is implicit).
-func (check *Checker) binary(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op syntax.Operator) {
+func (check *Checker) binary(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op syntax.Operator, assign bool) {
 	if op == syntax.NullCoalesce {
 		check.nullCoalesce(x, e, lhs, rhs)
 		return
@@ -897,10 +899,10 @@ func (check *Checker) binary(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op
 		// only report an error if we have valid types
 		// (otherwise we had an error reported elsewhere already)
 		if isValid(x.typ()) && isValid(y.typ()) {
-			if e != nil {
+			if assign {
+				check.errorf(x, MismatchedTypes, invalidOp+"%s %s %s (mismatched types %s and %s)", lhs, op.String()+"=", rhs, x.typ(), y.typ())
+			} else if e != nil {
 				check.errorf(x, MismatchedTypes, invalidOp+"%s (mismatched types %s and %s)", e, x.typ(), y.typ())
-			} else {
-				check.errorf(x, MismatchedTypes, invalidOp+"%s %s= %s (mismatched types %s and %s)", lhs, op, rhs, x.typ(), y.typ())
 			}
 		}
 		x.invalidate()
@@ -1358,7 +1360,7 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		}
 
 		// binary expression
-		check.binary(x, e, e.X, e.Y, e.Op)
+		check.binary(x, e, e.X, e.Y, e.Op, false)
 		if !x.isValid() {
 			goto Error
 		}
