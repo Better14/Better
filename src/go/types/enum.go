@@ -379,6 +379,37 @@ func (check *Checker) lookupPkgEnumVariant(name string) Object {
 	return found
 }
 
+// enumTypeForVariant finds the enum type defining obj (a variant member).
+func (check *Checker) enumTypeForVariant(obj Object) (Type, *Enum) {
+	findInScope := func(scope *Scope) (Type, *Enum) {
+		if scope == nil {
+			return nil, nil
+		}
+		for _, n := range scope.Names() {
+			tn, ok := scope.Lookup(n).(*TypeName)
+			if !ok {
+				continue
+			}
+			if et, ok := AsEnum(tn.Type()); ok && enumVariantByObj(et, obj) != nil {
+				return tn.Type(), et
+			}
+		}
+		return nil, nil
+	}
+	if t, e := findInScope(check.pkg.scope); e != nil {
+		return t, e
+	}
+	for _, imp := range check.imports {
+		if imp == nil || imp.imported == nil {
+			continue
+		}
+		if t, e := findInScope(imp.imported.scope); e != nil {
+			return t, e
+		}
+	}
+	return nil, nil
+}
+
 // isEnumUnitVariantDefault reports whether x is a unit enum variant suitable
 // as a default argument for typ.
 func (check *Checker) isEnumUnitVariantDefault(x *operand, typ Type) bool {
@@ -639,14 +670,14 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *ast.CompositeLit, hint 
 	var use *ast.Ident
 	switch t := ast.Unparen(e.Type).(type) {
 	case *ast.Ident:
-		enumType = hint
-		var ok bool
-		enumTyp, ok = AsEnum(hint)
-		if !ok {
-			return false
-		}
 		variantName = t.Name
 		use = t
+		if et, ok := AsEnum(hint); ok {
+			enumTyp = et
+			enumType = hint
+		} else if obj := check.lookupPkgEnumVariant(variantName); obj != nil {
+			enumType, enumTyp = check.enumTypeForVariant(obj)
+		}
 	case *ast.SelectorExpr:
 		enumType = check.enumTypeExpr(t.X)
 		var ok bool
@@ -657,6 +688,9 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *ast.CompositeLit, hint 
 		variantName = t.Sel.Name
 		use = t.Sel
 	default:
+		return false
+	}
+	if enumTyp == nil {
 		return false
 	}
 	obj := enumTyp.scope.Lookup(variantName)
