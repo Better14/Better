@@ -123,10 +123,10 @@ func (check *Checker) operatorFuncsForRecv(name string, recv Type) []*Func {
 }
 
 func (check *Checker) selectOperatorFunc(name string, nargs int, args []*operand) *Func {
-	if fn := check.lookupOverloadByArgTypes(name, args); fn != nil {
+	cands := check.operatorOverloads(name)
+	if fn := check.lookupOverloadByArgTypes(name, args, cands); fn != nil {
 		return fn
 	}
-	cands := check.operatorOverloads(name)
 	if len(cands) == 0 {
 		return nil
 	}

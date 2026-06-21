@@ -303,14 +303,30 @@ func (check *Checker) callExpr(x *operand, call *ast.CallExpr, hint Type) exprKi
 			check.recordUse(fun, sel)
 		case *ast.SelectorExpr:
 			check.recordUse(fun.Sel, sel)
-			var recv operand
-			check.rawExpr(nil, &recv, fun.X, nil, true)
-			if recv.isValid() {
-				ix := []int{0}
-				if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
-					ix = []int{i}
+			if id, ok := fun.X.(*ast.Ident); ok {
+				if obj := check.lookup(id.Name); obj != nil {
+					if _, isPkg := obj.(*PkgName); !isPkg {
+						var recv operand
+						check.rawExpr(nil, &recv, fun.X, nil, true)
+						if recv.isValid() {
+							ix := []int{0}
+							if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
+								ix = []int{i}
+							}
+							check.recordSelection(fun, MethodVal, recv.typ(), sel, ix, false)
+						}
+					}
 				}
-				check.recordSelection(fun, MethodVal, recv.typ(), sel, ix, false)
+			} else {
+				var recv operand
+				check.rawExpr(nil, &recv, fun.X, nil, true)
+				if recv.isValid() {
+					ix := []int{0}
+					if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
+						ix = []int{i}
+					}
+					check.recordSelection(fun, MethodVal, recv.typ(), sel, ix, false)
+				}
 			}
 		}
 		selectedOverload = true
@@ -442,7 +458,7 @@ func (check *Checker) selectOverload(call *ast.CallExpr, cands []*Func, args []*
 
 func (check *Checker) selectOverloadEx(call *ast.CallExpr, cands []*Func, args []*operand, reportErrors bool) *Func {
 	if len(cands) > 0 && cands[0] != nil {
-		if fn := check.lookupOverloadByArgTypes(cands[0].name, args); fn != nil && containsFunc(cands, fn) {
+		if fn := check.lookupOverloadByArgTypes(cands[0].name, args, cands); fn != nil {
 			return fn
 		}
 		cacheKey := overloadResolveKey{cand: cands[0], ncand: len(cands), args: operandTypesSuffix(args)}

@@ -25,6 +25,7 @@ type Package struct {
 	operatorFuncIndex  map[string][]*Func                 // operator/overload funcs by base name (incl. suffixed decls)
 	operatorExact      map[string]map[operatorTypeKey]*Func // binary operator overload by operand types
 	operatorUnaryExact map[string]map[string]*Func        // unary operator overload by operand type
+	overloadBySig      map[string]*Func                   // overload funcs keyed by name·paramSuffix
 	extensionByName    map[string][]*Func                 // extension funcs indexed by method name
 }
 
