@@ -243,6 +243,9 @@ func (check *Checker) ensureImported(pos token.Pos, path string) *PkgName {
 	pkgName := NewPkgName(pos, check.pkg, imp.name, imp)
 	check.imports = append(check.imports, pkgName)
 	check.usedPkgNames[pkgName] = true
+	if check.UsedImportNames != nil && pkgName.name != "" && pkgName.name != "." && pkgName.name != "_" {
+		check.UsedImportNames[pkgName.name] = true
+	}
 	for _, file := range check.files {
 		scope := check.fileScopes[file]
 		if scope == nil {
