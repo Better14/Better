@@ -218,17 +218,20 @@ func (check *Checker) lookupBinaryOperatorExact(name string, l, r *operand) *Fun
 	}
 	key := binaryOperatorTypeKey(lt, rt)
 
-	if idx := check.operatorExact[name]; idx != nil {
-		if fn := idx[key]; fn != nil {
-			return fn
+	for _, pkg := range check.operatorPackagesForOperands(l, r) {
+		if pkg == nil {
+			continue
 		}
-	}
-	if check.pkg != nil {
-		ensurePackageOperatorTypeIndex(check.pkg)
-		if idx := check.pkg.operatorExact[name]; idx != nil {
+		ensurePackageOperatorTypeIndex(pkg)
+		if idx := pkg.operatorExact[name]; idx != nil {
 			if fn := idx[key]; fn != nil {
 				return fn
 			}
+		}
+	}
+	if idx := check.operatorExact[name]; idx != nil {
+		if fn := idx[key]; fn != nil {
+			return fn
 		}
 	}
 	return nil
@@ -241,17 +244,20 @@ func (check *Checker) lookupUnaryOperatorExact(name string, x *operand) *Func {
 	}
 	k := briefType(typ)
 
-	if idx := check.operatorUnaryExact[name]; idx != nil {
-		if fn := idx[k]; fn != nil {
-			return fn
+	for _, pkg := range check.operatorPackagesForOperands(x) {
+		if pkg == nil {
+			continue
 		}
-	}
-	if check.pkg != nil {
-		ensurePackageOperatorTypeIndex(check.pkg)
-		if idx := check.pkg.operatorUnaryExact[name]; idx != nil {
+		ensurePackageOperatorTypeIndex(pkg)
+		if idx := pkg.operatorUnaryExact[name]; idx != nil {
 			if fn := idx[k]; fn != nil {
 				return fn
 			}
+		}
+	}
+	if idx := check.operatorUnaryExact[name]; idx != nil {
+		if fn := idx[k]; fn != nil {
+			return fn
 		}
 	}
 	return nil
