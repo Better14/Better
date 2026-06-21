@@ -294,13 +294,32 @@ func operatorFuncsInPackage(pkg *Package, name string) []*Func {
 	if pkg == nil {
 		return nil
 	}
+	EnsurePackageOperatorIndexes(pkg)
 	if pkg.overloadFuncs != nil {
 		if cands := pkg.overloadFuncs[name]; len(cands) > 0 {
 			return cands
 		}
 	}
-	ensurePackageOperatorFuncIndex(pkg)
 	return pkg.operatorFuncIndex[name]
+}
+
+// EnsurePackageOperatorIndexes builds operator overload indexes for pkg,
+// including packages loaded from export data that lack checker metadata.
+func EnsurePackageOperatorIndexes(pkg *Package) {
+	if pkg == nil {
+		return
+	}
+	ensurePackageOperatorFuncIndex(pkg)
+	if pkg.operatorExact != nil {
+		return
+	}
+	pkg.operatorExact, pkg.operatorUnaryExact = buildOperatorTypeIndexes(pkg.operatorFuncIndex)
+	if pkg.overloadFuncs == nil && len(pkg.operatorFuncIndex) > 0 {
+		pkg.overloadFuncs = make(map[string][]*Func, len(pkg.operatorFuncIndex))
+		for name, funcs := range pkg.operatorFuncIndex {
+			pkg.overloadFuncs[name] = append([]*Func(nil), funcs...)
+		}
+	}
 }
 
 func extensionFuncsInPackage(pkg *Package, method string) []*Func {

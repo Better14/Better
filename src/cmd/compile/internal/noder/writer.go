@@ -1390,6 +1390,10 @@ func (w *writer) stmt1(stmt syntax.Stmt) {
 		return
 
 	case *syntax.AssignStmt:
+		if call := w.p.info.OperatorAssignCalls[stmt]; call != nil {
+			w.assignStmt(stmt, stmt.Lhs, call)
+			break
+		}
 		switch {
 		case stmt.Rhs == nil:
 			w.Code(stmtIncDec)
@@ -1920,6 +1924,11 @@ func (w *writer) expr(expr syntax.Expr) {
 	base.Assertf(expr != nil, "missing expression")
 
 	expr = syntax.Unparen(expr) // skip parens; unneeded after typecheck
+
+	if call := w.p.info.OperatorCalls[expr]; call != nil {
+		w.expr(call)
+		return
+	}
 
 	if call := w.p.info.IndexOperatorCalls[expr]; call != nil {
 		w.expr(call)

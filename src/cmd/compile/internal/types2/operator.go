@@ -189,29 +189,16 @@ func (check *Checker) selectIndexOperator(cands []*Func, call *syntax.CallExpr, 
 	return check.selectOverloadSilent(call, cands, args)
 }
 
-func (check *Checker) callOperator(x *operand, pos syntax.Pos, fn *Func, call *syntax.CallExpr, argExprs []syntax.Expr, args []*operand) {
-	sig := fn.typ.(*Signature)
+func (check *Checker) callOperator(x *operand, pos syntax.Pos, fn *Func, call *syntax.CallExpr, argExprs []syntax.Expr, args []*operand, recordExpr syntax.Expr) *syntax.CallExpr {
 	if call == nil {
 		call = &syntax.CallExpr{Fun: syntax.NewName(pos, fn.name), ArgList: argExprs}
 	}
-	if args == nil || sig.TypeParams().Len() > 0 {
-		args, _ = check.genericExprList(argExprs)
+	check.expr(nil, x, call)
+	if !x.isValid() {
+		return nil
 	}
-	sig = check.arguments(call, sig, nil, nil, args, nil)
-	if sig == nil {
-		x.invalidate()
-		return
-	}
-	switch {
-	case sig.results == nil || sig.results.Len() == 0:
-		x.mode_ = novalue
-	case sig.results.Len() == 1:
-		x.mode_ = value
-		x.typ_ = sig.results.vars[0].typ
-	default:
-		x.mode_ = value
-		x.typ_ = sig.results
-	}
+	check.recordOperatorCall(recordExpr, call)
+	return call
 }
 
 func (check *Checker) applyBinaryOperatorOverload(x, y *operand, e syntax.Expr, lhs, rhs syntax.Expr, op syntax.Operator) bool {
@@ -236,7 +223,7 @@ func (check *Checker) applyBinaryOperatorOverload(x, y *operand, e syntax.Expr, 
 	if e != nil {
 		pos = e.Pos()
 	}
-	check.callOperator(x, pos, fn, nil, []syntax.Expr{lhs, rhs}, []*operand{x, y})
+	check.callOperator(x, pos, fn, nil, []syntax.Expr{lhs, rhs}, []*operand{x, y}, e)
 	if x.isValid() {
 		if e != nil {
 			x.expr = e
@@ -261,11 +248,11 @@ func (check *Checker) tryUnaryOperatorOverload(x *operand, e *syntax.Operation) 
 	if fn == nil {
 		return false
 	}
-	check.callOperator(x, e.Pos(), fn, nil, []syntax.Expr{e.X}, []*operand{x})
+	call := check.callOperator(x, e.Pos(), fn, nil, []syntax.Expr{e.X}, []*operand{x}, e)
 	if x.isValid() {
 		x.expr = e
 	}
-	return true
+	return call != nil
 }
 
 // tryIndexOperatorOverload handles a[i] when the type of a defines func [](a, i...) U.
@@ -403,10 +390,11 @@ func (check *Checker) tryIncDecOperatorOverload(s *syntax.AssignStmt, op syntax.
 		return false
 	}
 	var res operand
-	check.callOperator(&res, s.Pos(), fn, nil, []syntax.Expr{s.Lhs}, []*operand{&arg})
-	if !res.isValid() {
+	call := check.callOperator(&res, s.Pos(), fn, nil, []syntax.Expr{s.Lhs}, []*operand{&arg}, nil)
+	if !res.isValid() || call == nil {
 		return false
 	}
+	check.recordOperatorAssignCall(s, call)
 	check.assignVar(s.Lhs, nil, &res, "assignment")
 	return true
 }
