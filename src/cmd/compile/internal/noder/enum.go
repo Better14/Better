@@ -382,22 +382,24 @@ func (w *writer) tryWriteEnumCompositeLit(lit *syntax.CompositeLit) bool {
 	if lit.Type == nil {
 		return false
 	}
-	sel, ok := syntax.Unparen(lit.Type).(*syntax.SelectorExpr)
-	if !ok {
+	var obj types2.Object
+	switch t := syntax.Unparen(lit.Type).(type) {
+	case *syntax.SelectorExpr:
+		obj = w.p.info.Uses[t.Sel]
+	case *syntax.Name:
+		obj = w.p.info.Uses[t]
+	default:
 		return false
 	}
-
+	if obj == nil {
+		return false
+	}
 	tv, ok := w.p.maybeTypeAndValue(lit)
 	if !ok {
 		return false
 	}
 	enumTyp, ok := enumTypeOf(tv.Type)
 	if !ok {
-		return false
-	}
-
-	obj := w.p.info.Uses[sel.Sel]
-	if obj == nil {
 		return false
 	}
 	variant := enumVariantObj(enumTyp, obj)

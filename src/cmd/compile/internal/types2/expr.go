@@ -421,6 +421,12 @@ func (check *Checker) updateExprType(x syntax.Expr, typ Type, final bool) {
 		mode = value
 		val = nil
 	}
+	if p, ok := typ.Underlying().(*Pointer); ok && val != nil {
+		if _, ok := p.base.Underlying().(*Basic); ok {
+			mode = value
+			val = nil
+		}
+	}
 	if _, ok := typ.Underlying().(*Result); ok && val != nil {
 		// Result values are lowered to structs; not compile-time constants.
 		mode = value
@@ -510,6 +516,19 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 			return nil, nil, code
 		}
 		return target, val, code
+
+	case *Pointer:
+		if x.isNil() {
+			return target, nil, 0
+		}
+		if x.mode() == constant_ && isConstType(u.base) {
+			_, val, code := check.implicitTypeAndValue(x, u.base)
+			if code != 0 {
+				return nil, nil, code
+			}
+			return target, val, code
+		}
+		return nil, nil, InvalidUntypedConversion
 
 	case *Interface:
 		if isTypeParam(target) {

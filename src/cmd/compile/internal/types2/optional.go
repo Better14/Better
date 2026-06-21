@@ -15,7 +15,13 @@ type Optional struct {
 }
 
 // NewOptional returns a new nullable type for the given element type.
-func NewOptional(elem Type) *Optional { return &Optional{elem: elem} }
+// Basic types lower to *T (nullable primitives); other types use Optional.
+func NewOptional(elem Type) Type {
+	if _, ok := elem.Underlying().(*Basic); ok {
+		return NewPointer(elem)
+	}
+	return &Optional{elem: elem}
+}
 
 // Elem returns the element type of o.
 func (o *Optional) Elem() Type { return o.elem }

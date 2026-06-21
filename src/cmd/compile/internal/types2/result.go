@@ -96,7 +96,7 @@ func (check *Checker) canForceReturnFor(exprTyp Type) bool {
 		return false
 	}
 
-	valType, errType, ok := forceUnwrapTypes(exprTyp)
+	_, errType, ok := forceUnwrapTypes(exprTyp)
 	if !ok || !Identical(errType, universeError) {
 		return false
 	}
@@ -120,8 +120,8 @@ func (check *Checker) canForceReturnFor(exprTyp Type) bool {
 		if Identical(rt, universeError) {
 			return true // (T, error)! in a function returning only error
 		}
-		if r, ok := rt.Underlying().(*Result); ok {
-			return Identical(valType, r.elem)
+		if _, ok := rt.Underlying().(*Result); ok {
+			return true // T! return can propagate errors from any ! expression
 		}
 		return false
 	default:

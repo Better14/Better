@@ -69,6 +69,10 @@ func (o Ordered[T]) ToList() []T {
 	return slices.Clone(o.items)
 }
 
+func (o Ordered[T]) Zip[U, R any](other iter.Seq[U], fn func(T, U) R) iter.Seq[R] {
+	return Zip(slices.Values(o.items), other, fn)
+}
+
 // Where filters the ordered sequence.
 func (o Ordered[T]) Where(pred func(T) bool) iter.Seq[T] {
 	return whereSeq(slices.Values(o.items), pred)

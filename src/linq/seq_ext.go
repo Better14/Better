@@ -40,6 +40,14 @@ func (seq iter.Seq[T]) SelectMany[U any](fn func(T, int) iter.Seq[U]) iter.Seq[U
 	return selectManyIndexedSeq(seq, fn)
 }
 
+func (seq iter.Seq[T]) SelectMany[U any](fn func(T) []U) iter.Seq[U] {
+	return selectManySliceSeq(seq, fn)
+}
+
+func (seq iter.Seq[T]) SelectMany[U any](fn func(T, int) []U) iter.Seq[U] {
+	return selectManyIndexedSliceSeq(seq, fn)
+}
+
 func (seq iter.Seq[T]) SelectMany[C, U any](collectionFn func(T) iter.Seq[C], resultFn func(T, C) U) iter.Seq[U] {
 	return selectManyResultSeq(seq, collectionFn, resultFn)
 }

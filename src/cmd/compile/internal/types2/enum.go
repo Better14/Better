@@ -27,11 +27,12 @@ type Enum struct {
 
 // An EnumVariant describes one variant of an enum.
 type EnumVariant struct {
-	name   string
-	tag    int64
-	obj    Object // *Const for unit variants, *Func for tuple/struct constructors
-	tuple  []Type
-	fields []*Var
+	name        string
+	tag         int64
+	obj         Object // *Const for unit variants, *Func for tuple/struct constructors
+	tuple       []Type
+	fields      []*Var
+	explicitTag bool // variant used "Name = tag" syntax
 }
 
 // NewEnum returns a new enum type. Called only from buildEnum.
@@ -219,7 +220,7 @@ func (check *Checker) buildEnum(named *Named, obj *TypeName, edecl *syntax.EnumD
 			slots[i].types = append(slots[i].types, f.typ)
 		}
 
-		variant := &EnumVariant{name: name, tag: tag, tuple: tuple, fields: fields}
+		variant := &EnumVariant{name: name, tag: tag, tuple: tuple, fields: fields, explicitTag: sv.Tag != nil}
 		variants = append(variants, variant)
 	}
 
@@ -306,28 +307,74 @@ func (check *Checker) lookupEnumVariant(hint Type, name string) Object {
 }
 
 // lookupPkgEnumVariant resolves an unqualified enum variant name at package level.
-// It succeeds only when exactly one enum in the current package defines the variant.
+// It succeeds only when exactly one enum in the current package or its imports
+// defines the variant.
 func (check *Checker) lookupPkgEnumVariant(name string) Object {
 	var found Object
-	for _, obj := range check.objList {
-		tn, ok := obj.(*TypeName)
-		if !ok {
-			continue
+	findInScope := func(scope *Scope) Object {
+		if scope == nil {
+			return nil
 		}
-		info := check.objMap[tn]
-		if info == nil || info.enumTyp == nil || info.enumTyp.scope == nil {
-			continue
+		for _, n := range scope.Names() {
+			obj := scope.Lookup(n)
+			tn, ok := obj.(*TypeName)
+			if !ok {
+				continue
+			}
+			if et, ok := AsEnum(tn.Type()); ok && et.scope != nil {
+				if v := et.scope.Lookup(name); v != nil {
+					return v
+				}
+			}
 		}
-		v := info.enumTyp.scope.Lookup(name)
-		if v == nil {
-			continue
-		}
-		if found != nil {
-			return nil // ambiguous
-		}
+		return nil
+	}
+	if v := findInScope(check.pkg.scope); v != nil {
 		found = v
 	}
+	for _, imp := range check.imports {
+		if imp == nil || imp.imported == nil {
+			continue
+		}
+		if v := findInScope(imp.imported.scope); v != nil {
+			if found != nil {
+				return nil // ambiguous
+			}
+			found = v
+		}
+	}
 	return found
+}
+
+// enumTypeForVariant finds the enum type defining obj (a variant member).
+func (check *Checker) enumTypeForVariant(obj Object) (Type, *Enum) {
+	findInScope := func(scope *Scope) (Type, *Enum) {
+		if scope == nil {
+			return nil, nil
+		}
+		for _, n := range scope.Names() {
+			tn, ok := scope.Lookup(n).(*TypeName)
+			if !ok {
+				continue
+			}
+			if et, ok := AsEnum(tn.Type()); ok && enumVariantByObj(et, obj) != nil {
+				return tn.Type(), et
+			}
+		}
+		return nil, nil
+	}
+	if t, e := findInScope(check.pkg.scope); e != nil {
+		return t, e
+	}
+	for _, imp := range check.imports {
+		if imp == nil || imp.imported == nil {
+			continue
+		}
+		if t, e := findInScope(imp.imported.scope); e != nil {
+			return t, e
+		}
+	}
+	return nil, nil
 }
 
 // isEnumUnitVariantDefault reports whether x is a unit enum variant suitable
@@ -585,16 +632,36 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *syntax.CompositeLit, hi
 	if e.Type == nil {
 		return false
 	}
-	sel, ok := syntax.Unparen(e.Type).(*syntax.SelectorExpr)
-	if !ok {
+	var enumType Type
+	var enumTyp *Enum
+	var variantName string
+	var use *syntax.Name
+	switch t := syntax.Unparen(e.Type).(type) {
+	case *syntax.Name:
+		variantName = t.Value
+		use = t
+		if et, ok := AsEnum(hint); ok {
+			enumTyp = et
+			enumType = hint
+		} else if obj := check.lookupPkgEnumVariant(variantName); obj != nil {
+			enumType, enumTyp = check.enumTypeForVariant(obj)
+		}
+	case *syntax.SelectorExpr:
+		enumType = check.enumTypeExpr(t.X)
+		var ok bool
+		enumTyp, ok = AsEnum(enumType)
+		if !ok {
+			return false
+		}
+		variantName = t.Sel.Value
+		use = t.Sel
+	default:
 		return false
 	}
-	typ := check.enumTypeExpr(sel.X)
-	enumTyp, ok := AsEnum(typ)
-	if !ok {
+	if enumTyp == nil {
 		return false
 	}
-	obj := enumTyp.scope.Lookup(sel.Sel.Value)
+	obj := enumTyp.scope.Lookup(variantName)
 	if obj == nil {
 		return false
 	}
@@ -602,7 +669,7 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *syntax.CompositeLit, hi
 	if variant == nil || len(variant.fields) == 0 {
 		return false
 	}
-	check.recordUse(sel.Sel, obj)
+	check.recordUse(use, obj)
 
 	if len(e.ElemList) == 0 {
 		check.error(e, InvalidLitField, "enum struct variant requires fields")
@@ -653,7 +720,7 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *syntax.CompositeLit, hi
 	}
 
 	x.mode_ = value
-	x.typ_ = typ
+	x.typ_ = enumType
 	x.expr = e
 	return true
 }
@@ -691,6 +758,9 @@ func (check *Checker) enumSwitchStmt(inner stmtContext, s *syntax.SwitchStmt, ta
 	if !hasDefault {
 		for _, v := range enumTyp.variants {
 			if !covered[v.name] {
+				if len(v.tuple) == 0 && len(v.fields) == 0 && v.explicitTag {
+					continue
+				}
 				check.errorf(s, InvalidSyntaxTree, "switch on %s is not exhaustive: missing case %s", tag, v.name)
 			}
 		}
@@ -731,6 +801,9 @@ func (check *Checker) enumSwitchExpr(x *operand, e *syntax.SwitchExpr, tag Type,
 	if !hasDefault {
 		for _, v := range enumTyp.variants {
 			if !covered[v.name] {
+				if len(v.tuple) == 0 && len(v.fields) == 0 && v.explicitTag {
+					continue
+				}
 				check.errorf(e, InvalidSyntaxTree, "switch on %s is not exhaustive: missing case %s", tag, v.name)
 			}
 		}
@@ -880,6 +953,17 @@ func (check *Checker) enumStructCasePattern(variant *syntax.Name, fieldNames []*
 		return
 	}
 	if len(fieldNames) == 0 {
+		covered[v.name] = true
+		return
+	}
+	allWildcard := true
+	for _, f := range fieldNames {
+		if f == nil || f.Value != "_" {
+			allWildcard = false
+			break
+		}
+	}
+	if allWildcard {
 		covered[v.name] = true
 		return
 	}

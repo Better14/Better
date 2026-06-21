@@ -340,26 +340,41 @@ func (check *Checker) lookupEnumVariant(hint Type, name string) Object {
 }
 
 // lookupPkgEnumVariant resolves an unqualified enum variant name at package level.
-// It succeeds only when exactly one enum in the current package defines the variant.
+// It succeeds only when exactly one enum in the current package or its imports
+// defines the variant.
 func (check *Checker) lookupPkgEnumVariant(name string) Object {
 	var found Object
-	for _, obj := range check.objList {
-		tn, ok := obj.(*TypeName)
-		if !ok {
-			continue
+	findInScope := func(scope *Scope) Object {
+		if scope == nil {
+			return nil
 		}
-		info := check.objMap[tn]
-		if info == nil || info.enumTyp == nil || info.enumTyp.scope == nil {
-			continue
+		for _, n := range scope.Names() {
+			obj := scope.Lookup(n)
+			tn, ok := obj.(*TypeName)
+			if !ok {
+				continue
+			}
+			if et, ok := AsEnum(tn.Type()); ok && et.scope != nil {
+				if v := et.scope.Lookup(name); v != nil {
+					return v
+				}
+			}
 		}
-		v := info.enumTyp.scope.Lookup(name)
-		if v == nil {
-			continue
-		}
-		if found != nil {
-			return nil // ambiguous
-		}
+		return nil
+	}
+	if v := findInScope(check.pkg.scope); v != nil {
 		found = v
+	}
+	for _, imp := range check.imports {
+		if imp == nil || imp.imported == nil {
+			continue
+		}
+		if v := findInScope(imp.imported.scope); v != nil {
+			if found != nil {
+				return nil // ambiguous
+			}
+			found = v
+		}
 	}
 	return found
 }
@@ -618,16 +633,33 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *ast.CompositeLit, hint 
 	if e.Type == nil {
 		return false
 	}
-	sel, ok := ast.Unparen(e.Type).(*ast.SelectorExpr)
-	if !ok {
+	var enumType Type
+	var enumTyp *Enum
+	var variantName string
+	var use *ast.Ident
+	switch t := ast.Unparen(e.Type).(type) {
+	case *ast.Ident:
+		enumType = hint
+		var ok bool
+		enumTyp, ok = AsEnum(hint)
+		if !ok {
+			return false
+		}
+		variantName = t.Name
+		use = t
+	case *ast.SelectorExpr:
+		enumType = check.enumTypeExpr(t.X)
+		var ok bool
+		enumTyp, ok = AsEnum(enumType)
+		if !ok {
+			return false
+		}
+		variantName = t.Sel.Name
+		use = t.Sel
+	default:
 		return false
 	}
-	typ := check.enumTypeExpr(sel.X)
-	enumTyp, ok := AsEnum(typ)
-	if !ok {
-		return false
-	}
-	obj := enumTyp.scope.Lookup(sel.Sel.Name)
+	obj := enumTyp.scope.Lookup(variantName)
 	if obj == nil {
 		return false
 	}
@@ -635,7 +667,7 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *ast.CompositeLit, hint 
 	if variant == nil || len(variant.fields) == 0 {
 		return false
 	}
-	check.recordUse(sel.Sel, obj)
+	check.recordUse(use, obj)
 
 	if len(e.Elts) == 0 {
 		check.error(e, InvalidLitField, "enum struct variant requires fields")
@@ -686,7 +718,7 @@ func (check *Checker) tryEnumCompositeLit(x *operand, e *ast.CompositeLit, hint 
 	}
 
 	x.mode_ = value
-	x.typ_ = typ
+	x.typ_ = enumType
 	x.expr = e
 	return true
 }

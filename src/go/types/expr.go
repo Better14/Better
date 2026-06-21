@@ -488,6 +488,19 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 		}
 		return target, val, code
 
+	case *Pointer:
+		if x.isNil() {
+			return target, nil, 0
+		}
+		if x.mode() == constant_ && isConstType(u.base) {
+			_, val, code := check.implicitTypeAndValue(x, u.base)
+			if code != 0 {
+				return nil, nil, code
+			}
+			return target, val, code
+		}
+		return nil, nil, InvalidUntypedConversion
+
 	case *Interface:
 		if isTypeParam(target) {
 			if !underIs(target, func(u Type) bool {
@@ -517,7 +530,7 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 			return nil, nil, InvalidUntypedConversion
 		}
 		return Default(x.typ()), nil, 0
-	case *Pointer, *Signature, *Slice, *Map, *Chan:
+	case *Signature, *Slice, *Map, *Chan:
 		if !x.isNil() {
 			return nil, nil, InvalidUntypedConversion
 		}
