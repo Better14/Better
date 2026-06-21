@@ -96,7 +96,7 @@ case ChangeColor { r, g, b }:
 }
 ```
 
-**Ignoring struct variant fields** — when you do not need the payload, use an empty struct pattern or `_` for each field:
+**Ignoring struct variant fields** — when you do not need the payload, use an empty struct pattern `{}` or list `_` for each field you want to discard:
 
 ```go
 enum Color {
@@ -126,7 +126,9 @@ case Blue(_):
 }
 ```
 
-When you list every field in a struct pattern, bindings are **positional**: names must match the variant field at that index, or use `_` to skip binding. Partial patterns still match by field name — for example, `Write { text }` binds only `text`, and `Red { _, g, _ }` binds only `g`.
+**Struct pattern field counts** — a case pattern cannot list more entries than the variant has fields. For `Red { r, g, b uint8 }`, at most three field slots may appear: `Red {}`, `Red { _, _, _ }`, and `Red { r, _, _ }` are valid; `Red { _, _, _, _ }` is a compile error. An empty pattern `Red {}` always matches the variant without binding any fields.
+
+When you list every field in a struct pattern, bindings are **positional**: names must match the variant field at that index, or use `_` to skip binding. A pattern that lists only `_` must name every field (`{ _, _, _ }` for three fields). Partial patterns match by field name — for example, `Write { text }` binds only `text`, and `Red { _, g, _ }` binds only `g`.
 
 Invalid (compile error — missing `Value4` and no `default`):
 

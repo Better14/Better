@@ -641,7 +641,13 @@ func (r *reader) params() []*types.Field {
 
 func (r *reader) param() *types.Field {
 	r.Sync(pkgbits.SyncParam)
-	return types.NewField(r.pos(), r.localIdent(), r.typ())
+	pos := r.pos()
+	name := r.localIdent()
+	typ := r.typ()
+	if r.Version().Has(pkgbits.ParamDefaultVal) && r.Bool() {
+		_ = r.Value()
+	}
+	return types.NewField(pos, name, typ)
 }
 
 // @@@ Objects

@@ -148,6 +148,13 @@ func (pw *pkgWriter) typeAndValue(x syntax.Expr) syntax.TypeAndValue {
 }
 
 func (pw *pkgWriter) maybeTypeAndValue(x syntax.Expr) (syntax.TypeAndValue, bool) {
+	if call := pw.info.OperatorCalls[x]; call != nil {
+		return pw.maybeTypeAndValue(call)
+	}
+	if call := pw.info.IndexOperatorCalls[x]; call != nil {
+		return pw.maybeTypeAndValue(call)
+	}
+
 	tv := x.GetTypeInfo()
 
 	// If x is a generic function whose type arguments are inferred
@@ -742,6 +749,14 @@ func (w *writer) param(param *types2.Var) {
 	w.pos(param)
 	w.localIdent(param)
 	w.typ(param.Type())
+	if w.Version().Has(pkgbits.ParamDefaultVal) {
+		if val := param.DefaultVal(); val != nil && val.Kind() != constant.Unknown {
+			w.Bool(true)
+			w.Value(val)
+		} else {
+			w.Bool(false)
+		}
+	}
 }
 
 // @@@ Objects

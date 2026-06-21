@@ -102,3 +102,11 @@ func (o Ordered[T]) First() T {
 func (o Ordered[T]) FirstOrDefault() T {
 	return firstOrDefaultSeq(slices.Values(o.items))
 }
+
+func (o Ordered[T]) Aggregate(fn func(T, T) T) T {
+	return aggregateSeq(slices.Values(o.items), fn)
+}
+
+func (o Ordered[T]) AggregateWithSeed[U any](seed U, fn func(U, T) U) U {
+	return aggregateWithSeedSeq(slices.Values(o.items), seed, fn)
+}

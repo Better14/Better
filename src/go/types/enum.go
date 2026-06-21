@@ -898,6 +898,21 @@ func (check *Checker) enumCasePattern(tag Type, enumTyp *Enum, pattern ast.Expr,
 			check.recordUse(p.Variant, obj)
 			return
 		}
+		if len(p.Fields) > len(v.fields) {
+			check.errorf(p.Variant, WrongArgCount, "enum pattern for %s has too many fields (got %d, variant has %d)", p.Variant.Name, len(p.Fields), len(v.fields))
+			return
+		}
+		allWildcard := true
+		for _, f := range p.Fields {
+			if f == nil || fieldName(f) != "_" {
+				allWildcard = false
+				break
+			}
+		}
+		if allWildcard && len(p.Fields) != len(v.fields) {
+			check.errorf(p.Variant, WrongArgCount, "enum pattern for %s must list every field as _ or use an empty pattern (got %d, want %d)", p.Variant.Name, len(p.Fields), len(v.fields))
+			return
+		}
 		if len(p.Fields) == len(v.fields) {
 			for i, f := range p.Fields {
 				if f == nil || fieldNameIdent(f) == nil {

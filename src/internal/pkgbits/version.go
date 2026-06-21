@@ -37,6 +37,9 @@ const (
 	// V4: encodes generic methods as standalone function objects
 	V4
 
+	// V5: encodes compile-time default argument values on parameters
+	V5
+
 	numVersions = iota
 )
 
@@ -76,6 +79,9 @@ const (
 	// Generic methods may appear as standalone function objects.
 	GenericMethods
 
+	// Param encodes an optional compile-time default value.
+	ParamDefaultVal
+
 	numFields = iota
 )
 
@@ -85,6 +91,7 @@ var introduced = [numFields]Version{
 	AliasTypeParamNames: V2,
 	CompactCompLiterals: V3,
 	GenericMethods:      V4,
+	ParamDefaultVal:     V5,
 }
 
 // removed is the version a field was removed in or 0 for fields
