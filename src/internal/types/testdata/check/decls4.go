@@ -191,7 +191,7 @@ type eD struct {
 
 var (
 	_ = eD{}.xf /* ERROR "ambiguous selector eD{}.xf" */
-	_ = eD{}.xm
+	_ = eD{}.xm /* ERROR "ambiguous selector eD{}.xm" */
 )
 
 var (

@@ -178,6 +178,26 @@ func (pw *pkgWriter) typeOf(expr syntax.Expr) types2.Type {
 	return tv.Type
 }
 
+// exprType returns the type of expr for lowering, using the declared type
+// for variables of type T! when syntax type info was rewritten (e.g. after
+// val, err := r or val, err = r).
+func (pw *pkgWriter) exprType(expr syntax.Expr) types2.Type {
+	if name, ok := syntax.Unparen(expr).(*syntax.Name); ok {
+		var obj types2.Object
+		if o, ok := pw.info.Uses[name]; ok {
+			obj = o
+		} else if o, ok := pw.info.Defs[name]; ok {
+			obj = o
+		}
+		if v, ok := obj.(*types2.Var); ok {
+			if res, ok := types2.AsResult(v.Type()); ok {
+				return res
+			}
+		}
+	}
+	return pw.typeOf(expr)
+}
+
 // A writer provides APIs for writing out an individual element.
 type writer struct {
 	p *pkgWriter
@@ -2660,7 +2680,7 @@ func (w *writer) writeResultDestructurePair(pos poser, expr syntax.Expr, valTyp,
 func (w *writer) resultReturnMultiExpr(pos poser, expr syntax.Expr, dstType func(int) types2.Type) bool {
 	valTyp := dstType(0)
 	errTyp := dstType(1)
-	src := w.p.typeOf(expr)
+	src := w.p.exprType(expr)
 
 	writePair := func(writeVal, writeErr func()) {
 		w.Sync(pkgbits.SyncMultiExpr)
@@ -2709,7 +2729,7 @@ func (w *writer) multiExpr(pos poser, nDst int, dstType func(int) types2.Type, e
 
 	if len(exprs) == 1 {
 		expr := exprs[0]
-		src := w.p.typeOf(expr)
+		src := w.p.exprType(expr)
 
 		if nDst == 2 {
 			if _, ok := types2.AsResult(src); ok {

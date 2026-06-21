@@ -92,10 +92,10 @@ func _() {
 
 type _ = reflect.ValueOf // ERROR "reflect.ValueOf .*is not a type|expected type"
 
-func (A1) m() {} // ERROR "cannot define new methods on non-local type|may not define methods on non-local type"
+func (A1) m() {} // extension on basic type alias is permitted in this fork
 func (A2) m() {} // ERROR "invalid receiver type"
-func (A3) m() {} // ERROR "cannot define new methods on non-local type|may not define methods on non-local type"
-func (A4) m() {} // ERROR "cannot define new methods on non-local type|may not define methods on non-local type"
+func (A3) m() {} // extension on imported named type alias is permitted in this fork
+func (A4) m() {} // extension on imported named type alias is permitted in this fork
 
 type B1 = struct{}
 

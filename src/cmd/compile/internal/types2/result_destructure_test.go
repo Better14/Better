@@ -70,6 +70,27 @@ func f() int! {
 	}
 }
 
+func TestResultReturnErrorAssign(t *testing.T) {
+	const src = `
+package p
+import "errors"
+func f() int! {
+	var a int! = errors.New("boom")
+	return a
+}
+`
+	pkg, err := typecheck(src, nil, nil)
+	if err != nil {
+		t.Fatalf("typecheck failed: %v", err)
+	}
+	a := pkg.Scope().Lookup("f").(*types2.Func).Scope().Lookup("a")
+	if a == nil {
+		t.Fatal("missing var a")
+	}
+	if _, ok := types2.AsResult(a.Type()); !ok {
+		t.Fatalf("var a type = %v, want Result", a.Type())
+	}
+}
 func TestResultAssign(t *testing.T) {
 	const src = `
 package p
