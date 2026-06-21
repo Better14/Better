@@ -161,6 +161,7 @@ type Checker struct {
 	overloadBySig        map[string]*Func                     // overload funcs keyed by name·paramSuffix
 	overloadResolveCache map[overloadResolveKey]*Func         // memoized overload resolution by arg types
 	inExtensionProbe     bool                                 // guard against recursive extension call probing
+	inOverloadProbe      bool                                 // suppress errors while probing overload candidates
 	pendingRecvMethod    string                               // method name while checking a method signature
 	callExpectedType     Type                                 // if set, infer missing type args from this expected expression type
 	inferResultType      Type                                 // function result type for callExpectedType inference

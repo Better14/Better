@@ -93,18 +93,54 @@ func preferExtensionMatch(candidates []extensionMatch) extensionMatch {
 	return candidates[0]
 }
 
+// ensureExtensionCallArgsTyped records types for => lambdas in extension call
+// arguments so a subsequent package-level overload rewrite can resolve them.
+func (check *Checker) ensureExtensionCallArgsTyped(recv *operand, call *ast.CallExpr, m extensionMatch) {
+	if recv == nil || !recv.isValid() || m.fn == nil {
+		return
+	}
+	sig := m.fn.Signature()
+	if sig == nil || sig.Params() == nil {
+		return
+	}
+	smap := check.extensionSubstFromRecv(recv.typ(), sig)
+	var prior []*operand
+	recvOp := *recv
+	prior = append(prior, &recvOp)
+	for i, arg := range call.Args {
+		pi := i + 1
+		if pi >= sig.Params().Len() {
+			break
+		}
+		paramType := sig.Params().At(pi).Type()
+		if len(smap) > 0 {
+			paramType = check.subst(call.Pos(), paramType, smap, nil, check.context())
+		}
+		paramType = check.substHintFromPriorArgs(paramType, sig, prior)
+		var x operand
+		check.rawExpr(nil, &x, arg, paramType, true)
+		if x.isValid() {
+			check.recordTypeAndValue(arg, value, x.typ(), nil)
+		}
+		prior = append(prior, &x)
+	}
+}
+
 func (check *Checker) selectExtensionMatch(call *ast.CallExpr, recv *operand, matches []extensionMatch) (extensionMatch, bool) {
 	matches = dedupeExtensionMatches(matches)
 	if len(matches) > 1 {
 		narrowed := check.narrowExtensionMatchesByCallbackArity(recv.typ(), call.Args, matches)
 		if len(narrowed) == 1 {
-			return narrowed[0], true
+			m := narrowed[0]
+			check.ensureExtensionCallArgsTyped(recv, call, m)
+			return m, true
 		}
 		if len(narrowed) > 0 {
 			matches = narrowed
 		}
 	}
 	if len(matches) == 1 {
+		check.ensureExtensionCallArgsTyped(recv, call, matches[0])
 		return matches[0], true
 	}
 	var fits []extensionMatch
@@ -114,11 +150,13 @@ func (check *Checker) selectExtensionMatch(call *ast.CallExpr, recv *operand, ma
 		}
 	}
 	if len(fits) == 1 {
+		check.ensureExtensionCallArgsTyped(recv, call, fits[0])
 		return fits[0], true
 	}
 	if len(fits) > 1 {
 		narrowed := check.narrowExtensionMatchesByCallbackArity(recv.typ(), call.Args, fits)
 		if len(narrowed) == 1 {
+			check.ensureExtensionCallArgsTyped(recv, call, narrowed[0])
 			return narrowed[0], true
 		}
 		if len(narrowed) > 0 {
@@ -129,6 +167,7 @@ func (check *Checker) selectExtensionMatch(call *ast.CallExpr, recv *operand, ma
 		return extensionMatch{}, false
 	}
 	if len(fits) == 1 {
+		check.ensureExtensionCallArgsTyped(recv, call, fits[0])
 		return fits[0], true
 	}
 	candidates := fits
@@ -171,12 +210,15 @@ func (check *Checker) selectExtensionMatch(call *ast.CallExpr, recv *operand, ma
 	if fn := check.selectOverloadSilent(call, funcs, argOps); fn != nil {
 		for _, m := range candidates {
 			if m.fn == fn {
+				check.ensureExtensionCallArgsTyped(recv, call, m)
 				return m, true
 			}
 		}
 	}
 	if len(candidates) > 0 {
-		return preferExtensionMatch(candidates), true
+		m := preferExtensionMatch(candidates)
+		check.ensureExtensionCallArgsTyped(recv, call, m)
+		return m, true
 	}
 	return extensionMatch{}, false
 }
