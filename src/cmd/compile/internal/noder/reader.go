@@ -536,6 +536,8 @@ func (r *reader) doTyp() *types.Type {
 		return types.NewMap(r.typ(), r.typ())
 	case pkgbits.TypePointer:
 		return types.NewPtr(r.typ())
+	case pkgbits.TypeOptional:
+		return types.NewPtr(r.typ())
 	case pkgbits.TypeSignature:
 		return r.signature(nil)
 	case pkgbits.TypeSlice:

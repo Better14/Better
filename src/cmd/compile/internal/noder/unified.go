@@ -26,7 +26,7 @@ import (
 
 // uirVersion is the unified IR version to use for encoding/decoding.
 // This fork uses generic methods (e.g. linq) and requires V4.
-var uirVersion = pkgbits.V5
+var uirVersion = pkgbits.V6
 
 // localPkgReader holds the package reader used for reading the local
 // package. It exists so the unified IR linker can refer back to it

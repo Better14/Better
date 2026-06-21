@@ -40,6 +40,9 @@ const (
 	// V5: encodes compile-time default argument values on parameters
 	V5
 
+	// V6: encodes nullable T? types as TypeOptional rather than TypePointer
+	V6
+
 	numVersions = iota
 )
 
