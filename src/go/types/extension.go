@@ -765,6 +765,9 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 		return statement, true
 	}
 
+	// Record on the source selector so gopls hover/definition work on chains.
+	check.recordSelection(sel, MethodVal, recv.typ(), m.fn, []int{0}, false)
+
 	recvExpr := sel.X
 	if m.slice {
 		recvExpr = &ast.SliceExpr{X: sel.X}
@@ -807,7 +810,6 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 
 	pkgIdent := m.pkgName
 	if pkgIdent == nil {
-		check.recordUse(sel.Sel, m.fn)
 		call.Fun = astNewIdent(call.Pos(), funcName)
 	} else {
 		call.Fun = &ast.SelectorExpr{
@@ -820,9 +822,6 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 			if name := pkgIdent.name; name != "" && name != "." && name != "_" {
 				check.UsedImportNames[name] = true
 			}
-		}
-		if !useLinqFast {
-			check.recordSelection(call.Fun.(*ast.SelectorExpr), MethodVal, recv.typ(), m.fn, []int{0}, false)
 		}
 	}
 	if inst != nil {

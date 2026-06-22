@@ -6,6 +6,7 @@ package types_test
 
 import (
 	"go/ast"
+	"go/importer"
 	"go/token"
 	"testing"
 
@@ -97,11 +98,17 @@ func use(s []int) {
 		}
 		return true
 	})
-	if selExpr == nil {
-		t.Fatal("missing s.Double() call")
+	var sel *Selection
+	for expr, s := range info.Selections {
+		if expr.Sel.Name == "Double" {
+			sel = s
+			if selExpr == nil {
+				selExpr = expr
+			}
+			break
+		}
 	}
-	sel, ok := info.Selections[selExpr]
-	if !ok {
+	if sel == nil {
 		t.Fatal("extension call missing Selection")
 	}
 	if sel.Kind() != MethodVal {
@@ -112,5 +119,55 @@ func use(s []int) {
 	}
 	if obj := info.Uses[selExpr.Sel]; obj == nil || obj.Name() != "Double" {
 		t.Fatalf("Uses[Double] = %v, want Double", obj)
+	}
+}
+
+func TestLinqExtensionSelectionRecording(t *testing.T) {
+	const src = `package main
+
+import "linq"
+
+type P struct { Price float64; Tags []string }
+
+func f(products []P) {
+	_ = products.
+		Where(p => p.Price >= 100).
+		SelectMany(p => p.Tags).
+		ToList()
+}
+`
+	fset := token.NewFileSet()
+	f := mustParse(fset, src)
+	info := &Info{
+		Uses:       make(map[*ast.Ident]Object),
+		Defs:       make(map[*ast.Ident]Object),
+		Selections: make(map[*ast.SelectorExpr]*Selection),
+	}
+	conf := &Config{
+		GoVersion: "go1.27",
+		Importer:  importer.ForCompiler(fset, "source", nil),
+	}
+	if _, err := conf.Check("main", fset, []*ast.File{f}, info); err != nil {
+		t.Fatal(err)
+	}
+
+	want := map[string]bool{"Where": false, "SelectMany": false}
+	for expr, s := range info.Selections {
+		name := expr.Sel.Name
+		if _, ok := want[name]; !ok {
+			continue
+		}
+		if s.Kind() != MethodVal || s.Obj().Name() != name {
+			t.Errorf("Selection for .%s() = %v %s, want method %s", name, s.Kind(), s.Obj().Name(), name)
+		}
+		if obj := info.Uses[expr.Sel]; obj == nil || obj.Name() != name {
+			t.Errorf("Uses[%s] = %v, want %s", name, obj, name)
+		}
+		want[name] = true
+	}
+	for name, ok := range want {
+		if !ok {
+			t.Errorf("missing Selection for .%s()", name)
+		}
 	}
 }
