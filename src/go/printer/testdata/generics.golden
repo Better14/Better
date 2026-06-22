@@ -79,10 +79,10 @@ type _ [P * (*T)]byte
 type _ [P * T]byte
 type _ [P(*T)]byte
 type _ [P(**T)]byte
-type _ [P*T - T]byte
-type _ [P*T - T]byte
-type _ [P*T | T]byte
-type _ [P*T | <-T | T]byte
+type _ [P * T - T]byte
+type _ [P * T - T]byte
+type _ [P * T | T]byte
+type _ [P * T | <-T | T]byte
 
 // equivalent test cases for potentially ambiguous type parameter lists, except
 // for function declarations there is no ambiguity (issue #51548)

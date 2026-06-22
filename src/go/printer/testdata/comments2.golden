@@ -99,7 +99,7 @@ LLLLL:
 
 	// test case from issue
 label:
-	mask := uint64(1)<<c - 1		// Allocation mask
+	mask := uint64(1) << c - 1		// Allocation mask
 	used := atomic.LoadUint64(&h.used)	// Current allocations
 }
 
