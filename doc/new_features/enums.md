@@ -2,6 +2,8 @@
 
 Go supports Rust-style **algebraic enums** (tagged unions): each variant is one of several named forms, with optional payloads and optional explicit discriminants.
 
+`enum` is a **contextual keyword**: it starts a top-level enum declaration (`enum Name { ... }`) but remains a normal identifier elsewhere (parameter names, range variables, struct fields, etc.). This keeps third-party code that uses `enum` as an identifier compatible with BetterGo.
+
 ### Declaration
 
 ```go

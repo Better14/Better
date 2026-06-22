@@ -19,8 +19,14 @@ Fork feature lookups that previously scanned lists or scopes now use maps built 
 | `extensionByName` | method name | `[]*Func` | lazy per import; incremental in `indexExtensionFunc` |
 | `variantByName` / `variantByObj` | variant name / `Object` | `*EnumVariant` | `NewEnum` |
 | `overloadResolveCache` | `(cand, nargs, argTypeSuffix)` | `*Func` | per file check, on first unambiguous resolution |
+| `pkgHasCallOverloads` | — | `bool` | `assignOverloadSuffixes` (once per check) |
+| `pkgHasOperatorOverloads` | — | `bool` | same |
+| `pkgHasExtensions` | — | `bool` | same |
+| `pkgHasEnums` | — | `bool` | same |
+| `operatorOverloadsByName` | operator name | `[]*Func` | lazy when `pkgHasOperatorOverloads` |
+| `extensionMethodByName` | method name | `bool` | lazy when `pkgHasExtensions` |
 
-Implementation lives primarily in `types2/perf_index.go`. Package-level indexes are stored on `Package`; per-checker indexes and the resolve cache are on `Checker`.
+Implementation lives primarily in `types2/perf_index.go`. Package-level indexes are stored on `Package`; per-checker indexes, feature flags, and resolve caches are on `Checker`.
 
 ---
 
@@ -145,6 +151,81 @@ At package init, `buildCheckerIndexes` builds `overloadBySig map[name+paramTypes
 
 ---
 
+## Fixed: call-overload probe rescans imports on every call
+
+### Symptom
+
+Compiling large third-party packages with many function calls (e.g. `go.mongodb.org/mongo-driver/bson/bsoncodec`) could take **20+ minutes** on the fork while vanilla Go finished in seconds.
+
+### Cause
+
+`callExpr` called `overloadCandidatesForCall` on **every** function and method call. That function called `hasCallOverloads()`, which was **not cached** and, on each invocation, scanned the current package’s overload maps and **every import** (calling `EnsurePackageOperatorIndexes` per import) looking for names with more than one overload candidate.
+
+For a package with **C** call sites and **I** imports, total work was **O(C × I)** even when the package defined no overloads at all.
+
+### Fix
+
+1. **`initForkFeatureCaches`** (in `assignOverloadSuffixes`) computes `pkgHasCallOverloads` once by scanning the current package and imports a single time.
+2. **`hasCallOverloads()`** returns the cached flag — **O(1)** per call site.
+3. **`overloadCandidatesForCall`** still does map lookup by name when overloads exist; the expensive import scan happens at most once per type-check pass.
+
+**Locations:** `types2/overload.go`, `types2/perf_index.go`, `types2/check.go`
+
+---
+
+## Fixed: operator-overload probe rescans imports on every operator
+
+### Cause
+
+`applyBinaryOperatorOverload`, `tryUnaryOperatorOverload`, and `tryIncDecOperatorOverload` called `operatorOverloads(name)` on every binary/unary operation. That function scanned the current package and **every import** for each operator token (`+`, `-`, `==`, etc.), even in packages with no operator overloads.
+
+On a file with **n** operators, work was **O(n × I)** per operator kind encountered.
+
+### Fix
+
+1. **`pkgHasOperatorOverloads`** is computed once in `initForkFeatureCaches`.
+2. Operator probes return immediately when the flag is false.
+3. When true, **`operatorOverloadsByName`** memoizes the merged candidate list per operator name (at most one import scan per distinct operator, not per use site).
+
+**Locations:** `types2/operator.go`, `types2/perf_index.go`
+
+---
+
+## Fixed: extension-method name probe on every selector call
+
+### Cause
+
+`tryExtensionCall` ran on every selector call expression and called `extensionMethodExists(method)`, which looped over the current package and **all imports** on every probe, even when no package in the import graph declared extension methods.
+
+For **S** selector calls and **I** imports, work was **O(S × I)**.
+
+### Fix
+
+1. **`pkgHasExtensions`** is computed once in `initForkFeatureCaches`.
+2. **`callExpr`** skips `tryExtensionCall` entirely when the flag is false.
+3. When extensions may exist, **`extensionMethodByName`** memoizes the yes/no result per method name.
+
+**Locations:** `types2/call.go`, `types2/extension.go`, `types2/perf_index.go`
+
+---
+
+## Fixed: enum variant probe on every call and composite literal
+
+### Cause
+
+`tryEnumVariantCall` ran at the start of **every** `callExpr`, including selector forms that call `enumTypeExpr` on the receiver. `tryEnumCompositeLit` and enum-aware `Name` handling in `exprInternal` also ran even when no package in the import graph declared enum types.
+
+For packages with **C** call sites and no enums, work was **O(C)** in unnecessary enum probes (selector calls still evaluated receivers via `enumTypeExpr` before bailing out).
+
+### Fix
+
+1. **`pkgHasEnums`** is computed once in `initForkFeatureCaches` by scanning `objMap`, the current package scope, and imports.
+2. **`callExpr`**, **`compositeLit`**, and enum-aware **`Name`** handling in `exprInternal` skip enum probes when the flag is false.
+
+**Locations:** `types2/call.go`, `types2/expr.go`, `types2/literals.go`, `types2/perf_index.go`
+
+---
+
 ## Summary table
 
 | Path | Complexity (before) | Status |
@@ -157,6 +238,10 @@ At package init, `buildCheckerIndexes` builds `overloadBySig map[name+paramTypes
 | `operatorFuncsInPackage` fallback | O(\|scope\|) per lookup | **Fixed** (O(1) after index) |
 | Overload selection | O(k × args) per call | **Indexed** + memoized |
 | Index operator re-check of base | 2× work on `e.X` | **Fixed** |
+| `hasCallOverloads` per call site | O(I) per call | **Fixed** (O(1) flag) |
+| `operatorOverloads` per operator use | O(I) per op | **Fixed** (O(1) flag; O(I) once per op name) |
+| `extensionMethodExists` per selector | O(I) per call | **Fixed** (O(1) flag; O(I) once per method name) |
+| Enum variant probe per call/lit | O(1)–O(expr) per site | **Fixed** (O(1) flag) |
 
 ---
 

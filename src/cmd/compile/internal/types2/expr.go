@@ -1120,7 +1120,7 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		goto Error // error was reported before
 
 	case *syntax.Name:
-		if hint != nil {
+		if check.pkgHasEnums && hint != nil {
 			if obj := check.lookupEnumVariant(hint, e.Value); obj != nil {
 				check.recordUse(e, obj)
 				check.enumVariantOperand(x, obj, e)

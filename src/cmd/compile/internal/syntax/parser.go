@@ -436,6 +436,17 @@ func (p *parser) fileOrNil() *File {
 		}
 		prev = p.tok
 
+		if p.tok == _Enum || (p.tok == _Name && p.lit == "enum") {
+			p.next()
+			f.DeclList = p.appendGroup(f.DeclList, p.enumDecl)
+			p.clearPragma()
+			if p.tok != _EOF && !p.got(_Semi) {
+				p.syntaxError("after top level declaration")
+				p.advance(_Import, _Const, _Type, _Enum, _Struct, _Interface, _Var, _Func)
+			}
+			continue
+		}
+
 		switch p.tok {
 		case _Import:
 			p.next()
@@ -448,10 +459,6 @@ func (p *parser) fileOrNil() *File {
 		case _Type:
 			p.next()
 			f.DeclList = p.appendGroup(f.DeclList, p.typeDecl)
-
-		case _Enum:
-			p.next()
-			f.DeclList = p.appendGroup(f.DeclList, p.enumDecl)
 
 		case _Struct:
 			p.next()

@@ -286,38 +286,11 @@ func (check *Checker) assignOverloadSuffixes() {
 			}
 		}
 	}
+	check.initForkFeatureCaches()
 }
 
 func (check *Checker) hasCallOverloads() bool {
-	for _, cands := range check.overloadFuncs {
-		if len(cands) > 1 {
-			return true
-		}
-	}
-	for _, cands := range check.overloadMeths {
-		if len(cands) > 1 {
-			return true
-		}
-	}
-	for _, imp := range check.imports {
-		if imp == nil || imp.imported == nil {
-			continue
-		}
-		EnsurePackageOperatorIndexes(imp.imported)
-		for _, cands := range imp.imported.overloadFuncs {
-			if len(cands) > 1 {
-				return true
-			}
-		}
-		if imp.imported.operatorFuncIndex != nil {
-			for _, cands := range imp.imported.operatorFuncIndex {
-				if len(cands) > 1 {
-					return true
-				}
-			}
-		}
-	}
-	return false
+	return check.pkgHasCallOverloads
 }
 
 func (check *Checker) recvBaseNameFromExpr(x syntax.Expr) string {
