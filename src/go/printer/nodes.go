@@ -841,20 +841,14 @@ func walkBinary(e *ast.BinaryExpr) (has4, has5 bool, maxProblem int) {
 }
 
 func cutoff(e *ast.BinaryExpr, depth int) int {
-	has4, has5, maxProblem := walkBinary(e)
+	_, _, maxProblem := walkBinary(e)
 	if maxProblem > 0 {
 		return maxProblem + 1
 	}
-	if has4 && has5 {
-		if depth == 1 {
-			return 6
-		}
-		return 5
-	}
-	if depth == 1 {
-		return 7
-	}
-	return 5
+	// Always use spaces around level 5 and 6 operators. Compact mode
+	// (depth > 1) previously omitted those spaces; this fork keeps them
+	// for readability (e.g. a + b * x, not a+b*x).
+	return 7
 }
 
 func isComparison(op token.Token) bool {
@@ -897,8 +891,6 @@ func reduceDepth(depth int) int {
 }
 
 // Format the binary expression: decide the cutoff and then format.
-// Let's call depth == 1 Normal mode, and depth > 1 Compact mode.
-// (Algorithm suggestion by Russ Cox.)
 //
 // The precedences are:
 //
@@ -909,7 +901,7 @@ func reduceDepth(depth int) int {
 //	2             ||
 //	1             ??
 //
-// The only decision is whether there will be spaces around levels 5 and 6.
+// Level 5 and 6 operators always have spaces around them (cutoff 7).
 // There are never spaces at level 7 (unary), and always spaces at levels 4 and below.
 //
 // To choose the cutoff, look at the whole expression but excluding primary
@@ -926,13 +918,7 @@ func reduceDepth(depth int) int {
 //
 //     (Comparison and remainder operators always have spaces around them.)
 //
-//  2. If there is a mix of level 6 and level 5 operators, then the cutoff
-//     is 6 (use spaces to distinguish precedence) in Normal mode
-//     and 5 (never use spaces) in Compact mode.
-//
-//  3. If there are no level 5 operators or no level 6 operators, then the
-//     cutoff is 7 (always use spaces) in Normal mode
-//     and 5 (never use spaces) in Compact mode.
+//  2. Otherwise the cutoff is 7 (always use spaces around level 5 and 6).
 func (p *printer) binaryExpr(x *ast.BinaryExpr, prec1, cutoff, depth int) {
 	prec := x.Op.Precedence()
 	if prec < prec1 {

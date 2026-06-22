@@ -60,7 +60,7 @@ func ExampleFprint() {
 	// printer.Fprint(&buf, fset, funcAST.Body)
 	//
 	// s := buf.String()
-	// s = s[1 : len(s)-1]
+	// s = s[1 : len(s) - 1]
 	// s = strings.TrimSpace(strings.ReplaceAll(s, "\n\t", "\n"))
 	//
 	// fmt.Println(s)

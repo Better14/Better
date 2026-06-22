@@ -38,7 +38,7 @@ func _() {
 	_ = s[0:len(s)]
 	_ = s[0] << 1
 	_ = (s[0] << 1) & 0xf
-	_ = s[0]<<2 | s[1]>>4
+	_ = s[0] << 2 | s[1] >> 4
 	_ = "foo" + s
 	_ = s + "foo"
 	_ = 'a' + 'b'
@@ -49,23 +49,23 @@ func _() {
 	_ = a + -b
 	_ = a - ^b
 	_ = a / (*p)
-	_ = a + b*c
-	_ = 1 + b*c
-	_ = a + 2*c
-	_ = a + c*2
-	_ = 1 + 2*3
-	_ = s[1 : 2*3]
-	_ = s[a : b-c]
+	_ = a + b * c
+	_ = 1 + b * c
+	_ = a + 2 * c
+	_ = a + c * 2
+	_ = 1 + 2 * 3
+	_ = s[1 : 2 * 3]
+	_ = s[a : b - c]
 	_ = s[0:]
-	_ = s[a+b]
-	_ = s[:b-c]
-	_ = s[a+b:]
-	_ = a[a<<b+1]
-	_ = a[a<<b+1:]
-	_ = s[a+b : len(s)]
+	_ = s[a + b]
+	_ = s[:b - c]
+	_ = s[a + b:]
+	_ = a[a << b + 1]
+	_ = a[a << b + 1:]
+	_ = s[a + b : len(s)]
 	_ = s[len(s):-a]
-	_ = s[a : len(s)+1]
-	_ = s[a:len(s)+1] + s
+	_ = s[a : len(s) + 1]
+	_ = s[a:len(s) + 1] + s
 
 	// spaces around operators with equal or lower precedence than comparisons
 	_ = a == b
@@ -80,24 +80,24 @@ func _() {
 	// spaces around "long" operands
 	_ = a + longIdentifier1
 	_ = longIdentifier1 + a
-	_ = longIdentifier1 + longIdentifier2*longIdentifier3
+	_ = longIdentifier1 + longIdentifier2 * longIdentifier3
 	_ = s + "a longer string"
 
 	// some selected cases
 	_ = a + t0.x
-	_ = a + t0.x + t1.x*t2.x
-	_ = a + b + c + d + e + 2*3
-	_ = a + b + c + 2*3 + d + e
+	_ = a + t0.x + t1.x * t2.x
+	_ = a + b + c + d + e + 2 * 3
+	_ = a + b + c + 2 * 3 + d + e
 	_ = (a + b + c) * 2
-	_ = a - b + c - d + (a + b + c) + d&e
+	_ = a - b + c - d + (a + b + c) + d & e
 	_ = under_bar - 1
-	_ = Open(dpath+"/file", O_WRONLY|O_CREAT, 0666)
-	_ = int(c0&_Mask4)<<18 | int(c1&_Maskx)<<12 | int(c2&_Maskx)<<6 | int(c3&_Maskx)
+	_ = Open(dpath + "/file", O_WRONLY | O_CREAT, 0666)
+	_ = int(c0 & _Mask4) << 18 | int(c1 & _Maskx) << 12 | int(c2 & _Maskx) << 6 | int(c3 & _Maskx)
 
 	// test case for issue 8021
 	// want:
 	//  ([]bool{})[([]int{})[((1)+(((1)+((((1)*(((1)+(1))+(1)))+(1))*(1)))+(1)))]]
-	_ = ([]bool{})[([]int{})[((1)+(((1)+((((1)*(((1)+(1))+(1)))+(1))*(1)))+(1)))]]
+	_ = ([]bool{})[([]int{})[((1) + (((1) + ((((1) * (((1) + (1)) + (1))) + (1)) * (1))) + (1)))]]
 
 	// the parser does not restrict expressions that may appear as statements
 	true
@@ -122,118 +122,118 @@ func _() {
 // slice expressions with cap
 func _() {
 	_ = x[a:b:c]
-	_ = x[a : b : c+d]
-	_ = x[a : b+d : c]
-	_ = x[a : b+d : c+d]
-	_ = x[a+d : b : c]
-	_ = x[a+d : b : c+d]
-	_ = x[a+d : b+d : c]
-	_ = x[a+d : b+d : c+d]
+	_ = x[a : b : c + d]
+	_ = x[a : b + d : c]
+	_ = x[a : b + d : c + d]
+	_ = x[a + d : b : c]
+	_ = x[a + d : b : c + d]
+	_ = x[a + d : b + d : c]
+	_ = x[a + d : b + d : c + d]
 
 	_ = x[:b:c]
-	_ = x[: b : c+d]
-	_ = x[: b+d : c]
-	_ = x[: b+d : c+d]
+	_ = x[: b : c + d]
+	_ = x[: b + d : c]
+	_ = x[: b + d : c + d]
 }
 
 func issue22111() {
 	_ = x[:]
 
 	_ = x[:b]
-	_ = x[:b+1]
+	_ = x[:b + 1]
 
 	_ = x[a:]
-	_ = x[a+1:]
+	_ = x[a + 1:]
 
 	_ = x[a:b]
-	_ = x[a+1 : b]
-	_ = x[a : b+1]
-	_ = x[a+1 : b+1]
+	_ = x[a + 1 : b]
+	_ = x[a : b + 1]
+	_ = x[a + 1 : b + 1]
 
 	_ = x[:b:c]
-	_ = x[: b+1 : c]
-	_ = x[: b : c+1]
-	_ = x[: b+1 : c+1]
+	_ = x[: b + 1 : c]
+	_ = x[: b : c + 1]
+	_ = x[: b + 1 : c + 1]
 
 	_ = x[a:b:c]
-	_ = x[a+1 : b : c]
-	_ = x[a : b+1 : c]
-	_ = x[a+1 : b+1 : c]
-	_ = x[a : b : c+1]
-	_ = x[a+1 : b : c+1]
-	_ = x[a : b+1 : c+1]
-	_ = x[a+1 : b+1 : c+1]
+	_ = x[a + 1 : b : c]
+	_ = x[a : b + 1 : c]
+	_ = x[a + 1 : b + 1 : c]
+	_ = x[a : b : c + 1]
+	_ = x[a + 1 : b : c + 1]
+	_ = x[a : b + 1 : c + 1]
+	_ = x[a + 1 : b + 1 : c + 1]
 }
 
 func _() {
 	_ = a + b
 	_ = a + b + c
-	_ = a + b*c
+	_ = a + b * c
 	_ = a + (b * c)
 	_ = (a + b) * c
 	_ = a + (b * c * d)
-	_ = a + (b*c + d)
+	_ = a + (b * c + d)
 
 	_ = 1 << x
 	_ = -1 << x
-	_ = 1<<x - 1
-	_ = -1<<x - 1
+	_ = 1 << x - 1
+	_ = -1 << x - 1
 
 	_ = f(a + b)
 	_ = f(a + b + c)
-	_ = f(a + b*c)
+	_ = f(a + b * c)
 	_ = f(a + (b * c))
-	_ = f(1<<x-1, 1<<x-2)
+	_ = f(1 << x - 1, 1 << x - 2)
 
-	_ = 1<<d.logWindowSize - 1
+	_ = 1 << d.logWindowSize - 1
 
-	buf = make(x, 2*cap(b.buf)+n)
+	buf = make(x, 2 * cap(b.buf) + n)
 
-	dst[i*3+2] = dbuf[0] << 2
-	dst[i*3+2] = dbuf[0]<<2 | dbuf[1]>>4
+	dst[i * 3 + 2] = dbuf[0] << 2
+	dst[i * 3 + 2] = dbuf[0] << 2 | dbuf[1] >> 4
 
-	b.buf = b.buf[0 : b.off+m+n]
-	b.buf = b.buf[0 : b.off+m*n]
-	f(b.buf[0 : b.off+m+n])
+	b.buf = b.buf[0 : b.off + m + n]
+	b.buf = b.buf[0 : b.off + m * n]
+	f(b.buf[0 : b.off + m + n])
 
 	signed += ' ' * 8
 	tw.octal(header[148:155], chksum)
 
 	_ = x > 0 && i >= 0
 
-	x1, x0 := x>>w2, x&m2
-	z0 = t1<<w2 + t0
-	z1 = (t1 + t0>>w2) >> w2
-	q1, r1 := x1/d1, x1 % d1
-	r1 = r1*b2 | x0>>w2
+	x1, x0 := x >> w2, x & m2
+	z0 = t1 << w2 + t0
+	z1 = (t1 + t0 >> w2) >> w2
+	q1, r1 := x1 / d1, x1 % d1
+	r1 = r1 * b2 | x0 >> w2
 	x1 = (x1 << z) | (x0 >> (uint(w) - z))
-	x1 = x1<<z | x0>>(uint(w)-z)
+	x1 = x1 << z | x0 >> (uint(w) - z)
 
-	_ = buf[0 : len(buf)+1]
-	_ = buf[0 : n+1]
+	_ = buf[0 : len(buf) + 1]
+	_ = buf[0 : n + 1]
 
 	a, b = b, a
 	a = b + c
-	a = b*c + d
-	_ = a*b + c
+	a = b * c + d
+	_ = a * b + c
 	_ = a - b - c
 	_ = a - (b - c)
-	_ = a - b*c
+	_ = a - b * c
 	_ = a - (b * c)
 	_ = a * b / c
 	_ = a / (*b)
-	_ = x[a|^b]
-	_ = x[a/(*b)]
+	_ = x[a | ^b]
+	_ = x[a / (*b)]
 	_ = a & (^b)
 	_ = a + +b
 	_ = a - -b
-	_ = x[a*(-b)]
+	_ = x[a * (-b)]
 	_ = x[a + +b]
 	_ = x ^ y ^ z
-	_ = b[a>>24] ^ b[(a>>16)&0xFF] ^ b[(a>>8)&0xFF] ^ b[a&0xFF]
+	_ = b[a >> 24] ^ b[(a >> 16) & 0xFF] ^ b[(a >> 8) & 0xFF] ^ b[a & 0xFF]
 	_ = len(longVariableName) * 2
 
-	_ = token(matchType + xlength<<lengthShift + xoffset)
+	_ = token(matchType + xlength << lengthShift + xoffset)
 }
 
 func f(x int, args ...int) {
@@ -271,7 +271,7 @@ func f(x int, args ...int) {
 	_ = x & (&x)
 	_ = x & (^x)
 
-	_ = f(x/(*y), x < -1, x < <-1, x + +1, x - -1, x&(&x), x&(^x))
+	_ = f(x / (*y), x < -1, x < <-1, x + +1, x - -1, x & (&x), x & (^x))
 }
 
 func _() {
@@ -612,7 +612,7 @@ func _() {
 	_ = new(T).foo(
 		1).foo(2)
 
-	_ = Array[3+
+	_ = Array[3 +
 		4]
 
 	_ = Method(1, 2,
@@ -647,7 +647,7 @@ func _() {
 
 	_ = new(T)
 		.Field
-		.Array[3+
+		.Array[3 +
 		4]
 		.Table["foo"]
 		.Blob.(*Type)
@@ -681,7 +681,7 @@ func _() {
 // Don't introduce extra newlines in strangely formatted expression lists.
 func f() {
 	// os.Open parameters should remain on two lines
-	if writer, err = os.Open(outfile, s.O_WRONLY|os.O_CREATE|
+	if writer, err = os.Open(outfile, s.O_WRONLY | os.O_CREATE |
 		os.O_TRUNC, 0666); err != nil {
 		log.Fatal(err)
 	}
