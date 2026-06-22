@@ -169,21 +169,25 @@ func (check *Checker) instantiateSignature(pos syntax.Pos, expr syntax.Expr, typ
 }
 
 func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exprKind {
-	if check.tryEnumVariantCall(x, call, hint) {
+	if check.pkgHasEnums && check.tryEnumVariantCall(x, call, hint) {
 		return expression
 	}
 
-	if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
-		if kind, handled := check.tryExtensionCall(x, call, sel, nil); handled {
-			return kind
+	if check.pkgHasExtensions {
+		if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
+			if kind, handled := check.tryExtensionCall(x, call, sel, nil); handled {
+				return kind
+			}
 		}
 	}
 
 	var inst *syntax.IndexExpr // function instantiation, if any
 	if iexpr, _ := call.Fun.(*syntax.IndexExpr); iexpr != nil {
-		if sel, ok := iexpr.X.(*syntax.SelectorExpr); ok {
-			if kind, handled := check.tryExtensionCall(x, call, sel, iexpr); handled {
-				return kind
+		if check.pkgHasExtensions {
+			if sel, ok := iexpr.X.(*syntax.SelectorExpr); ok {
+				if kind, handled := check.tryExtensionCall(x, call, sel, iexpr); handled {
+					return kind
+				}
 			}
 		}
 		if check.indexExpr(x, iexpr) {

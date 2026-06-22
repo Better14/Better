@@ -3348,13 +3348,23 @@ func (p *parser) parseGenDecl(keyword token.Token, f parseSpecFunction) *ast.Gen
 	}
 }
 
+func (p *parser) atEnumKeyword() bool {
+	return p.tok == token.ENUM || (p.tok == token.IDENT && p.lit == "enum")
+}
+
 func (p *parser) parseEnumDecl() *ast.EnumDecl {
 	if p.trace {
 		defer un(trace(p, "EnumDecl"))
 	}
 
 	doc := p.leadComment
-	enumPos := p.expect(token.ENUM)
+	var enumPos token.Pos
+	if !p.atEnumKeyword() {
+		enumPos = p.expect(token.ENUM)
+	} else {
+		enumPos = p.pos
+		p.next()
+	}
 	name := p.parseIdent()
 
 	var tparams *ast.FieldList
@@ -3489,12 +3499,12 @@ func (p *parser) parseDecl(sync map[token.Token]bool) ast.Decl {
 	}
 
 	var f parseSpecFunction
+	if p.atEnumKeyword() {
+		return p.parseEnumDecl()
+	}
 	switch p.tok {
 	case token.IMPORT:
 		f = p.parseImportSpec
-
-	case token.ENUM:
-		return p.parseEnumDecl()
 
 	case token.STRUCT:
 		return p.parseStructDecl()

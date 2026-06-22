@@ -156,6 +156,16 @@ type Checker struct {
 	overloadBySig        map[string]*Func                     // overload func by name + parameter-type suffix
 	overloadResolveCache map[overloadResolveKey]*Func         // memoized overload resolution by arg types
 
+	// Fork language feature presence, computed once in assignOverloadSuffixes.
+	pkgHasCallOverloads     bool
+	pkgHasOperatorOverloads bool
+	pkgHasExtensions        bool
+	pkgHasEnums             bool
+
+	// Per-name memoization when the corresponding pkgHas* flag is true.
+	operatorOverloadsByName map[string][]*Func
+	extensionMethodByName   map[string]bool
+
 	callExpectedType Type // if set, infer missing type args from this expected expression type
 	inferResultType  Type // function result type for callExpectedType inference
 	inExtensionProbe     bool                                 // guard against recursive extension call probing

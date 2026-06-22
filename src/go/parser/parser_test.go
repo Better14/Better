@@ -1169,3 +1169,22 @@ enum Message {
 		t.Fatalf("ParseFile: %v", err)
 	}
 }
+
+func TestParseEnumAsIdentifier(t *testing.T) {
+	const src = `package p
+
+func FindEnumByName(enum string) error {
+	for _, enum := range []string{"a"} {
+		if enum == "" {
+			return nil
+		}
+	}
+	return nil
+}
+`
+	fset := token.NewFileSet()
+	_, err := ParseFile(fset, "", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+}

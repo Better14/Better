@@ -620,15 +620,28 @@ func extensionSeqElemMatch(check *Checker, elem, pattern Type) bool {
 // extensionMethodExists reports whether method is declared as an extension
 // in the current package or any import, without type-checking receivers.
 func (check *Checker) extensionMethodExists(method string) bool {
-	if len(extensionFuncsInPackage(check.pkg, method)) > 0 {
-		return true
+	if !check.pkgHasExtensions {
+		return false
 	}
-	for _, imp := range check.imports {
-		if imp.imported != nil && len(extensionFuncsInPackage(imp.imported, method)) > 0 {
-			return true
+	if check.extensionMethodByName != nil {
+		if exists, ok := check.extensionMethodByName[method]; ok {
+			return exists
 		}
 	}
-	return false
+	exists := len(extensionFuncsInPackage(check.pkg, method)) > 0
+	if !exists {
+		for _, imp := range check.imports {
+			if imp.imported != nil && len(extensionFuncsInPackage(imp.imported, method)) > 0 {
+				exists = true
+				break
+			}
+		}
+	}
+	if check.extensionMethodByName == nil {
+		check.extensionMethodByName = make(map[string]bool)
+	}
+	check.extensionMethodByName[method] = exists
+	return exists
 }
 
 func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *syntax.SelectorExpr, inst *syntax.IndexExpr) (exprKind, bool) {

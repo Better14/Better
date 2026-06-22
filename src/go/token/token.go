@@ -106,7 +106,7 @@ const (
 	DEFAULT
 	DEFER
 	ELSE
-	ENUM
+	ENUM // contextual keyword (declaration position only; scanned as IDENT elsewhere)
 	FALLTHROUGH
 	FOR
 
@@ -294,6 +294,11 @@ var keywords map[string]Token
 func init() {
 	keywords = make(map[string]Token, keyword_end-(keyword_beg+1))
 	for i := keyword_beg + 1; i < keyword_end; i++ {
+		// enum is a contextual keyword: the parser accepts it only at the
+		// start of a top-level declaration, not as a general identifier.
+		if Token(i) == ENUM {
+			continue
+		}
 		keywords[tokens[i]] = i
 	}
 }

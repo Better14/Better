@@ -39,18 +39,19 @@ func (check *Checker) operatorFuncs(name string) []*Func {
 }
 
 func (check *Checker) operatorOverloads(name string) []*Func {
-	var funcs []*Func
-	if c := check.operatorFuncs(name); len(c) > 0 {
-		funcs = append(funcs, c...)
+	if !check.pkgHasOperatorOverloads {
+		return nil
 	}
-	for _, imp := range check.imports {
-		if imp == nil || imp.imported == nil {
-			continue
-		}
-		if c := operatorFuncsInPackage(imp.imported, name); len(c) > 0 {
-			funcs = append(funcs, c...)
+	if check.operatorOverloadsByName != nil {
+		if funcs, ok := check.operatorOverloadsByName[name]; ok {
+			return funcs
 		}
 	}
+	funcs := check.computeOperatorOverloads(name)
+	if check.operatorOverloadsByName == nil {
+		check.operatorOverloadsByName = make(map[string][]*Func)
+	}
+	check.operatorOverloadsByName[name] = funcs
 	return funcs
 }
 
@@ -247,6 +248,9 @@ func (check *Checker) applyBinaryOperatorOverload(x, y *operand, e syntax.Expr, 
 	if op == syntax.NullCoalesce || op == syntax.AndAnd || op == syntax.OrOr {
 		return false
 	}
+	if !check.pkgHasOperatorOverloads {
+		return false
+	}
 	name := op.String()
 	if len(check.operatorOverloads(name)) == 0 {
 		return false
@@ -280,6 +284,9 @@ func (check *Checker) applyBinaryOperatorOverload(x, y *operand, e syntax.Expr, 
 func (check *Checker) tryUnaryOperatorOverload(x *operand, e *syntax.Operation) bool {
 	op := e.Op
 	if op == syntax.And || op == syntax.Recv || op == syntax.Mul || op == syntax.Tilde {
+		return false
+	}
+	if !check.pkgHasOperatorOverloads {
 		return false
 	}
 	name := op.String()
@@ -424,6 +431,9 @@ func (check *Checker) tryIndexAssignOperatorOverload(lhs, rhs syntax.Expr, x *op
 }
 
 func (check *Checker) tryIncDecOperatorOverload(s *syntax.AssignStmt, op syntax.Operator) bool {
+	if !check.pkgHasOperatorOverloads {
+		return false
+	}
 	name := "++"
 	if op == syntax.Sub {
 		name = "--"

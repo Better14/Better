@@ -358,3 +358,123 @@ func extensionFuncsInPackage(pkg *Package, method string) []*Func {
 	ensurePackageExtensionIndex(pkg)
 	return pkg.extensionByName[method]
 }
+
+func packageHasMultipleCallOverloads(pkg *Package) bool {
+	if pkg == nil {
+		return false
+	}
+	for _, cands := range pkg.overloadFuncs {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	for _, cands := range pkg.overloadMeths {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	EnsurePackageOperatorIndexes(pkg)
+	for _, cands := range pkg.overloadFuncs {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	for _, cands := range pkg.operatorFuncIndex {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	return false
+}
+
+func packageHasOperatorOverloads(pkg *Package) bool {
+	if pkg == nil {
+		return false
+	}
+	EnsurePackageOperatorIndexes(pkg)
+	if len(pkg.operatorFuncIndex) > 0 {
+		return true
+	}
+	for _, cands := range pkg.overloadFuncs {
+		if len(cands) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func packageHasExtensions(pkg *Package) bool {
+	if pkg == nil {
+		return false
+	}
+	ensurePackageExtensionIndex(pkg)
+	return len(pkg.extensionByName) > 0
+}
+
+func packageHasEnums(pkg *Package) bool {
+	if pkg == nil || pkg.scope == nil {
+		return false
+	}
+	for _, n := range pkg.scope.Names() {
+		obj := pkg.scope.Lookup(n)
+		tn, ok := obj.(*TypeName)
+		if !ok {
+			continue
+		}
+		if _, ok := AsEnum(tn.Type()); ok {
+			return true
+		}
+		if named := asNamed(tn.Type()); named != nil && named.enumType != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (check *Checker) initForkFeatureCaches() {
+	for _, info := range check.objMap {
+		if info != nil && info.enumTyp != nil {
+			check.pkgHasEnums = true
+			break
+		}
+	}
+	check.pkgHasCallOverloads = packageHasMultipleCallOverloads(check.pkg)
+	check.pkgHasOperatorOverloads = packageHasOperatorOverloads(check.pkg)
+	check.pkgHasExtensions = packageHasExtensions(check.pkg)
+	if !check.pkgHasEnums {
+		check.pkgHasEnums = packageHasEnums(check.pkg)
+	}
+	for _, imp := range check.imports {
+		if imp == nil || imp.imported == nil {
+			continue
+		}
+		if !check.pkgHasCallOverloads {
+			check.pkgHasCallOverloads = packageHasMultipleCallOverloads(imp.imported)
+		}
+		if !check.pkgHasOperatorOverloads {
+			check.pkgHasOperatorOverloads = packageHasOperatorOverloads(imp.imported)
+		}
+		if !check.pkgHasExtensions {
+			check.pkgHasExtensions = packageHasExtensions(imp.imported)
+		}
+		if !check.pkgHasEnums {
+			check.pkgHasEnums = packageHasEnums(imp.imported)
+		}
+	}
+}
+
+func (check *Checker) computeOperatorOverloads(name string) []*Func {
+	var funcs []*Func
+	if c := check.operatorFuncs(name); len(c) > 0 {
+		funcs = append(funcs, c...)
+	}
+	for _, imp := range check.imports {
+		if imp == nil || imp.imported == nil {
+			continue
+		}
+		if c := operatorFuncsInPackage(imp.imported, name); len(c) > 0 {
+			funcs = append(funcs, c...)
+		}
+	}
+	return funcs
+}
