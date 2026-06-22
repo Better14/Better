@@ -17,7 +17,7 @@ type Base struct {
 	link error // non-*Base target for Unwrap when InnerError is nil
 }
 
-// Error is an alias for Base. APIs such as New and Wrap return *Error.
+// Error is an alias for Base. APIs such as NewError and WrapError return *Error.
 type Error = Base
 
 // StackTrace is a captured call stack (innermost frame first).
@@ -97,7 +97,16 @@ func (e *Base) Unwrap() error {
 }
 
 // Wrap prepends a layer with message and a fresh stack trace.
-func (e *Base) Wrap(message string) *Base {
+func (e *Base) Wrap(message string) error {
+	return e.wrap(message)
+}
+
+// WrapError is like [Wrap] but returns [*Error].
+func (e *Base) WrapError(message string) *Error {
+	return e.wrap(message)
+}
+
+func (e *Base) wrap(message string) *Error {
 	if e == nil {
 		return newError(message)
 	}
@@ -109,12 +118,21 @@ func (e *Base) Wrap(message string) *Base {
 }
 
 // Wrap adds context and a stack trace layer around err.
-func Wrap(err error, message string) *Base {
+func Wrap(err error, message string) error {
+	return wrapError(err, message)
+}
+
+// WrapError is like [Wrap] but returns [*Error].
+func WrapError(err error, message string) *Error {
+	return wrapError(err, message)
+}
+
+func wrapError(err error, message string) *Error {
 	if err == nil {
 		return nil
 	}
 	if e, ok := err.(*Base); ok {
-		return e.Wrap(message)
+		return e.wrap(message)
 	}
 	return &Base{
 		Message:    message,
@@ -126,6 +144,15 @@ func Wrap(err error, message string) *Base {
 // NewWrapped returns a structured error for fmt.Errorf with a single %w verb.
 // message is the full formatted string; wrapped is the wrapped operand.
 func NewWrapped(message string, wrapped error) error {
+	return newWrapped(message, wrapped)
+}
+
+// NewWrappedError is like [NewWrapped] but returns [*Error].
+func NewWrappedError(message string, wrapped error) *Error {
+	return newWrapped(message, wrapped)
+}
+
+func newWrapped(message string, wrapped error) *Error {
 	e := &Base{
 		Message:    message,
 		StackTrace: CaptureStackTrace(),

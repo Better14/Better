@@ -4,12 +4,13 @@
 
 // Package errors implements functions to manipulate errors.
 //
-// The [New] function creates [*Error] values with a message and stack trace.
-// New and [NewCustom] accept an optional format string and arguments (like fmt.Sprintf).
+// The [New] function creates structured errors with a message and stack trace.
+// [NewError] is like New but returns [*Error] for direct field access.
+// New, NewError, and [NewCustom] accept an optional format string and arguments (like fmt.Sprintf).
 // [NewCustom] creates a named type that embeds Base; [InitCustom] fills an embedded Base in place.
-// [Wrap] adds context layers with fresh stack traces. [CaptureStackTrace] records
-// the current stack for other callers (for example [log.Fatal]). Use [Error.String]
-// for full serialization of the error chain and traces.
+// [Wrap] adds context layers with fresh stack traces; [WrapError] returns [*Error].
+// [CaptureStackTrace] records the current stack for other callers (for example [log.Fatal]).
+// Use [Error.String] for full serialization of the error chain and traces.
 //
 // An error e wraps another error if e's type has one of the methods
 //
@@ -67,9 +68,13 @@ package errors
 // New returns a structured error with the given message.
 // When args are provided, format is interpreted like fmt.Sprintf.
 // Each call to New returns a distinct error value even if the message is identical.
-// The returned *Error includes a stack trace captured at the call site.
-// *Error implements the error interface, so return values assign to error as before.
-func New(format string, args ...any) *Error {
+// The returned error includes a stack trace captured at the call site.
+func New(format string, args ...any) error {
+	return newError(formatMessage(format, args...))
+}
+
+// NewError is like [New] but returns [*Error] for direct access to Message and StackTrace.
+func NewError(format string, args ...any) *Error {
 	return newError(formatMessage(format, args...))
 }
 
