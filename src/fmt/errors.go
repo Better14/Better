@@ -31,6 +31,18 @@ func Errorf(format string, a ...any) (err error) {
 	return errors.New(format)
 }
 
+// Error is like [Errorf] but returns [*errors.Error] when the result is a structured error.
+// If formatting uses multiple %w verbs, Error returns nil; use [Errorf] instead.
+func Error(format string, a ...any) *errors.Error {
+	if err := errorf(format, a...); err != nil {
+		if e, ok := err.(*errors.Error); ok {
+			return e
+		}
+		return nil
+	}
+	return errors.NewError(format)
+}
+
 // errorf formats and returns an error value, or nil if no formatting is required.
 func errorf(format string, a ...any) error {
 	if len(a) == 0 && stringslite.IndexByte(format, '%') == -1 {

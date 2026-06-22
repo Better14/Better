@@ -40,12 +40,22 @@ func TestStructuredErrorError(t *testing.T) {
 	}
 }
 
+func TestNewError(t *testing.T) {
+	err := errors.NewError("abc")
+	if got := err.Error(); got != "abc" {
+		t.Fatalf("Error() = %q, want abc", got)
+	}
+	if len(err.StackTrace) == 0 {
+		t.Fatal("StackTrace empty, want frames")
+	}
+}
+
 func TestStructuredErrorString(t *testing.T) {
-	root := errors.New("root")
+	root := errors.NewError("root")
 	rootErr := root
 	rootErr.StackTrace = nil // deterministic test output
 
-	outer := rootErr.Wrap("outer")
+	outer := rootErr.WrapError("outer")
 	outer.StackTrace = errors.StackTrace{
 		{Function: "main.outer", File: "outer.go", Line: 10},
 	}
@@ -72,8 +82,8 @@ func TestStackTraceString(t *testing.T) {
 }
 
 func TestWrap(t *testing.T) {
-	root := errors.New("root")
-	wrapped := errors.Wrap(root, "wrap")
+	root := errors.NewError("root")
+	wrapped := errors.WrapError(root, "wrap")
 	if wrapped.Error() != "wrap" {
 		t.Fatalf("Wrap Error() = %q, want wrap", wrapped.Error())
 	}
@@ -85,12 +95,16 @@ func TestWrap(t *testing.T) {
 	}
 
 	foreign := errStr("foreign")
-	fw := errors.Wrap(foreign, "bridge")
+	fw := errors.WrapError(foreign, "bridge")
 	if !errors.Is(fw, foreign) {
 		t.Fatal("errors.Is through bridge = false, want true")
 	}
 	if got := errors.Unwrap(errors.Unwrap(fw)); got != foreign {
 		t.Fatalf("Unwrap bridge = %v, want %v", got, foreign)
+	}
+
+	if errIface := errors.Wrap(root, "iface"); errIface.Error() != "iface" {
+		t.Fatalf("Wrap error interface = %q, want iface", errIface.Error())
 	}
 }
 
@@ -99,6 +113,10 @@ func TestWrapMethodOnNil(t *testing.T) {
 	got := e.Wrap("msg")
 	if got == nil || got.Error() != "msg" {
 		t.Fatalf("nil Wrap = %v, want msg error", got)
+	}
+	gotErr := e.WrapError("msg2")
+	if gotErr == nil || gotErr.Error() != "msg2" {
+		t.Fatalf("nil WrapError = %v, want msg2 error", gotErr)
 	}
 }
 
@@ -182,8 +200,8 @@ func TestNewCustom(t *testing.T) {
 }
 
 func TestStructuredErrorAs(t *testing.T) {
-	root := errors.New("root")
-	wrapped := errors.Wrap(root, "wrap")
+	root := errors.NewError("root")
+	wrapped := errors.WrapError(root, "wrap")
 	var target *errors.Error
 	if !errors.As(wrapped, &target) {
 		t.Fatal("errors.As failed")
@@ -194,14 +212,13 @@ func TestStructuredErrorAs(t *testing.T) {
 }
 
 func TestStructuredErrorStringContainsTrace(t *testing.T) {
-	err := errors.New("boom")
-	e := err
-	s := e.String()
+	err := errors.NewError("boom")
+	s := err.String()
 	if !strings.Contains(s, "boom") {
 		t.Fatalf("String() = %q, missing message", s)
 	}
-	if len(e.StackTrace) > 0 && !strings.Contains(s, e.StackTrace[0].Function) {
-		t.Fatalf("String() = %q, missing stack frame %q", s, e.StackTrace[0].Function)
+	if len(err.StackTrace) > 0 && !strings.Contains(s, err.StackTrace[0].Function) {
+		t.Fatalf("String() = %q, missing stack frame %q", s, err.StackTrace[0].Function)
 	}
 }
 

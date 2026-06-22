@@ -104,6 +104,26 @@ func TestErrorf(t *testing.T) {
 	}
 }
 
+func TestError(t *testing.T) {
+	wrapped := errors.New("inner error")
+	e := fmt.Error("added context: %w", wrapped)
+	if e == nil {
+		t.Fatal("Error returned nil")
+	}
+	if got, want := e.Error(), "added context: inner error"; got != want {
+		t.Fatalf("Error() = %q, want %q", got, want)
+	}
+	if len(e.StackTrace) == 0 {
+		t.Fatal("StackTrace empty, want frames")
+	}
+	if got := fmt.Error("no verbs"); got == nil || got.Error() != "no verbs" {
+		t.Fatalf("Error(no verbs) = %v, want structured no verbs", got)
+	}
+	if got := fmt.Error("two: %w %w", errString("1"), errString("2")); got != nil {
+		t.Fatalf("Error(multi %%w) = %v, want nil", got)
+	}
+}
+
 func splitErr(err error) []error {
 	if e, ok := err.(interface{ Unwrap() []error }); ok {
 		return e.Unwrap()
