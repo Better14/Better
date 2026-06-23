@@ -226,22 +226,88 @@ For packages with **C** call sites and no enums, work was **O(C)** in unnecessar
 
 ---
 
+## Fixed: method overload duplicate detection at package init
+
+### Cause
+
+`checkMethodOverloadDuplicates` compared every pair of method overload candidates with the same receiver and name using `identicalMethodSig` — **O(k²)** where **k** is the number of overloads for that method.
+
+### Fix
+
+`checkMethodOverloadDuplicates` uses a map keyed by `methodOverloadDupKey(name, sig)` — canonical receiver base, parameter suffix, result suffix, and variadic flag — **O(k)** per method name instead of **O(k²)** pairwise comparison.
+
+**Location:** `types2/overload.go`
+
+---
+
 ## Summary table
 
 | Path | Complexity (before) | Status |
 | ---- | ------------------- | ------ |
 | Binary operator probe, no overloads in package | O(n²) on chain length | **Fixed** |
 | Binary operator probe, overloads declared | O(n²) when probe fails | **Fixed** |
-| Overload duplicate check | O(k²) | **Fixed** (O(k)) |
+| Package-level overload duplicate check | O(k²) | **Fixed** (O(k)) |
+| Method overload duplicate check | O(k²) | **Fixed** (O(k)) |
 | Enum variant by name/obj | O(V) per lookup | **Fixed** (O(1)) |
 | Extension candidates | O(\|imports\| × \|scope\|) | **Fixed** (O(\|imports\|)) |
 | `operatorFuncsInPackage` fallback | O(\|scope\|) per lookup | **Fixed** (O(1) after index) |
-| Overload selection | O(k × args) per call | **Indexed** + memoized |
+| Overload selection (exact arg types) | O(k × args) per call | **Indexed** (see below) |
+| Overload selection (assignability fallback) | O(k × args) per call | **Open** (memoized after first resolve) |
 | Index operator re-check of base | 2× work on `e.X` | **Fixed** |
 | `hasCallOverloads` per call site | O(I) per call | **Fixed** (O(1) flag) |
 | `operatorOverloads` per operator use | O(I) per op | **Fixed** (O(1) flag; O(I) once per op name) |
 | `extensionMethodExists` per selector | O(I) per call | **Fixed** (O(1) flag; O(I) once per method name) |
 | Enum variant probe per call/lit | O(1)–O(expr) per site | **Fixed** (O(1) flag) |
+
+---
+
+## Overload selection: index hit vs assignability fallback
+
+Overload resolution at a call site is a **two-tier** lookup:
+
+1. **Exact-type index (O(1))** — `overloadBySig` maps `name + "·" + overloadParamSuffix(sig)` → `*Func` for each declared overload. At the call site, `lookupOverloadByArgTypes` builds the same suffix from the **actual argument operand types** (`operandTypesSuffix`) and looks up that key in `overloadBySig` (checker-local and per-import package maps built in `buildCheckerIndexes` / `ensurePackageOverloadBySig`).
+
+2. **Assignability fallback (O(k × args))** — when the index misses, `selectOperatorFunc` / `selectOverloadEx` scan every candidate overload and run `assignableTo` on each parameter. This is required when argument types are not identical to the declared parameter types but still assignable (untyped constants, named types vs underlying types, interface targets, variadic `...` expansion, etc.). The suffix keys use `briefType`, which is a lossy string form — it cannot encode full assignability rules.
+
+3. **Memoization** — when the fallback finds a unique match, `overloadResolveCache` stores `(candidate set, arg suffix) → *Func` so the same call shape is not rescanned in one type-check pass.
+
+**Why not map every assignability case?** A perfect map would need keys for every assignable (arg type, param type) pair, or would require precomputing assignability edges between all types in scope. The exact-type index covers the common case (overload declared for `int`, call with `int`). The fallback handles the rest; **k** (overload count) is typically small (2–5).
+
+**Location:** `types2/perf_index.go` (`lookupOverloadByArgTypes`), `types2/operator.go` (`selectOperatorFunc`), `types2/call.go` (`selectOverloadEx`).
+
+---
+
+## Open issues (known quadratic / expensive paths not yet fixed)
+
+These paths are **intentionally left as-is** today because **N** is small in practice, or because a full fix would require a much larger assignability index. They are listed so maintainers know where compile time can still grow if **N** is unusually large.
+
+### Fork / types2
+
+| Path | File | Complexity | What **N** is | Notes |
+| ---- | ---- | ---------- | ------------- | ----- |
+| Overload selection assignability fallback | `operator.go`, `call.go` | O(k × args) | Overloads for one name × parameters | Index hit is O(1); fallback when arg types ≠ declared param types. Memoized via `overloadResolveCache` after first resolve. |
+| Expression switch duplicate values | `stmt.go` `caseValues` | O(k²) per value bucket | Cases sharing same underlying constant | Linear when values are distinct (typical). Worst case: many typed variants of one constant on an interface switch. |
+| Extension candidate import loop | `extension.go` | O(I) per resolution | Imports when extensions exist | Each step is `extensionByName[method]` (O(1)), not a scope scan. |
+| Enum presence scan | `perf_index.go` `packageHasEnums` | O(\|scope\|) once per import | Names in package scope | Runs once in `initForkFeatureCaches`, not per call site. |
+
+### Upstream types2 (inherited)
+
+| Path | File | Complexity | What **N** is | Notes |
+| ---- | ---- | ---------- | ------------- | ----- |
+| Union term overlap | `union.go` | O(T²) | Terms in one `\|` constraint | Hard cap 100 terms. |
+| Interface identity / unify stack | `unify.go`, `predicates.go` | O(depth²) | Nested interface pairs on stack | depth usually 0–3. |
+| Generic type inference phase 2 | `infer.go` | O(n²) | Type params on one generic func | n usually &lt; 5. |
+
+### SSA / backend (post type-check)
+
+| Path | File | Complexity | Notes |
+| ---- | ---- | ---------- | ----- |
+| Dominator computation | `ssa/dom.go` | O(n²) worst case | TODO in comment; mitigated in practice. |
+| Prove pass loop | `ssa/prove.go` | Can be quadratic | TODO at line ~2216. |
+| Regalloc live-value map | `ssagen/ssa.go` | O(n²) on large entry blocks | Many live values in one block. |
+| Rangefunc rewrite | `rangefunc/rewrite.go` | O(depth²) | Nesting depth of range-over-func. |
+
+Other SSA passes (`cse`, `copyelim`, `fuse`, `deadstore`) document quadratic risks and include explicit guards.
 
 ---
 
