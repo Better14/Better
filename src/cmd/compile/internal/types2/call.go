@@ -128,6 +128,75 @@ func (check *Checker) funcInst(T *target, pos syntax.Pos, x *operand, inst *synt
 	return nil
 }
 
+// typedOperand returns a previously type-checked operand for e, if available.
+// callExpr evaluates call.Fun before argument checking; reusing recorded type
+// info avoids re-walking long receiver chains (O(n²) on rb.M1().M2()....Mn()).
+func (check *Checker) typedOperand(e syntax.Expr) (operand, bool) {
+	if tv, ok := check.typeAndValueOf(e); ok {
+		var x operand
+		x.expr = e
+		x.mode_ = tv.mode
+		x.typ_ = tv.Type
+		if tv.mode == constant_ {
+			x.val = tv.Value
+		}
+		return x, true
+	}
+	return operand{}, false
+}
+
+func (check *Checker) typeOfExpr(e syntax.Expr) Type {
+	if tv, ok := check.typeAndValueOf(e); ok {
+		return tv.Type
+	}
+	return nil
+}
+
+func (check *Checker) typeAndValueOf(e syntax.Expr) (TypeAndValue, bool) {
+	if check.Types != nil {
+		if tv, ok := check.Types[e]; ok && tv.Type != nil && tv.mode != invalid {
+			return tv, true
+		}
+	}
+	if check.StoreTypesInSyntax {
+		stv := e.GetTypeInfo()
+		if stv.Type == nil {
+			return TypeAndValue{}, false
+		}
+		if mode, ok := operandModeFromSyntaxTypeInfo(stv); ok {
+			return TypeAndValue{mode: mode, Type: stv.Type, Value: stv.Value}, true
+		}
+	}
+	return TypeAndValue{}, false
+}
+
+func operandModeFromSyntaxTypeInfo(stv syntax.TypeAndValue) (operandMode, bool) {
+	if stv.Type == nil {
+		return invalid, false
+	}
+	switch {
+	case stv.IsVoid():
+		return novalue, true
+	case stv.IsType():
+		return typexpr, true
+	case stv.IsBuiltin():
+		return builtin, true
+	case stv.Addressable():
+		return variable, true
+	case stv.IsNil():
+		return nilvalue, true
+	case stv.HasOk():
+		return commaok, true
+	case stv.IsValue():
+		if stv.Value != nil {
+			return constant_, true
+		}
+		return value, true
+	default:
+		return invalid, false
+	}
+}
+
 func (check *Checker) instantiateSignature(pos syntax.Pos, expr syntax.Expr, typ *Signature, targs []Type, xlist []syntax.Expr) (res *Signature) {
 	assert(check != nil)
 	assert(len(targs) == typ.TypeParams().Len())
@@ -308,8 +377,10 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 			if id, ok := fun.X.(*syntax.Name); ok {
 				if obj := check.lookup(id.Value); obj != nil {
 					if _, isPkg := obj.(*PkgName); !isPkg {
-						var recv operand
-						check.rawExpr(nil, &recv, fun.X, nil, true)
+						recv, ok := check.typedOperand(fun.X)
+						if !ok {
+							check.rawExpr(nil, &recv, fun.X, nil, true)
+						}
 						if recv.isValid() {
 							ix := []int{0}
 							if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
@@ -320,8 +391,10 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 					}
 				}
 			} else {
-				var recv operand
-				check.rawExpr(nil, &recv, fun.X, nil, true)
+				recv, ok := check.typedOperand(fun.X)
+				if !ok {
+					check.rawExpr(nil, &recv, fun.X, nil, true)
+				}
 				if recv.isValid() {
 					ix := []int{0}
 					if i := methodIndexInNamed(recv.typ(), sel); i >= 0 {
@@ -396,8 +469,10 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 					}
 				}
 				if !skipRecv {
-					var recv operand
-					check.exprOrType(&recv, sel.X, false)
+					recv, ok := check.typedOperand(sel.X)
+					if !ok {
+						check.exprOrType(&recv, sel.X, false)
+					}
 					if recv.mode() != typexpr && recv.isValid() {
 						methodRecv = &recv
 					}

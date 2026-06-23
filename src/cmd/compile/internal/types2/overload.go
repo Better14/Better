@@ -326,19 +326,15 @@ func (check *Checker) hasCallOverloads() bool {
 }
 
 func (check *Checker) recvBaseNameFromExpr(x syntax.Expr) string {
+	if t := check.typeOfExpr(x); t != nil {
+		return recvBaseNameFromType(t)
+	}
 	var recv operand
 	check.rawExpr(nil, &recv, x, nil, true)
 	if !recv.isValid() {
 		return ""
 	}
-	t := recv.typ()
-	if p, _ := t.Underlying().(*Pointer); p != nil {
-		t = p.base
-	}
-	if n := asNamed(t); n != nil && n.obj != nil {
-		return n.obj.name
-	}
-	return ""
+	return recvBaseNameFromType(recv.typ())
 }
 
 func recvBaseNameFromType(t Type) string {
