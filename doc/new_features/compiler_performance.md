@@ -209,6 +209,27 @@ For **S** selector calls and **I** imports, work was **O(S × I)**.
 
 ---
 
+## Fixed: method call chains re-evaluate receiver (O(n²))
+
+### Symptom
+
+Long left-nested method call chains such as `rb.RegisterTypeDecoder(...).RegisterTypeDecoder(...)...` or `u.Child(0).Child(0)...` could make the fork compiler appear to hang. `default_value_decoders.go` (`RegisterDefaultDecoders`) and `test/torture.go` (`ChainUNoAssert`) were concrete examples.
+
+### Cause
+
+In `callExpr`, after type-checking `call.Fun` (a selector whose receiver `X` may be another call), argument checking called `exprOrType` on `sel.X` again to build `methodRecv` for lambda/iter hint substitution. Each call in a chain of length **n** re-walked the entire left spine, giving **O(n²)** `rawExpr` work.
+
+When call overloads exist, `recvBaseNameFromExpr` also called `rawExpr` on the full receiver before `Types[sel.X]` was consulted.
+
+### Fix
+
+1. **`typedOperand`** / **`typeOfExpr`** reuse recorded type information from `Types[e]` or syntax node type info (`StoreTypesInSyntax`) instead of re-running `exprOrType` on `sel.X` when checking call arguments.
+2. **`recvBaseNameFromExpr`** uses the same lookup before falling back to `rawExpr`.
+
+**Locations:** `types2/call.go` (`typedOperand`, `callExpr`), `types2/overload.go` (`recvBaseNameFromExpr`)
+
+---
+
 ## Fixed: enum variant probe on every call and composite literal
 
 ### Cause
@@ -257,6 +278,7 @@ For packages with **C** call sites and no enums, work was **O(C)** in unnecessar
 | `hasCallOverloads` per call site | O(I) per call | **Fixed** (O(1) flag) |
 | `operatorOverloads` per operator use | O(I) per op | **Fixed** (O(1) flag; O(I) once per op name) |
 | `extensionMethodExists` per selector | O(I) per call | **Fixed** (O(1) flag; O(I) once per method name) |
+| Method call chain receiver re-check | O(n²) on chain length | **Fixed** (reuse `Types[sel.X]`) |
 | Enum variant probe per call/lit | O(1)–O(expr) per site | **Fixed** (O(1) flag) |
 
 ---
