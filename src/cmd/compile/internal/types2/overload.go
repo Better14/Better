@@ -105,6 +105,40 @@ func overloadParamSuffix(sig *Signature) string {
 	return b.String()
 }
 
+func overloadResultSuffix(sig *Signature) string {
+	results := sig.Results()
+	if results == nil || results.Len() == 0 {
+		return "0"
+	}
+	var b strings.Builder
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			b.WriteByte('_')
+		}
+		b.WriteString(briefType(results.At(i).Type()))
+	}
+	return b.String()
+}
+
+// methodOverloadDupKey returns a map key for duplicate method-overload detection.
+// It mirrors identicalMethodSig: receiver (canonicalized), name, params, results, variadic.
+func (check *Checker) methodOverloadDupKey(name string, sig *Signature) string {
+	recv := "0"
+	if sig.Recv() != nil {
+		t := sig.Recv().Type()
+		if base := check.receiverNamedBase(t); base != nil {
+			recv = base.Name()
+		} else {
+			recv = briefType(t)
+		}
+	}
+	v := "0"
+	if sig.Variadic() {
+		v = "v"
+	}
+	return name + "·" + recv + "·" + overloadParamSuffix(sig) + "·" + overloadResultSuffix(sig) + "·" + v
+}
+
 func (check *Checker) overloadList(funcs []*Func) string {
 	var b strings.Builder
 	for i, fn := range funcs {
@@ -232,7 +266,7 @@ func (check *Checker) checkMethodOverloadDuplicates() {
 		slices.SortFunc(cands, func(a, b *Func) int {
 			return cmp.Compare(a.order(), b.order())
 		})
-		var seen []*Func
+		seen := make(map[string]*Func)
 		for _, fn := range cands {
 			if fn == nil || fn.typ == nil {
 				continue
@@ -241,18 +275,16 @@ func (check *Checker) checkMethodOverloadDuplicates() {
 			if !ok || sig.recv == nil || !isValid(sig.recv.typ) {
 				continue
 			}
-			for _, prev := range seen {
-				if check.identicalMethodSig(prev, fn) {
-					if prev.Pos().IsKnown() {
-						check.errorf(fn.pos, DuplicateMethod, "method %s.%s already declared at %v", key.recvName, key.name, prev.Pos())
-					} else {
-						check.errorf(fn.pos, DuplicateMethod, "method %s.%s already declared", key.recvName, key.name)
-					}
-					goto next
+			dupKey := check.methodOverloadDupKey(key.name, sig)
+			if prev, ok := seen[dupKey]; ok {
+				if prev.Pos().IsKnown() {
+					check.errorf(fn.pos, DuplicateMethod, "method %s.%s already declared at %v", key.recvName, key.name, prev.Pos())
+				} else {
+					check.errorf(fn.pos, DuplicateMethod, "method %s.%s already declared", key.recvName, key.name)
 				}
+				continue
 			}
-			seen = append(seen, fn)
-		next:
+			seen[dupKey] = fn
 		}
 	}
 }
