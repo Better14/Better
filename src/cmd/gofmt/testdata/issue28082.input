@@ -6,8 +6,8 @@ package main
 
 // testcase for issue #28082
 
-func foo(                                                                                                ) {}
+func foo() {}
 
-func main(                                                                                                      ) {}
+func main() {}
 
 func bar() {}

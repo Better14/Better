@@ -6,28 +6,28 @@
 
 package main
 
-var _ = []struct{
+var _ = []struct {
 	S       string
 	Integer int
 }{
 	{
-		S: "Hello World",
+		S:       "Hello World",
 		Integer: 42,
 	},
 	{
-		S: "\t",
+		S:       "\t",
 		Integer: 42,
 	},
 	{
-		S: "	", // an actual <tab>
+		S:       "	", // an actual <tab>
 		Integer: 42,
 	},
 	{
-		S: `	`, // an actual <tab>
+		S:       `	`, // an actual <tab>
 		Integer: 42,
 	},
 	{
-		S: "\u0009",
+		S:       "\u0009",
 		Integer: 42,
 	},
 }
