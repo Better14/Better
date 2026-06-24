@@ -463,6 +463,11 @@ func findGorootModules(t *testing.T) []gorootModule {
 				// running time of this test anyway.)
 				return filepath.SkipDir
 			}
+			if info.IsDir() && path == filepath.Join(testenv.GOROOT(t), "bin", "pkg") {
+				// GOROOT/bin/pkg may contain a module cache when GOMODCACHE defaults
+				// under GOROOT/bin during bootstrap or test builds.
+				return filepath.SkipDir
+			}
 			if info.IsDir() && path != root && (strings.HasPrefix(info.Name(), "_") || strings.HasPrefix(info.Name(), ".")) {
 				// _ and . prefixed directories can be used for internal modules
 				// without a vendor directory that don't contribute to the build
