@@ -43,6 +43,9 @@ const (
 	// V6: encodes nullable T? types as TypeOptional rather than TypePointer
 	V6
 
+	// V7: encodes fork language feature summary in the public export root
+	V7
+
 	numVersions = iota
 )
 
@@ -85,6 +88,10 @@ const (
 	// Param encodes an optional compile-time default value.
 	ParamDefaultVal
 
+	// ForkFeatureSummary is a uint8 bitset in the public export root describing
+	// which fork language features are present in the package.
+	ForkFeatureSummary
+
 	numFields = iota
 )
 
@@ -95,6 +102,7 @@ var introduced = [numFields]Version{
 	CompactCompLiterals: V3,
 	GenericMethods:      V4,
 	ParamDefaultVal:     V5,
+	ForkFeatureSummary:  V7,
 }
 
 // removed is the version a field was removed in or 0 for fields

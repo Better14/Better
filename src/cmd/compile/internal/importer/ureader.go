@@ -41,6 +41,10 @@ func ReadPackage(ctxt *types2.Context, imports map[string]*types2.Package, input
 	r := pr.newReader(pkgbits.SectionMeta, pkgbits.PublicRootIdx, pkgbits.SyncPublic)
 	pkg := r.pkg()
 
+	if r.Version().Has(pkgbits.ForkFeatureSummary) {
+		types2.InitForkFeatureCacheFromSummary(pkg, uint8(r.Uint()))
+	}
+
 	if r.Version().Has(pkgbits.HasInit) {
 		r.Bool()
 	}
@@ -58,7 +62,10 @@ func ReadPackage(ctxt *types2.Context, imports map[string]*types2.Package, input
 
 	r.Sync(pkgbits.SyncEOF)
 
-	types2.EnsurePackageOperatorIndexes(pkg)
+	if !pkg.ForkFeatureCacheValid() {
+		types2.EnsurePackageOperatorIndexes(pkg)
+		types2.EnsurePackageForkFeatureCache(pkg)
+	}
 	pkg.MarkComplete()
 	return pkg
 }

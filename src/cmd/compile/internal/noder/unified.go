@@ -26,7 +26,7 @@ import (
 
 // uirVersion is the unified IR version to use for encoding/decoding.
 // This fork uses generic methods (e.g. linq) and requires V4.
-var uirVersion = pkgbits.V6
+var uirVersion = pkgbits.V7
 
 // localPkgReader holds the package reader used for reading the local
 // package. It exists so the unified IR linker can refer back to it
@@ -335,6 +335,10 @@ func writePkgStub(m posMap, noders []*noder) string {
 		w := publicRootWriter
 		w.pkg(pkg)
 
+		if w.Version().Has(pkgbits.ForkFeatureSummary) {
+			w.Uint(uint(types2.ExportForkFeatureSummary(pkg)))
+		}
+
 		if w.Version().Has(pkgbits.HasInit) {
 			w.Bool(false)
 		}
@@ -417,6 +421,10 @@ func readPackage(pr *pkgReader, importpkg *types.Pkg, localStub bool) {
 			base.ErrorExit()
 		}
 
+		if r.Version().Has(pkgbits.ForkFeatureSummary) {
+			r.Uint()
+		}
+
 		if r.Version().Has(pkgbits.HasInit) {
 			r.Bool()
 		}
@@ -480,6 +488,7 @@ func writeUnifiedExport(out io.Writer) {
 	assert(privateRootWriter.Idx == pkgbits.PrivateRootIdx)
 
 	var selfPkgIdx index
+	var forkSummary uint8
 
 	{
 		pr := localPkgReader
@@ -493,6 +502,10 @@ func writeUnifiedExport(out io.Writer) {
 		// instead of passing uirVersion, but NewPkgEncoder is created before r.
 		// If that is correct, we should make that happen.
 		assert(r.Version() == uirVersion)
+
+		if r.Version().Has(pkgbits.ForkFeatureSummary) {
+			forkSummary = uint8(r.Uint())
+		}
 
 		if r.Version().Has(pkgbits.HasInit) {
 			r.Bool()
@@ -529,6 +542,10 @@ func writeUnifiedExport(out io.Writer) {
 
 		w.Sync(pkgbits.SyncPkg)
 		w.Reloc(pkgbits.SectionPkg, selfPkgIdx)
+
+		if w.Version().Has(pkgbits.ForkFeatureSummary) {
+			w.Uint(uint(forkSummary))
+		}
 
 		if w.Version().Has(pkgbits.HasInit) {
 			w.Bool(false)

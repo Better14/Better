@@ -106,6 +106,10 @@ func ensurePackageOperatorFuncIndex(pkg *Package) {
 	if pkg == nil || pkg.operatorFuncIndex != nil {
 		return
 	}
+	if pkg.forkFeatureCache.valid && !pkg.forkFeatureCache.callOverloads && !pkg.forkFeatureCache.operatorOverloads {
+		pkg.operatorFuncIndex = make(map[string][]*Func)
+		return
+	}
 	idx := make(map[string][]*Func)
 	for name, funcs := range pkg.overloadFuncs {
 		idx[name] = append([]*Func(nil), funcs...)
@@ -151,6 +155,10 @@ func ensurePackageOverloadBySig(pkg *Package) {
 
 func ensurePackageExtensionIndex(pkg *Package) {
 	if pkg == nil || pkg.extensionByName != nil {
+		return
+	}
+	if pkg.forkFeatureCache.valid && !pkg.forkFeatureCache.extensions {
+		pkg.extensionByName = make(map[string][]*Func)
 		return
 	}
 	idx := make(map[string][]*Func)
@@ -342,6 +350,11 @@ func EnsurePackageOperatorIndexes(pkg *Package) {
 	if pkg.operatorExact != nil {
 		return
 	}
+	if pkg.forkFeatureCache.valid && !pkg.forkFeatureCache.callOverloads && !pkg.forkFeatureCache.operatorOverloads {
+		pkg.operatorExact = make(map[string]map[operatorTypeKey]*Func)
+		pkg.operatorUnaryExact = make(map[string]map[string]*Func)
+		return
+	}
 	pkg.operatorExact, pkg.operatorUnaryExact = buildOperatorTypeIndexes(pkg.operatorFuncIndex)
 	if pkg.overloadFuncs == nil && len(pkg.operatorFuncIndex) > 0 {
 		pkg.overloadFuncs = make(map[string][]*Func, len(pkg.operatorFuncIndex))
@@ -362,6 +375,9 @@ func extensionFuncsInPackage(pkg *Package, method string) []*Func {
 func packageHasMultipleCallOverloads(pkg *Package) bool {
 	if pkg == nil {
 		return false
+	}
+	if pkg.forkFeatureCache.valid {
+		return pkg.forkFeatureCache.callOverloads
 	}
 	for _, cands := range pkg.overloadFuncs {
 		if len(cands) > 1 {
@@ -391,6 +407,9 @@ func packageHasOperatorOverloads(pkg *Package) bool {
 	if pkg == nil {
 		return false
 	}
+	if pkg.forkFeatureCache.valid {
+		return pkg.forkFeatureCache.operatorOverloads
+	}
 	EnsurePackageOperatorIndexes(pkg)
 	if len(pkg.operatorFuncIndex) > 0 {
 		return true
@@ -407,6 +426,9 @@ func packageHasExtensions(pkg *Package) bool {
 	if pkg == nil {
 		return false
 	}
+	if pkg.forkFeatureCache.valid {
+		return pkg.forkFeatureCache.extensions
+	}
 	ensurePackageExtensionIndex(pkg)
 	return len(pkg.extensionByName) > 0
 }
@@ -414,6 +436,9 @@ func packageHasExtensions(pkg *Package) bool {
 func packageHasEnums(pkg *Package) bool {
 	if pkg == nil || pkg.scope == nil {
 		return false
+	}
+	if pkg.forkFeatureCache.valid {
+		return pkg.forkFeatureCache.enums
 	}
 	for _, n := range pkg.scope.Names() {
 		obj := pkg.scope.Lookup(n)
@@ -431,6 +456,116 @@ func packageHasEnums(pkg *Package) bool {
 	return false
 }
 
+const (
+	forkSummaryCallOverloads     = 1 << 0
+	forkSummaryOperatorOverloads = 1 << 1
+	forkSummaryExtensions        = 1 << 2
+	forkSummaryEnums             = 1 << 3
+)
+
+// ExportForkFeatureSummary returns a bitset describing fork language features
+// present in pkg. It is written into export data so importers can skip scope
+// scans for packages like reflect that use none of these features.
+func ExportForkFeatureSummary(pkg *Package) uint8 {
+	if pkg == nil {
+		return 0
+	}
+	var summary uint8
+	if packageHasMultipleCallOverloads(pkg) {
+		summary |= forkSummaryCallOverloads
+	}
+	if packageHasOperatorOverloads(pkg) {
+		summary |= forkSummaryOperatorOverloads
+	}
+	if packageHasExtensions(pkg) {
+		summary |= forkSummaryExtensions
+	}
+	if packageHasEnums(pkg) {
+		summary |= forkSummaryEnums
+	}
+	return summary
+}
+
+// InitEmptyForkFeatureCache marks pkg as having no fork language features
+// without scanning its scope. Used when loading export data with a zero summary.
+func InitEmptyForkFeatureCache(pkg *Package) {
+	if pkg == nil || pkg.forkFeatureCache.valid {
+		return
+	}
+	pkg.forkFeatureCache.valid = true
+	pkg.operatorFuncIndex = make(map[string][]*Func)
+	pkg.extensionByName = make(map[string][]*Func)
+	pkg.operatorExact = make(map[string]map[operatorTypeKey]*Func)
+	pkg.operatorUnaryExact = make(map[string]map[string]*Func)
+}
+
+// InitForkFeatureCacheFromSummary records fork feature presence from export
+// data. When summary is zero, InitEmptyForkFeatureCache is used instead.
+func InitForkFeatureCacheFromSummary(pkg *Package, summary uint8) {
+	if pkg == nil || pkg.forkFeatureCache.valid {
+		return
+	}
+	if summary == 0 {
+		InitEmptyForkFeatureCache(pkg)
+		return
+	}
+	pkg.forkFeatureCache = forkFeatureCache{
+		valid:             true,
+		callOverloads:     summary&forkSummaryCallOverloads != 0,
+		operatorOverloads: summary&forkSummaryOperatorOverloads != 0,
+		extensions:        summary&forkSummaryExtensions != 0,
+		enums:             summary&forkSummaryEnums != 0,
+	}
+}
+
+func forkFeatureFlagsForPackage(pkg *Package) forkFeatureCache {
+	if pkg == nil {
+		return forkFeatureCache{}
+	}
+	if pkg.forkFeatureCache.valid {
+		return pkg.forkFeatureCache
+	}
+	c := forkFeatureCache{
+		valid:             true,
+		callOverloads:     packageHasMultipleCallOverloads(pkg),
+		operatorOverloads: packageHasOperatorOverloads(pkg),
+		extensions:        packageHasExtensions(pkg),
+		enums:             packageHasEnums(pkg),
+	}
+	pkg.forkFeatureCache = c
+	return c
+}
+
+func checkerHasMultipleCallOverloads(check *Checker) bool {
+	for _, cands := range check.overloadFuncs {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	for _, cands := range check.overloadMeths {
+		if len(cands) > 1 {
+			return true
+		}
+	}
+	return packageHasMultipleCallOverloads(check.pkg)
+}
+
+func checkerHasOperatorOverloads(check *Checker) bool {
+	for _, cands := range check.overloadFuncs {
+		if len(cands) > 0 {
+			return true
+		}
+	}
+	return packageHasOperatorOverloads(check.pkg)
+}
+
+func checkerHasExtensions(check *Checker) bool {
+	if len(check.pkg.extensionByName) > 0 {
+		return true
+	}
+	return packageHasExtensions(check.pkg)
+}
+
 func (check *Checker) initForkFeatureCaches() {
 	for _, info := range check.objMap {
 		if info != nil && info.enumTyp != nil {
@@ -438,9 +573,11 @@ func (check *Checker) initForkFeatureCaches() {
 			break
 		}
 	}
-	check.pkgHasCallOverloads = packageHasMultipleCallOverloads(check.pkg)
-	check.pkgHasOperatorOverloads = packageHasOperatorOverloads(check.pkg)
-	check.pkgHasExtensions = packageHasExtensions(check.pkg)
+	check.pkgHasCallOverloads = checkerHasMultipleCallOverloads(check)
+	check.pkgHasOperatorOverloads = checkerHasOperatorOverloads(check)
+	if !check.pkgHasExtensions {
+		check.pkgHasExtensions = checkerHasExtensions(check)
+	}
 	if !check.pkgHasEnums {
 		check.pkgHasEnums = packageHasEnums(check.pkg)
 	}
@@ -448,19 +585,41 @@ func (check *Checker) initForkFeatureCaches() {
 		if imp == nil || imp.imported == nil {
 			continue
 		}
+		flags := forkFeatureFlagsForPackage(imp.imported)
 		if !check.pkgHasCallOverloads {
-			check.pkgHasCallOverloads = packageHasMultipleCallOverloads(imp.imported)
+			check.pkgHasCallOverloads = flags.callOverloads
 		}
 		if !check.pkgHasOperatorOverloads {
-			check.pkgHasOperatorOverloads = packageHasOperatorOverloads(imp.imported)
+			check.pkgHasOperatorOverloads = flags.operatorOverloads
 		}
 		if !check.pkgHasExtensions {
-			check.pkgHasExtensions = packageHasExtensions(imp.imported)
+			check.pkgHasExtensions = flags.extensions
 		}
 		if !check.pkgHasEnums {
-			check.pkgHasEnums = packageHasEnums(imp.imported)
+			check.pkgHasEnums = flags.enums
 		}
 	}
+	check.pkg.forkFeatureCache = forkFeatureCache{
+		valid:             true,
+		callOverloads:     check.pkgHasCallOverloads,
+		operatorOverloads: check.pkgHasOperatorOverloads,
+		extensions:        check.pkgHasExtensions,
+		enums:             check.pkgHasEnums,
+	}
+}
+
+// ForkFeatureCacheValid reports whether fork feature presence has been cached for pkg.
+func (pkg *Package) ForkFeatureCacheValid() bool {
+	return pkg != nil && pkg.forkFeatureCache.valid
+}
+
+// EnsurePackageForkFeatureCache computes and caches fork feature presence for pkg.
+func EnsurePackageForkFeatureCache(pkg *Package) {
+	forkFeatureFlagsForPackage(pkg)
+}
+
+func (check *Checker) forkCallProbesActive() bool {
+	return check.pkgHasEnums || check.pkgHasExtensions || check.pkgHasCallOverloads
 }
 
 func (check *Checker) computeOperatorOverloads(name string) []*Func {

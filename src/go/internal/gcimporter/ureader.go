@@ -68,6 +68,9 @@ func readUnifiedPackage(fset *token.FileSet, ctxt *types.Context, imports map[st
 
 	r := pr.newReader(pkgbits.SectionMeta, pkgbits.PublicRootIdx, pkgbits.SyncPublic)
 	pkg := r.pkg()
+	if r.Version().Has(pkgbits.ForkFeatureSummary) {
+		r.Uint()
+	}
 	if r.Version().Has(pkgbits.HasInit) {
 		r.Bool()
 	}
