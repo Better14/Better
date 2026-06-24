@@ -35,5 +35,5 @@ func ExampleNode() {
 
 	fmt.Println(buf.String())
 
-	// Output: (6 + 2*3) / 4
+	// Output: (6 + 2 * 3) / 4
 }
