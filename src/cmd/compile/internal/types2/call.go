@@ -238,14 +238,16 @@ func (check *Checker) instantiateSignature(pos syntax.Pos, expr syntax.Expr, typ
 }
 
 func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exprKind {
-	if check.pkgHasEnums && check.tryEnumVariantCall(x, call, hint) {
-		return expression
-	}
+	if check.forkCallProbesActive() {
+		if check.pkgHasEnums && check.tryEnumVariantCall(x, call, hint) {
+			return expression
+		}
 
-	if check.pkgHasExtensions {
-		if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
-			if kind, handled := check.tryExtensionCall(x, call, sel, nil); handled {
-				return kind
+		if check.pkgHasExtensions {
+			if sel, ok := call.Fun.(*syntax.SelectorExpr); ok {
+				if kind, handled := check.tryExtensionCall(x, call, sel, nil); handled {
+					return kind
+				}
 			}
 		}
 	}
@@ -334,7 +336,10 @@ func (check *Checker) callExpr(x *operand, call *syntax.CallExpr, hint Type) exp
 	// ordinary function/method call
 	// signature may be generic
 	cgocall := x.mode() == cgofunc
-	overloadCands := check.overloadCandidatesForCall(call)
+	var overloadCands []*Func
+	if check.pkgHasCallOverloads {
+		overloadCands = check.overloadCandidatesForCall(call)
+	}
 	if len(overloadCands) > 1 {
 		check.recordCallOverloads(call.Fun, overloadCands)
 	}

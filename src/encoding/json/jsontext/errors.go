@@ -66,18 +66,9 @@ type SyntacticError struct {
 	requireKeyedLiterals
 	nonComparable
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-	errors.Layer
+	errors.Base
 
 	// ByteOffset indicates that an error occurred at or after this byte offset.
-=======
-	errors.Info
-=======
-	errors.Base
->>>>>>> 82a9f2da53 (Rename errors.Info to errors.Base across the stdlib.)
-	// ByteOffset indicates that an error occurred after this byte offset.
->>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
 	ByteOffset int64
 	// JSONPointer indicates that an error occurred within this JSON value
 	// as indicated using the JSON Pointer notation (see RFC 6901).
