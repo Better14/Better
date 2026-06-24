@@ -2628,7 +2628,7 @@ func TestLongDNSNames(t *testing.T) {
 
 				expectedErr := DNSError{Err: errNoSuchHost.Error(), Name: v.req, IsNotFound: true}
 				dnsErr, _ := errors.AsType[*DNSError](err)
-				if dnsErr == nil || *dnsErr != expectedErr {
+				if dnsErr == nil || dnsErr.Err != expectedErr.Err || dnsErr.Name != expectedErr.Name || dnsErr.IsNotFound != expectedErr.IsNotFound {
 					t.Errorf("%v: Lookup%v: unexpected error: %v", i, testName, err)
 				}
 				break
@@ -2820,7 +2820,7 @@ func TestLookupOrderFilesNoSuchHost(t *testing.T) {
 
 		expectedErr := DNSError{Err: errNoSuchHost.Error(), Name: testName, IsNotFound: true}
 		dnsErr, _ := errors.AsType[*DNSError](err)
-		if dnsErr == nil || *dnsErr != expectedErr {
+		if dnsErr == nil || dnsErr.Err != expectedErr.Err || dnsErr.Name != expectedErr.Name || dnsErr.IsNotFound != expectedErr.IsNotFound {
 			t.Errorf("Lookup%v: unexpected error: %v", v.name, err)
 		}
 	}
