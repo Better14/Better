@@ -1,0 +1,675 @@
+pkg crypto/tls, method (*CertificateVerificationError) String() string #62026
+pkg crypto/tls, method (*CertificateVerificationError) Wrap(string) error #62026
+pkg crypto/tls, method (*CertificateVerificationError) WrapError(string) *errors.Base #62026
+pkg crypto/tls, method (*ECHRejectionError) String() string #62026
+pkg crypto/tls, method (*ECHRejectionError) Unwrap() error #62026
+pkg crypto/tls, method (*ECHRejectionError) Wrap(string) error #62026
+pkg crypto/tls, method (*ECHRejectionError) WrapError(string) *errors.Base #62026
+pkg crypto/tls, method (*RecordHeaderError) String() string #62026
+pkg crypto/tls, method (*RecordHeaderError) Unwrap() error #62026
+pkg crypto/tls, method (*RecordHeaderError) Wrap(string) error #62026
+pkg crypto/tls, method (*RecordHeaderError) WrapError(string) *errors.Base #62026
+pkg crypto/tls, type CertificateVerificationError struct, embedded errors.Base #62026
+pkg crypto/tls, type ECHRejectionError struct, embedded errors.Base #62026
+pkg crypto/tls, type RecordHeaderError struct, embedded errors.Base #62026
+pkg crypto/x509, method (*CertificateInvalidError) String() string #62026
+pkg crypto/x509, method (*CertificateInvalidError) Unwrap() error #62026
+pkg crypto/x509, method (*CertificateInvalidError) Wrap(string) error #62026
+pkg crypto/x509, method (*CertificateInvalidError) WrapError(string) *errors.Base #62026
+pkg crypto/x509, method (*ConstraintViolationError) String() string #62026
+pkg crypto/x509, method (*ConstraintViolationError) Unwrap() error #62026
+pkg crypto/x509, method (*ConstraintViolationError) Wrap(string) error #62026
+pkg crypto/x509, method (*ConstraintViolationError) WrapError(string) *errors.Base #62026
+pkg crypto/x509, method (*HostnameError) String() string #62026
+pkg crypto/x509, method (*HostnameError) Unwrap() error #62026
+pkg crypto/x509, method (*HostnameError) Wrap(string) error #62026
+pkg crypto/x509, method (*HostnameError) WrapError(string) *errors.Base #62026
+pkg crypto/x509, method (*SystemRootsError) String() string #62026
+pkg crypto/x509, method (*SystemRootsError) Wrap(string) error #62026
+pkg crypto/x509, method (*SystemRootsError) WrapError(string) *errors.Base #62026
+pkg crypto/x509, method (*UnknownAuthorityError) String() string #62026
+pkg crypto/x509, method (*UnknownAuthorityError) Unwrap() error #62026
+pkg crypto/x509, method (*UnknownAuthorityError) Wrap(string) error #62026
+pkg crypto/x509, method (*UnknownAuthorityError) WrapError(string) *errors.Base #62026
+pkg crypto/x509, type CertificateInvalidError struct, embedded errors.Base #62026
+pkg crypto/x509, type ConstraintViolationError struct, embedded errors.Base #62026
+pkg crypto/x509, type HostnameError struct, embedded errors.Base #62026
+pkg crypto/x509, type SystemRootsError struct, embedded errors.Base #62026
+pkg crypto/x509, type UnknownAuthorityError struct, embedded errors.Base #62026
+pkg debug/elf, method (*FormatError) String() string #62026
+pkg debug/elf, method (*FormatError) Unwrap() error #62026
+pkg debug/elf, method (*FormatError) Wrap(string) error #62026
+pkg debug/elf, method (*FormatError) WrapError(string) *errors.Base #62026
+pkg debug/elf, type FormatError struct, embedded errors.Base #62026
+pkg debug/gosym, method (*DecodingError) String() string #62026
+pkg debug/gosym, method (*DecodingError) Unwrap() error #62026
+pkg debug/gosym, method (*DecodingError) Wrap(string) error #62026
+pkg debug/gosym, method (*DecodingError) WrapError(string) *errors.Base #62026
+pkg debug/gosym, method (*UnknownLineError) String() string #62026
+pkg debug/gosym, method (*UnknownLineError) Unwrap() error #62026
+pkg debug/gosym, method (*UnknownLineError) Wrap(string) error #62026
+pkg debug/gosym, method (*UnknownLineError) WrapError(string) *errors.Base #62026
+pkg debug/gosym, type DecodingError struct, embedded errors.Base #62026
+pkg debug/gosym, type UnknownLineError struct, embedded errors.Base #62026
+pkg debug/macho, method (*FormatError) String() string #62026
+pkg debug/macho, method (*FormatError) Unwrap() error #62026
+pkg debug/macho, method (*FormatError) Wrap(string) error #62026
+pkg debug/macho, method (*FormatError) WrapError(string) *errors.Base #62026
+pkg debug/macho, type FormatError struct, embedded errors.Base #62026
+pkg encoding/asn1, method (*StructuralError) String() string #62026
+pkg encoding/asn1, method (*StructuralError) Unwrap() error #62026
+pkg encoding/asn1, method (*StructuralError) Wrap(string) error #62026
+pkg encoding/asn1, method (*StructuralError) WrapError(string) *errors.Base #62026
+pkg encoding/asn1, method (*SyntaxError) String() string #62026
+pkg encoding/asn1, method (*SyntaxError) Unwrap() error #62026
+pkg encoding/asn1, method (*SyntaxError) Wrap(string) error #62026
+pkg encoding/asn1, method (*SyntaxError) WrapError(string) *errors.Base #62026
+pkg encoding/asn1, type StructuralError struct, embedded errors.Base #62026
+pkg encoding/asn1, type SyntaxError struct, embedded errors.Base #62026
+pkg encoding/csv, method (*ParseError) String() string #62026
+pkg encoding/csv, method (*ParseError) Wrap(string) error #62026
+pkg encoding/csv, method (*ParseError) WrapError(string) *errors.Base #62026
+pkg encoding/csv, type ParseError struct, embedded errors.Base #62026
+pkg encoding/json, method (*InvalidUnmarshalError) String() string #62026
+pkg encoding/json, method (*InvalidUnmarshalError) Unwrap() error #62026
+pkg encoding/json, method (*InvalidUnmarshalError) Wrap(string) error #62026
+pkg encoding/json, method (*InvalidUnmarshalError) WrapError(string) *errors.Base #62026
+pkg encoding/json, method (*MarshalerError) String() string #62026
+pkg encoding/json, method (*MarshalerError) Wrap(string) error #62026
+pkg encoding/json, method (*MarshalerError) WrapError(string) *errors.Base #62026
+pkg encoding/json, method (*SyntaxError) String() string #62026
+pkg encoding/json, method (*SyntaxError) Unwrap() error #62026
+pkg encoding/json, method (*SyntaxError) Wrap(string) error #62026
+pkg encoding/json, method (*SyntaxError) WrapError(string) *errors.Base #62026
+pkg encoding/json, method (*UnmarshalTypeError) String() string #62026
+pkg encoding/json, method (*UnmarshalTypeError) Unwrap() error #62026
+pkg encoding/json, method (*UnmarshalTypeError) Wrap(string) error #62026
+pkg encoding/json, method (*UnmarshalTypeError) WrapError(string) *errors.Base #62026
+pkg encoding/json, method (*UnsupportedTypeError) String() string #62026
+pkg encoding/json, method (*UnsupportedTypeError) Unwrap() error #62026
+pkg encoding/json, method (*UnsupportedTypeError) Wrap(string) error #62026
+pkg encoding/json, method (*UnsupportedTypeError) WrapError(string) *errors.Base #62026
+pkg encoding/json, method (*UnsupportedValueError) String() string #62026
+pkg encoding/json, method (*UnsupportedValueError) Unwrap() error #62026
+pkg encoding/json, method (*UnsupportedValueError) Wrap(string) error #62026
+pkg encoding/json, method (*UnsupportedValueError) WrapError(string) *errors.Base #62026
+pkg encoding/json, type InvalidUnmarshalError struct, embedded errors.Base #62026
+pkg encoding/json, type MarshalerError struct, embedded errors.Base #62026
+pkg encoding/json, type SyntaxError struct, embedded errors.Base #62026
+pkg encoding/json, type UnmarshalTypeError struct, embedded errors.Base #62026
+pkg encoding/json, type UnsupportedTypeError struct, embedded errors.Base #62026
+pkg encoding/json, type UnsupportedValueError struct, embedded errors.Base #62026
+pkg encoding/xml, method (*SyntaxError) String() string #62026
+pkg encoding/xml, method (*SyntaxError) Unwrap() error #62026
+pkg encoding/xml, method (*SyntaxError) Wrap(string) error #62026
+pkg encoding/xml, method (*SyntaxError) WrapError(string) *errors.Base #62026
+pkg encoding/xml, method (*TagPathError) String() string #62026
+pkg encoding/xml, method (*TagPathError) Unwrap() error #62026
+pkg encoding/xml, method (*TagPathError) Wrap(string) error #62026
+pkg encoding/xml, method (*TagPathError) WrapError(string) *errors.Base #62026
+pkg encoding/xml, method (*UnsupportedTypeError) String() string #62026
+pkg encoding/xml, method (*UnsupportedTypeError) Unwrap() error #62026
+pkg encoding/xml, method (*UnsupportedTypeError) Wrap(string) error #62026
+pkg encoding/xml, method (*UnsupportedTypeError) WrapError(string) *errors.Base #62026
+pkg encoding/xml, type SyntaxError struct, embedded errors.Base #62026
+pkg encoding/xml, type TagPathError struct, embedded errors.Base #62026
+pkg encoding/xml, type UnsupportedTypeError struct, embedded errors.Base #62026
+pkg errors, func CaptureStackTrace() StackTrace #62026
+pkg errors, func InitCustom(*Base, string, ...interface{}) #62026
+pkg errors, func New(string, ...interface{}) error #62026
+pkg errors, func NewCustom[$0 interface{ ~struct }](string, ...interface{}) *$0 #62026
+pkg errors, func NewError(string, ...interface{}) *Base #62026
+pkg errors, func NewWrapped(string, error) error #62026
+pkg errors, func NewWrappedError(string, error) *Base #62026
+pkg errors, func Wrap(error, string) error #62026
+pkg errors, func WrapError(error, string) *Base #62026
+pkg errors, method (*Base) Error() string #62026
+pkg errors, method (*Base) String() string #62026
+pkg errors, method (*Base) Unwrap() error #62026
+pkg errors, method (*Base) Wrap(string) error #62026
+pkg errors, method (*Base) WrapError(string) *Base #62026
+pkg errors, method (StackTrace) String() string #62026
+pkg errors, type Base struct #62026
+pkg errors, type Base struct, InnerError *Base #62026
+pkg errors, type Base struct, Message string #62026
+pkg errors, type Base struct, StackTrace StackTrace #62026
+pkg errors, type Error = Base #62026
+pkg errors, type StackFrame struct #62026
+pkg errors, type StackFrame struct, File string #62026
+pkg errors, type StackFrame struct, Function string #62026
+pkg errors, type StackFrame struct, Line int #62026
+pkg errors, type StackTrace []StackFrame #62026
+pkg fmt, func Error(string, ...interface{}) *errors.Base #62026
+pkg go/ast, func ShorthandKeywordPos(Decl) token.Pos #62026
+pkg go/ast, method (*EnumDecl) End() token.Pos #62026
+pkg go/ast, method (*EnumDecl) Pos() token.Pos #62026
+pkg go/ast, method (*EnumPatternExpr) End() token.Pos #62026
+pkg go/ast, method (*EnumPatternExpr) Pos() token.Pos #62026
+pkg go/ast, method (*ForceExpr) End() token.Pos #62026
+pkg go/ast, method (*ForceExpr) Pos() token.Pos #62026
+pkg go/ast, method (*IfExpr) End() token.Pos #62026
+pkg go/ast, method (*IfExpr) Pos() token.Pos #62026
+pkg go/ast, method (*InterfaceDecl) AsTypeSpec() *TypeSpec #62026
+pkg go/ast, method (*InterfaceDecl) End() token.Pos #62026
+pkg go/ast, method (*InterfaceDecl) Pos() token.Pos #62026
+pkg go/ast, method (*LambdaExpr) End() token.Pos #62026
+pkg go/ast, method (*LambdaExpr) Pos() token.Pos #62026
+pkg go/ast, method (*NullCondExpr) End() token.Pos #62026
+pkg go/ast, method (*NullCondExpr) Pos() token.Pos #62026
+pkg go/ast, method (*NullableTypeExpr) End() token.Pos #62026
+pkg go/ast, method (*NullableTypeExpr) Pos() token.Pos #62026
+pkg go/ast, method (*ResultTypeExpr) End() token.Pos #62026
+pkg go/ast, method (*ResultTypeExpr) Pos() token.Pos #62026
+pkg go/ast, method (*StructDecl) AsTypeSpec() *TypeSpec #62026
+pkg go/ast, method (*StructDecl) End() token.Pos #62026
+pkg go/ast, method (*StructDecl) Pos() token.Pos #62026
+pkg go/ast, method (*SwitchExpr) End() token.Pos #62026
+pkg go/ast, method (*SwitchExpr) Pos() token.Pos #62026
+pkg go/ast, method (*SwitchExprClause) End() token.Pos #62026
+pkg go/ast, method (*SwitchExprClause) Pos() token.Pos #62026
+pkg go/ast, method (*TryExpr) End() token.Pos #62026
+pkg go/ast, method (*TryExpr) Pos() token.Pos #62026
+pkg go/ast, type EnumDecl struct #62026
+pkg go/ast, type EnumDecl struct, Doc *CommentGroup #62026
+pkg go/ast, type EnumDecl struct, Enum token.Pos #62026
+pkg go/ast, type EnumDecl struct, Name *Ident #62026
+pkg go/ast, type EnumDecl struct, Rbrace token.Pos #62026
+pkg go/ast, type EnumDecl struct, TypeParams *FieldList #62026
+pkg go/ast, type EnumDecl struct, Variants []*EnumVariantSpec #62026
+pkg go/ast, type EnumPatternExpr struct #62026
+pkg go/ast, type EnumPatternExpr struct, Args []*Ident #62026
+pkg go/ast, type EnumPatternExpr struct, Fields []*Field #62026
+pkg go/ast, type EnumPatternExpr struct, Rbrace token.Pos #62026
+pkg go/ast, type EnumPatternExpr struct, Variant *Ident #62026
+pkg go/ast, type EnumVariantSpec struct #62026
+pkg go/ast, type EnumVariantSpec struct, Name *Ident #62026
+pkg go/ast, type EnumVariantSpec struct, StructFields *FieldList #62026
+pkg go/ast, type EnumVariantSpec struct, Tag Expr #62026
+pkg go/ast, type EnumVariantSpec struct, Types []Expr #62026
+pkg go/ast, type Field struct, Default Expr #62026
+pkg go/ast, type ForceExpr struct #62026
+pkg go/ast, type ForceExpr struct, Bang token.Pos #62026
+pkg go/ast, type ForceExpr struct, X Expr #62026
+pkg go/ast, type IfExpr struct #62026
+pkg go/ast, type IfExpr struct, Cond Expr #62026
+pkg go/ast, type IfExpr struct, Else token.Pos #62026
+pkg go/ast, type IfExpr struct, ElseBody Expr #62026
+pkg go/ast, type IfExpr struct, If token.Pos #62026
+pkg go/ast, type IfExpr struct, Lbrace token.Pos #62026
+pkg go/ast, type IfExpr struct, Lbrace2 token.Pos #62026
+pkg go/ast, type IfExpr struct, Rbrace token.Pos #62026
+pkg go/ast, type IfExpr struct, Rbrace2 token.Pos #62026
+pkg go/ast, type IfExpr struct, Then Expr #62026
+pkg go/ast, type InterfaceDecl struct #62026
+pkg go/ast, type InterfaceDecl struct, Doc *CommentGroup #62026
+pkg go/ast, type InterfaceDecl struct, Interface token.Pos #62026
+pkg go/ast, type InterfaceDecl struct, Methods *FieldList #62026
+pkg go/ast, type InterfaceDecl struct, Name *Ident #62026
+pkg go/ast, type InterfaceDecl struct, Rbrace token.Pos #62026
+pkg go/ast, type InterfaceDecl struct, TypeParams *FieldList #62026
+pkg go/ast, type LambdaExpr struct #62026
+pkg go/ast, type LambdaExpr struct, Arrow token.Pos #62026
+pkg go/ast, type LambdaExpr struct, Body Expr #62026
+pkg go/ast, type LambdaExpr struct, Lparen token.Pos #62026
+pkg go/ast, type LambdaExpr struct, Params []*Ident #62026
+pkg go/ast, type LambdaExpr struct, Rparen token.Pos #62026
+pkg go/ast, type NullCondExpr struct #62026
+pkg go/ast, type NullCondExpr struct, QPos token.Pos #62026
+pkg go/ast, type NullCondExpr struct, X Expr #62026
+pkg go/ast, type NullableTypeExpr struct #62026
+pkg go/ast, type NullableTypeExpr struct, QPos token.Pos #62026
+pkg go/ast, type NullableTypeExpr struct, X Expr #62026
+pkg go/ast, type ResultTypeExpr struct #62026
+pkg go/ast, type ResultTypeExpr struct, Bang token.Pos #62026
+pkg go/ast, type ResultTypeExpr struct, X Expr #62026
+pkg go/ast, type StructDecl struct #62026
+pkg go/ast, type StructDecl struct, Doc *CommentGroup #62026
+pkg go/ast, type StructDecl struct, Fields *FieldList #62026
+pkg go/ast, type StructDecl struct, Name *Ident #62026
+pkg go/ast, type StructDecl struct, Rbrace token.Pos #62026
+pkg go/ast, type StructDecl struct, Struct token.Pos #62026
+pkg go/ast, type StructDecl struct, TypeParams *FieldList #62026
+pkg go/ast, type SwitchExpr struct #62026
+pkg go/ast, type SwitchExpr struct, Body []*SwitchExprClause #62026
+pkg go/ast, type SwitchExpr struct, Lbrace token.Pos #62026
+pkg go/ast, type SwitchExpr struct, Rbrace token.Pos #62026
+pkg go/ast, type SwitchExpr struct, Switch token.Pos #62026
+pkg go/ast, type SwitchExpr struct, Tag Expr #62026
+pkg go/ast, type SwitchExprClause struct #62026
+pkg go/ast, type SwitchExprClause struct, Body Expr #62026
+pkg go/ast, type SwitchExprClause struct, Cases []Expr #62026
+pkg go/ast, type SwitchExprClause struct, Colon token.Pos #62026
+pkg go/ast, type TryExpr struct #62026
+pkg go/ast, type TryExpr struct, Bang token.Pos #62026
+pkg go/ast, type TryExpr struct, X Expr #62026
+pkg go/token, const ASSIGN = 43 #62026
+pkg go/token, const BREAK = 64 #62026
+pkg go/token, const CASE = 65 #62026
+pkg go/token, const CHAN = 66 #62026
+pkg go/token, const COLON = 61 #62026
+pkg go/token, const COMMA = 55 #62026
+pkg go/token, const CONST = 67 #62026
+pkg go/token, const CONTINUE = 68 #62026
+pkg go/token, const DEC = 39 #62026
+pkg go/token, const DEFAULT = 69 #62026
+pkg go/token, const DEFER = 70 #62026
+pkg go/token, const DEFINE = 48 #62026
+pkg go/token, const ELLIPSIS = 49 #62026
+pkg go/token, const ELSE = 71 #62026
+pkg go/token, const ENUM = 72 #62026
+pkg go/token, const ENUM Token #62026
+pkg go/token, const EQL = 40 #62026
+pkg go/token, const FALLTHROUGH = 73 #62026
+pkg go/token, const FATARROW = 37 #62026
+pkg go/token, const FATARROW Token #62026
+pkg go/token, const FOR = 74 #62026
+pkg go/token, const FUNC = 75 #62026
+pkg go/token, const GEQ = 47 #62026
+pkg go/token, const GO = 76 #62026
+pkg go/token, const GOTO = 77 #62026
+pkg go/token, const GTR = 42 #62026
+pkg go/token, const IF = 78 #62026
+pkg go/token, const IMPORT = 79 #62026
+pkg go/token, const INC = 38 #62026
+pkg go/token, const INTERFACE = 80 #62026
+pkg go/token, const LBRACE = 54 #62026
+pkg go/token, const LBRACK = 53 #62026
+pkg go/token, const LEQ = 46 #62026
+pkg go/token, const LPAREN = 52 #62026
+pkg go/token, const LSS = 41 #62026
+pkg go/token, const MAP = 81 #62026
+pkg go/token, const NEQ = 45 #62026
+pkg go/token, const NOT = 44 #62026
+pkg go/token, const NULLCOALESCE = 51 #62026
+pkg go/token, const NULLCOALESCE Token #62026
+pkg go/token, const PACKAGE = 82 #62026
+pkg go/token, const PERIOD = 56 #62026
+pkg go/token, const QUESTION = 50 #62026
+pkg go/token, const QUESTION Token #62026
+pkg go/token, const RANGE = 83 #62026
+pkg go/token, const RBRACE = 59 #62026
+pkg go/token, const RBRACK = 58 #62026
+pkg go/token, const RETURN = 84 #62026
+pkg go/token, const RPAREN = 57 #62026
+pkg go/token, const SELECT = 85 #62026
+pkg go/token, const SEMICOLON = 60 #62026
+pkg go/token, const STRUCT = 86 #62026
+pkg go/token, const SWITCH = 87 #62026
+pkg go/token, const TILDE = 92 #62026
+pkg go/token, const TYPE = 88 #62026
+pkg go/token, const VAR = 89 #62026
+pkg go/types, func AsEnum(Type) (*Enum, bool) #62026
+pkg go/types, func AsOptional(Type) (*Optional, bool) #62026
+pkg go/types, func AsResult(Type) (*Result, bool) #62026
+pkg go/types, func EnsurePackageForkFeatureCache(*Package) #62026
+pkg go/types, func ExportForkFeatureSummary(*Package) uint8 #62026
+pkg go/types, func InitEmptyForkFeatureCache(*Package) #62026
+pkg go/types, func InitForkFeatureCacheFromSummary(*Package, uint8) #62026
+pkg go/types, func IsEnumVariant(Object) bool #62026
+pkg go/types, func NewEnum(*TypeName, *TypeParamList, []*EnumVariant, *Struct, *Scope) *Enum #62026
+pkg go/types, func NewOptional(Type) Type #62026
+pkg go/types, func NewResult(Type) *Result #62026
+pkg go/types, func ResultStruct(*Package, *Result) *Struct #62026
+pkg go/types, method (*Enum) Obj() *TypeName #62026
+pkg go/types, method (*Enum) Scope() *Scope #62026
+pkg go/types, method (*Enum) String() string #62026
+pkg go/types, method (*Enum) StructType() *Struct #62026
+pkg go/types, method (*Enum) TypeParams() *TypeParamList #62026
+pkg go/types, method (*Enum) Underlying() Type #62026
+pkg go/types, method (*Enum) Variants() []*EnumVariant #62026
+pkg go/types, method (*EnumVariant) Fields() []*Var #62026
+pkg go/types, method (*EnumVariant) Name() string #62026
+pkg go/types, method (*EnumVariant) Obj() Object #62026
+pkg go/types, method (*EnumVariant) Tag() int64 #62026
+pkg go/types, method (*EnumVariant) Tuple() []Type #62026
+pkg go/types, method (*Func) IsExtension() bool #62026
+pkg go/types, method (*Func) LinkName() string #62026
+pkg go/types, method (*Func) SetExtension(bool) #62026
+pkg go/types, method (*Optional) Elem() Type #62026
+pkg go/types, method (*Optional) String() string #62026
+pkg go/types, method (*Optional) Underlying() Type #62026
+pkg go/types, method (*Package) ForkFeatureCacheValid() bool #62026
+pkg go/types, method (*Result) Elem() Type #62026
+pkg go/types, method (*Result) String() string #62026
+pkg go/types, method (*Result) Underlying() Type #62026
+pkg go/types, method (*Signature) ResultQuery() bool #62026
+pkg go/types, method (*Var) DefaultVal() constant.Value #62026
+pkg go/types, method (*Var) SetDefaultVal(constant.Value) #62026
+pkg go/types, type Enum struct #62026
+pkg go/types, type EnumVariant struct #62026
+pkg go/types, type Info struct, CallOverloads map[ast.Expr][]*Func #62026
+pkg go/types, type Info struct, FuncOverloads map[string][]*Func #62026
+pkg go/types, type Info struct, IndexAssignCalls map[ast.Expr]*ast.CallExpr #62026
+pkg go/types, type Info struct, IndexOperatorCalls map[ast.Expr]*ast.CallExpr #62026
+pkg go/types, type Info struct, MethodOverloads map[MethodOverloadKey][]*Func #62026
+pkg go/types, type Info struct, OperatorAssignCalls map[*ast.AssignStmt]*ast.CallExpr #62026
+pkg go/types, type Info struct, OperatorCalls map[ast.Expr]*ast.CallExpr #62026
+pkg go/types, type Info struct, UsedImportNames map[string]bool #62026
+pkg go/types, type MethodOverloadKey struct #62026
+pkg go/types, type MethodOverloadKey struct, Name string #62026
+pkg go/types, type MethodOverloadKey struct, RecvName string #62026
+pkg go/types, type Optional struct #62026
+pkg go/types, type Result struct #62026
+pkg io/fs, func NewPathError(string, string, error) *PathError #62026
+pkg io/fs, method (*PathError) String() string #62026
+pkg io/fs, method (*PathError) Wrap(string) error #62026
+pkg io/fs, method (*PathError) WrapError(string) *errors.Base #62026
+pkg io/fs, type PathError struct, embedded errors.Base #62026
+pkg length, func Len[$0 interface{}]([]$0) int #62026
+pkg length, func MapLen[$0 comparable, $1 interface{}](map[$0]$1) int #62026
+pkg length, type ILength interface { Len } #62026
+pkg length, type ILength interface, Len() int #62026
+pkg linkedlist, func FromSlice[$0 interface{}]([]$0) *List[$0] #62026
+pkg linkedlist, func New[$0 interface{}]() *List[$0] #62026
+pkg linkedlist, method (*List[$0]) Append(...$0) #62026
+pkg linkedlist, method (*List[$0]) Len() int #62026
+pkg linkedlist, method (*List[$0]) PopBack() ($0, bool) #62026
+pkg linkedlist, method (*List[$0]) PopFront() ($0, bool) #62026
+pkg linkedlist, method (*List[$0]) Prepend($0) #62026
+pkg linkedlist, method (*List[$0]) ToSlice() []$0 #62026
+pkg linkedlist, method (*List[$0]) Values() []$0 #62026
+pkg linkedlist, type List[$0 interface{}] struct #62026
+pkg linq, func AggregateBy[$0 interface{}, $1 comparable, $2 interface{}, $3 interface{}](iter.Seq[$0], func($0) $1, $2, func($2, $0) $2, func($2) $3) iter.Seq[KeyValue[$1, $3]] #62026
+pkg linq, func AggregateWithSeed[$0 interface{}, $1 interface{}](iter.Seq[$0], $1, func($1, $0) $1) $1 #62026
+pkg linq, func Aggregate[$0 interface{}](iter.Seq[$0], func($0, $0) $0) $0 #62026
+pkg linq, func All[$0 interface{}](iter.Seq[$0], func($0) bool) bool #62026
+pkg linq, func Any[$0 interface{}](iter.Seq[$0], func($0) bool) bool #62026
+pkg linq, func Append[$0 interface{}](iter.Seq[$0], $0) iter.Seq[$0] #62026
+pkg linq, func AsSeq[$0 interface{}](iter.Seq[$0]) iter.Seq[$0] #62026
+pkg linq, func Average[$0 Number](iter.Seq[$0]) float64 #62026
+pkg linq, func Cast[$0 interface{}](iter.Seq[interface{}]) iter.Seq[$0] #62026
+pkg linq, func Chunk[$0 interface{}](iter.Seq[$0], int) iter.Seq[[]$0] #62026
+pkg linq, func Concat[$0 interface{}](iter.Seq[$0], iter.Seq[$0]) iter.Seq[$0] #62026
+pkg linq, func Contains[$0 comparable](iter.Seq[$0], $0) bool #62026
+pkg linq, func CountBy[$0 interface{}, $1 comparable](iter.Seq[$0], func($0) $1) iter.Seq[KeyValue[$1, int]] #62026
+pkg linq, func CountLength(interface{ Len }) int #62026
+pkg linq, func CountList[$0 interface{}](*list.List[$0]) int #62026
+pkg linq, func CountMap[$0 comparable, $1 interface{}](map[$0]$1) int #62026
+pkg linq, func CountMaxHeap[$0 cmp.Ordered](*maxheap.Heap[$0]) int #62026
+pkg linq, func CountMinHeap[$0 cmp.Ordered](*minheap.Heap[$0]) int #62026
+pkg linq, func CountSet[$0 comparable](set.Set[$0]) int #62026
+pkg linq, func CountSlice[$0 interface{}]([]$0) int #62026
+pkg linq, func CountTree[$0 cmp.Ordered, $1 interface{}](*tree.BinaryTree[$0, $1]) int #62026
+pkg linq, func Count[$0 interface{}](iter.Seq[$0]) int #62026
+pkg linq, func DefaultIfEmpty[$0 interface{}](iter.Seq[$0], $0) iter.Seq[$0] #62026
+pkg linq, func DistinctBy[$0 interface{}, $1 comparable](iter.Seq[$0], func($0) $1) iter.Seq[$0] #62026
+pkg linq, func DistinctComparable[$0 comparable]([]$0) []$0 #62026
+pkg linq, func Distinct[$0 comparable](iter.Seq[$0]) iter.Seq[$0] #62026
+pkg linq, func ElementAtOrDefault[$0 interface{}](iter.Seq[$0], int, $0) $0 #62026
+pkg linq, func ElementAt[$0 interface{}](iter.Seq[$0], int) $0 #62026
+pkg linq, func Empty[$0 interface{}]() iter.Seq[$0] #62026
+pkg linq, func ExceptBy[$0 interface{}, $1 comparable](iter.Seq[$0], iter.Seq[$0], func($0) $1) iter.Seq[$0] #62026
+pkg linq, func Except[$0 comparable](iter.Seq[$0], iter.Seq[$0]) iter.Seq[$0] #62026
+pkg linq, func FirstOrDefault[$0 interface{}](iter.Seq[$0]) $0 #62026
+pkg linq, func FirstValue[$0 interface{}]([]$0) ($0, bool) #62026
+pkg linq, func First[$0 interface{}](iter.Seq[$0]) $0 #62026
+pkg linq, func From[$0 interface{}]([]$0) iter.Seq[$0] #62026
+pkg linq, func FullJoin[$0 interface{}, $1 interface{}, $2 comparable, $3 interface{}](iter.Seq[$0], iter.Seq[$1], func($0) $2, func($1) $2, func($0, $1) $3, $0, $1) iter.Seq[$3] #62026
+pkg linq, func GroupBy[$0 interface{}, $1 comparable](iter.Seq[$0], func($0) $1) iter.Seq[Group[$1, $0]] #62026
+pkg linq, func GroupJoin[$0 interface{}, $1 interface{}, $2 comparable, $3 interface{}](iter.Seq[$0], iter.Seq[$1], func($0) $2, func($1) $2, func($0, iter.Seq[$1]) $3) iter.Seq[$3] #62026
+pkg linq, func Index[$0 interface{}](iter.Seq[$0]) iter.Seq[Indexed[$0]] #62026
+pkg linq, func InfiniteSequence[$0 interface{}](func() $0) iter.Seq[$0] #62026
+pkg linq, func IntersectBy[$0 interface{}, $1 comparable](iter.Seq[$0], iter.Seq[$0], func($0) $1) iter.Seq[$0] #62026
+pkg linq, func Intersect[$0 comparable](iter.Seq[$0], iter.Seq[$0]) iter.Seq[$0] #62026
+pkg linq, func Join[$0 interface{}, $1 interface{}, $2 comparable, $3 interface{}](iter.Seq[$0], iter.Seq[$1], func($0) $2, func($1) $2, func($0, $1) $3) iter.Seq[$3] #62026
+pkg linq, func LastOrDefault[$0 interface{}](iter.Seq[$0]) $0 #62026
+pkg linq, func Last[$0 interface{}](iter.Seq[$0]) $0 #62026
+pkg linq, func LeftJoin[$0 interface{}, $1 interface{}, $2 comparable, $3 interface{}](iter.Seq[$0], iter.Seq[$1], func($0) $2, func($1) $2, func($0, $1) $3, $1) iter.Seq[$3] #62026
+pkg linq, func ListAsSeq[$0 interface{}](*list.List[$0]) iter.Seq[$0] #62026
+pkg linq, func LongCountList[$0 interface{}](*list.List[$0]) int64 #62026
+pkg linq, func LongCountMap[$0 comparable, $1 interface{}](map[$0]$1) int64 #62026
+pkg linq, func LongCountMaxHeap[$0 cmp.Ordered](*maxheap.Heap[$0]) int64 #62026
+pkg linq, func LongCountMinHeap[$0 cmp.Ordered](*minheap.Heap[$0]) int64 #62026
+pkg linq, func LongCountSet[$0 comparable](set.Set[$0]) int64 #62026
+pkg linq, func LongCountSlice[$0 interface{}]([]$0) int64 #62026
+pkg linq, func LongCountTree[$0 cmp.Ordered, $1 interface{}](*tree.BinaryTree[$0, $1]) int64 #62026
+pkg linq, func LongCount[$0 interface{}](iter.Seq[$0]) int64 #62026
+pkg linq, func MaxBy[$0 interface{}, $1 cmp.Ordered](iter.Seq[$0], func($0) $1) $0 #62026
+pkg linq, func MaxHeapAsSeq[$0 cmp.Ordered](*maxheap.Heap[$0]) iter.Seq[$0] #62026
+pkg linq, func Max[$0 cmp.Ordered](iter.Seq[$0]) $0 #62026
+pkg linq, func MinBy[$0 interface{}, $1 cmp.Ordered](iter.Seq[$0], func($0) $1) $0 #62026
+pkg linq, func MinHeapAsSeq[$0 cmp.Ordered](*minheap.Heap[$0]) iter.Seq[$0] #62026
+pkg linq, func Min[$0 cmp.Ordered](iter.Seq[$0]) $0 #62026
+pkg linq, func OfType[$0 interface{}](iter.Seq[interface{}]) iter.Seq[$0] #62026
+pkg linq, func OrderByDescending[$0 interface{}, $1 cmp.Ordered](iter.Seq[$0], func($0) $1) Ordered[$0] #62026
+pkg linq, func OrderBy[$0 interface{}, $1 cmp.Ordered](iter.Seq[$0], func($0) $1) Ordered[$0] #62026
+pkg linq, func OrderDescending[$0 cmp.Ordered](iter.Seq[$0]) Ordered[$0] #62026
+pkg linq, func Order[$0 cmp.Ordered](iter.Seq[$0]) Ordered[$0] #62026
+pkg linq, func Prepend[$0 interface{}](iter.Seq[$0], $0) iter.Seq[$0] #62026
+pkg linq, func Range(int, int) iter.Seq[int] #62026
+pkg linq, func Repeat[$0 interface{}]($0, int) iter.Seq[$0] #62026
+pkg linq, func Reverse[$0 interface{}](iter.Seq[$0]) iter.Seq[$0] #62026
+pkg linq, func RightJoin[$0 interface{}, $1 interface{}, $2 comparable, $3 interface{}](iter.Seq[$0], iter.Seq[$1], func($0) $2, func($1) $2, func($0, $1) $3, $0) iter.Seq[$3] #62026
+pkg linq, func SelectBy[$0 interface{}, $1 interface{}](iter.Seq[$0], func($0) $1) iter.Seq[$1] #62026
+pkg linq, func SelectMany[$0 interface{}, $1 interface{}](iter.Seq[$0], func($0) iter.Seq[$1]) iter.Seq[$1] #62026
+pkg linq, func Select[$0 interface{}, $1 interface{}](iter.Seq[$0], func($0) $1) iter.Seq[$1] #62026
+pkg linq, func SequenceEqual[$0 comparable](iter.Seq[$0], iter.Seq[$0]) bool #62026
+pkg linq, func Sequence[$0 interface{}]($0, func($0) $0) iter.Seq[$0] #62026
+pkg linq, func SetAsSeq[$0 comparable](set.Set[$0]) iter.Seq[$0] #62026
+pkg linq, func Shuffle[$0 interface{}](iter.Seq[$0]) iter.Seq[$0] #62026
+pkg linq, func SingleOrDefault[$0 interface{}](iter.Seq[$0], $0) $0 #62026
+pkg linq, func Single[$0 interface{}](iter.Seq[$0]) $0 #62026
+pkg linq, func SkipLast[$0 interface{}](iter.Seq[$0], int) iter.Seq[$0] #62026
+pkg linq, func SkipWhile[$0 interface{}](iter.Seq[$0], func($0) bool) iter.Seq[$0] #62026
+pkg linq, func Skip[$0 interface{}](iter.Seq[$0], int) iter.Seq[$0] #62026
+pkg linq, func Sum[$0 Number](iter.Seq[$0]) $0 #62026
+pkg linq, func TakeLast[$0 interface{}](iter.Seq[$0], int) iter.Seq[$0] #62026
+pkg linq, func TakeWhile[$0 interface{}](iter.Seq[$0], func($0) bool) iter.Seq[$0] #62026
+pkg linq, func Take[$0 interface{}](iter.Seq[$0], int) iter.Seq[$0] #62026
+pkg linq, func ToArray[$0 interface{}](iter.Seq[$0]) []$0 #62026
+pkg linq, func ToDictionary[$0 interface{}, $1 comparable, $2 interface{}](iter.Seq[$0], func($0) $1, func($0) $2) map[$1]$2 #62026
+pkg linq, func ToHashSet[$0 comparable](iter.Seq[$0]) HashSet[$0] #62026
+pkg linq, func ToList[$0 interface{}](iter.Seq[$0]) []$0 #62026
+pkg linq, func ToLookup[$0 interface{}, $1 comparable, $2 interface{}](iter.Seq[$0], func($0) $1, func($0) $2) Lookup[$1, $2] #62026
+pkg linq, func TreeAsSeq[$0 cmp.Ordered, $1 interface{}](*tree.BinaryTree[$0, $1]) iter.Seq[struct] #62026
+pkg linq, func TryGetSeqLenList[$0 interface{}](*list.List[$0]) (int, bool) #62026
+pkg linq, func TryGetSeqLenMap[$0 comparable, $1 interface{}](map[$0]$1) (int, bool) #62026
+pkg linq, func TryGetSeqLenMaxHeap[$0 cmp.Ordered](*maxheap.Heap[$0]) (int, bool) #62026
+pkg linq, func TryGetSeqLenMinHeap[$0 cmp.Ordered](*minheap.Heap[$0]) (int, bool) #62026
+pkg linq, func TryGetSeqLenSet[$0 comparable](set.Set[$0]) (int, bool) #62026
+pkg linq, func TryGetSeqLenSlice[$0 interface{}]([]$0) (int, bool) #62026
+pkg linq, func TryGetSeqLenTree[$0 cmp.Ordered, $1 interface{}](*tree.BinaryTree[$0, $1]) (int, bool) #62026
+pkg linq, func TryGetSeqLen[$0 interface{}](iter.Seq[$0]) (int, bool) #62026
+pkg linq, func UnionBy[$0 interface{}, $1 comparable](iter.Seq[$0], iter.Seq[$0], func($0) $1) iter.Seq[$0] #62026
+pkg linq, func Union[$0 comparable](iter.Seq[$0], iter.Seq[$0]) iter.Seq[$0] #62026
+pkg linq, func Where[$0 interface{}](iter.Seq[$0], func($0) bool) iter.Seq[$0] #62026
+pkg linq, func Zip[$0 interface{}, $1 interface{}, $2 interface{}](iter.Seq[$0], iter.Seq[$1], func($0, $1) $2) iter.Seq[$2] #62026
+pkg linq, method (Group[$0, $1]) Count() int #62026
+pkg linq, method (Group[$0, $1]) Values() []$1 #62026
+pkg linq, method (Lookup[$0, $1]) Contains($0) bool #62026
+pkg linq, method (Lookup[$0, $1]) Count() int #62026
+pkg linq, method (Lookup[$0, $1]) Get($0) []$1 #62026
+pkg linq, method (Lookup[$0, $1]) Keys() []$0 #62026
+pkg linq, method (Ordered[$0]) Aggregate(func($0, $0) $0) $0 #62026
+pkg linq, method (Ordered[$0]) AggregateWithSeed[$0 interface{}]($0, func($0, $0) $0) $0 #62026
+pkg linq, method (Ordered[$0]) First() $0 #62026
+pkg linq, method (Ordered[$0]) FirstOrDefault() $0 #62026
+pkg linq, method (Ordered[$0]) Select[$0 interface{}](func($0) $0) iter.Seq[$0] #62026
+pkg linq, method (Ordered[$0]) Seq() iter.Seq[$0] #62026
+pkg linq, method (Ordered[$0]) Skip(int) iter.Seq[$0] #62026
+pkg linq, method (Ordered[$0]) Take(int) iter.Seq[$0] #62026
+pkg linq, method (Ordered[$0]) ThenByDescending[$0 cmp.Ordered](func($0) $0) Ordered[$0] #62026
+pkg linq, method (Ordered[$0]) ThenBy[$0 cmp.Ordered](func($0) $0) Ordered[$0] #62026
+pkg linq, method (Ordered[$0]) ToList() []$0 #62026
+pkg linq, method (Ordered[$0]) Where(func($0) bool) iter.Seq[$0] #62026
+pkg linq, method (Ordered[$0]) Zip[$0 interface{}, $1 interface{}](iter.Seq[$0], func($0, $0) $1) iter.Seq[$1] #62026
+pkg linq, type Group[$0 comparable, $1 interface{}] struct #62026
+pkg linq, type Group[$0 comparable, $1 interface{}] struct, Key $0 #62026
+pkg linq, type HashSet[$0 comparable] map[$0]struct #62026
+pkg linq, type Indexed[$0 interface{}] struct #62026
+pkg linq, type Indexed[$0 interface{}] struct, Index int #62026
+pkg linq, type Indexed[$0 interface{}] struct, Value $0 #62026
+pkg linq, type KeyValue[$0 interface{}, $1 interface{}] struct #62026
+pkg linq, type KeyValue[$0 interface{}, $1 interface{}] struct, Key $0 #62026
+pkg linq, type KeyValue[$0 interface{}, $1 interface{}] struct, Value $1 #62026
+pkg linq, type Lookup[$0 comparable, $1 interface{}] struct #62026
+pkg linq, type Number interface {} #62026
+pkg linq, type Ordered[$0 interface{}] struct #62026
+pkg list, func Contains[$0 comparable](*List[$0], $0) bool #62026
+pkg list, func FromSlice[$0 interface{}]([]$0) *List[$0] #62026
+pkg list, func IndexOf[$0 comparable](*List[$0], $0) int #62026
+pkg list, func New[$0 interface{}]() *List[$0] #62026
+pkg list, func Of[$0 interface{}](...$0) *List[$0] #62026
+pkg list, method (*List[$0]) AddRange(iter.Seq[$0]) #62026
+pkg list, method (*List[$0]) All() iter.Seq[$0] #62026
+pkg list, method (*List[$0]) Append(...$0) #62026
+pkg list, method (*List[$0]) At(int) $0 #62026
+pkg list, method (*List[$0]) Cap() int #62026
+pkg list, method (*List[$0]) Clear() #62026
+pkg list, method (*List[$0]) Insert(int, $0) #62026
+pkg list, method (*List[$0]) Len() int #62026
+pkg list, method (*List[$0]) RemoveAt(int) #62026
+pkg list, method (*List[$0]) Set(int, $0) #62026
+pkg list, method (*List[$0]) ToSlice() []$0 #62026
+pkg list, type List[$0 interface{}] struct #62026
+pkg maxheap, func New[$0 cmp.Ordered]() *Heap[$0] #62026
+pkg maxheap, method (*Heap[$0]) All() iter.Seq[$0] #62026
+pkg maxheap, method (*Heap[$0]) Len() int #62026
+pkg maxheap, method (*Heap[$0]) Peek() ($0, bool) #62026
+pkg maxheap, method (*Heap[$0]) Pop() ($0, bool) #62026
+pkg maxheap, method (*Heap[$0]) Push($0) #62026
+pkg maxheap, type Heap[$0 cmp.Ordered] struct #62026
+pkg minheap, func New[$0 cmp.Ordered]() *Heap[$0] #62026
+pkg minheap, method (*Heap[$0]) All() iter.Seq[$0] #62026
+pkg minheap, method (*Heap[$0]) Len() int #62026
+pkg minheap, method (*Heap[$0]) Peek() ($0, bool) #62026
+pkg minheap, method (*Heap[$0]) Pop() ($0, bool) #62026
+pkg minheap, method (*Heap[$0]) Push($0) #62026
+pkg minheap, type Heap[$0 cmp.Ordered] struct #62026
+pkg net, func NewAddrError(string, string) *AddrError #62026
+pkg net, func NewOpError(string, string, Addr, Addr, error) *OpError #62026
+pkg net, func NewParseError(string, string) *ParseError #62026
+pkg net, method (*AddrError) String() string #62026
+pkg net, method (*AddrError) Unwrap() error #62026
+pkg net, method (*AddrError) Wrap(string) error #62026
+pkg net, method (*AddrError) WrapError(string) *errors.Base #62026
+pkg net, method (*DNSConfigError) String() string #62026
+pkg net, method (*DNSConfigError) Wrap(string) error #62026
+pkg net, method (*DNSConfigError) WrapError(string) *errors.Base #62026
+pkg net, method (*DNSError) String() string #62026
+pkg net, method (*DNSError) Wrap(string) error #62026
+pkg net, method (*DNSError) WrapError(string) *errors.Base #62026
+pkg net, method (*OpError) String() string #62026
+pkg net, method (*OpError) Wrap(string) error #62026
+pkg net, method (*OpError) WrapError(string) *errors.Base #62026
+pkg net, method (*ParseError) String() string #62026
+pkg net, method (*ParseError) Unwrap() error #62026
+pkg net, method (*ParseError) Wrap(string) error #62026
+pkg net, method (*ParseError) WrapError(string) *errors.Base #62026
+pkg net, type AddrError struct, embedded errors.Base #62026
+pkg net, type DNSConfigError struct, embedded errors.Base #62026
+pkg net, type DNSError struct, embedded errors.Base #62026
+pkg net, type OpError struct, embedded errors.Base #62026
+pkg net, type ParseError struct, embedded errors.Base #62026
+pkg net/http, func NewMaxBytesError(int64) *MaxBytesError #62026
+pkg net/http, func NewProtocolError(string) *ProtocolError #62026
+pkg net/http, method (*MaxBytesError) String() string #62026
+pkg net/http, method (*MaxBytesError) Unwrap() error #62026
+pkg net/http, method (*MaxBytesError) Wrap(string) error #62026
+pkg net/http, method (*MaxBytesError) WrapError(string) *errors.Base #62026
+pkg net/http, method (*ProtocolError) String() string #62026
+pkg net/http, method (*ProtocolError) Unwrap() error #62026
+pkg net/http, method (*ProtocolError) Wrap(string) error #62026
+pkg net/http, method (*ProtocolError) WrapError(string) *errors.Base #62026
+pkg net/http, type MaxBytesError struct, embedded errors.Base #62026
+pkg net/http, type ProtocolError struct, embedded errors.Base #62026
+pkg os, func NewLinkError(string, string, string, error) *LinkError #62026
+pkg os, func NewPathError(string, string, error) *fs.PathError #62026
+pkg os, method (*LinkError) String() string #62026
+pkg os, method (*LinkError) Wrap(string) error #62026
+pkg os, method (*LinkError) WrapError(string) *errors.Base #62026
+pkg os, method (*SyscallError) String() string #62026
+pkg os, method (*SyscallError) Wrap(string) error #62026
+pkg os, method (*SyscallError) WrapError(string) *errors.Base #62026
+pkg os, type LinkError struct, embedded errors.Base #62026
+pkg os, type SyscallError struct, embedded errors.Base #62026
+pkg os/exec, func NewError(string, error) *Error #62026
+pkg os/exec, method (*Error) String() string #62026
+pkg os/exec, method (*Error) Wrap(string) error #62026
+pkg os/exec, method (*Error) WrapError(string) *errors.Base #62026
+pkg os/exec, method (*ExitError) Unwrap() error #62026
+pkg os/exec, method (*ExitError) Wrap(string) error #62026
+pkg os/exec, method (*ExitError) WrapError(string) *errors.Base #62026
+pkg os/exec, type Error struct, embedded errors.Base #62026
+pkg os/exec, type ExitError struct, embedded errors.Base #62026
+pkg person, type Person struct #62026
+pkg person, type Person struct, Name string #62026
+pkg personext, func Hello(person.Person) string #62026
+pkg queue, func New[$0 interface{}]() *Queue[$0] #62026
+pkg queue, method (*Queue[$0]) Dequeue() ($0, bool) #62026
+pkg queue, method (*Queue[$0]) Enqueue($0) #62026
+pkg queue, method (*Queue[$0]) Len() int #62026
+pkg queue, method (*Queue[$0]) Peek() ($0, bool) #62026
+pkg queue, type Queue[$0 interface{}] struct #62026
+pkg reflect, method (*ValueError) String() string #62026
+pkg reflect, method (*ValueError) Unwrap() error #62026
+pkg reflect, method (*ValueError) Wrap(string) error #62026
+pkg reflect, method (*ValueError) WrapError(string) *errors.Base #62026
+pkg reflect, type ValueError struct, embedded errors.Base #62026
+pkg set, func Make[$0 comparable]() Set[$0] #62026
+pkg set, func Of[$0 comparable](...$0) Set[$0] #62026
+pkg set, method (Set[$0]) Add($0) #62026
+pkg set, method (Set[$0]) All() iter.Seq[$0] #62026
+pkg set, method (Set[$0]) Contains($0) bool #62026
+pkg set, method (Set[$0]) Delete($0) #62026
+pkg set, method (Set[$0]) Equal(Set[$0]) bool #62026
+pkg set, method (Set[$0]) Intersect(Set[$0]) Set[$0] #62026
+pkg set, method (Set[$0]) Len() int #62026
+pkg set, method (Set[$0]) Union(Set[$0]) Set[$0] #62026
+pkg set, method (Set[$0]) Values() []$0 #62026
+pkg set, type Set[$0 comparable] map[$0]struct #62026
+pkg stack, func New[$0 interface{}]() *Stack[$0] #62026
+pkg stack, method (*Stack[$0]) Len() int #62026
+pkg stack, method (*Stack[$0]) Peek() ($0, bool) #62026
+pkg stack, method (*Stack[$0]) Pop() ($0, bool) #62026
+pkg stack, method (*Stack[$0]) Push($0) #62026
+pkg stack, type Stack[$0 interface{}] struct #62026
+pkg strconv, method (*NumError) String() string #62026
+pkg strconv, method (*NumError) Wrap(string) error #62026
+pkg strconv, method (*NumError) WrapError(string) *errors.Base #62026
+pkg strconv, type NumError struct, embedded errors.Base #62026
+pkg syscall (windows-386), method (*DLLError) String() string #62026
+pkg syscall (windows-386), method (*DLLError) Wrap(string) error #62026
+pkg syscall (windows-386), method (*DLLError) WrapError(string) *errors.Base #62026
+pkg syscall (windows-386), type DLLError struct, embedded errors.Base #62026
+pkg syscall (windows-amd64), method (*DLLError) String() string #62026
+pkg syscall (windows-amd64), method (*DLLError) Wrap(string) error #62026
+pkg syscall (windows-amd64), method (*DLLError) WrapError(string) *errors.Base #62026
+pkg syscall (windows-amd64), type DLLError struct, embedded errors.Base #62026
+pkg text/template, method (*ExecError) String() string #62026
+pkg text/template, method (*ExecError) Wrap(string) error #62026
+pkg text/template, method (*ExecError) WrapError(string) *errors.Base #62026
+pkg text/template, type ExecError struct, embedded errors.Base #62026
+pkg time, func DefaultLocale() *Locale #62026
+pkg time, func LookupLocale(string) (*Locale, error) #62026
+pkg time, func ParseCustom(string, string, *Location) (Time, error) #62026
+pkg time, func ParseCustomLocale(string, string, string, *Location) (Time, error) #62026
+pkg time, method (*ParseError) String() string #62026
+pkg time, method (*ParseError) Unwrap() error #62026
+pkg time, method (*ParseError) Wrap(string) error #62026
+pkg time, method (*ParseError) WrapError(string) *errors.Base #62026
+pkg time, method (Time) FormatCustom(string) string #62026
+pkg time, method (Time) FormatCustomLocale(string, string) string #62026
+pkg time, type Locale struct #62026
+pkg time, type Locale struct, AMDesignator string #62026
+pkg time, type Locale struct, DateOrder dateOrder #62026
+pkg time, type Locale struct, DateSeparator string #62026
+pkg time, type Locale struct, EraDesignator string #62026
+pkg time, type Locale struct, MonthAbbr [12]string #62026
+pkg time, type Locale struct, MonthNames [12]string #62026
+pkg time, type Locale struct, PMDesignator string #62026
+pkg time, type Locale struct, Tag string #62026
+pkg time, type Locale struct, TimeSeparator string #62026
+pkg time, type Locale struct, WeekdayAbbr [7]string #62026
+pkg time, type Locale struct, WeekdayNames [7]string #62026
+pkg time, type ParseError struct, embedded errors.Base #62026
+pkg time, var ErrBadFormat error #62026
+pkg time, var ErrParseCustom error #62026
+pkg tree, func New[$0 cmp.Ordered, $1 interface{}]() *BinaryTree[$0, $1] #62026
+pkg tree, method (*BinaryTree[$0, $1]) All() iter.Seq[struct] #62026
+pkg tree, method (*BinaryTree[$0, $1]) Delete($0) #62026
+pkg tree, method (*BinaryTree[$0, $1]) Inorder(func($0, $1)) #62026
+pkg tree, method (*BinaryTree[$0, $1]) Insert($0, $1) #62026
+pkg tree, method (*BinaryTree[$0, $1]) Len() int #62026
+pkg tree, method (*BinaryTree[$0, $1]) Search($0) ($1, bool) #62026
+pkg tree, type BinaryTree[$0 cmp.Ordered, $1 interface{}] struct #62026
