@@ -450,7 +450,7 @@ func TestMakeStructFields(t *testing.T) {
 			}
 
 			tt.want.reindex()
-			if !reflect.DeepEqual(got, tt.want) || !reflect.DeepEqual(gotErr, tt.wantErr) {
+			if !reflect.DeepEqual(got, tt.want) || !equalError(gotErr, tt.wantErr) {
 				t.Errorf("%s: makeStructFields(%T):\n\tgot  (%v, %v)\n\twant (%v, %v)", tt.name.Where, tt.in, got, gotErr, tt.want, tt.wantErr)
 			}
 		})
@@ -727,7 +727,7 @@ func TestParseTagOptions(t *testing.T) {
 		t.Run(tt.name.Name, func(t *testing.T) {
 			fs := reflect.TypeOf(tt.in).Field(0)
 			gotOpts, gotIgnored, gotErr := parseFieldOptions(fs)
-			if !reflect.DeepEqual(gotOpts, tt.wantOpts) || gotIgnored != tt.wantIgnored || !reflect.DeepEqual(gotErr, tt.wantErr) {
+			if !reflect.DeepEqual(gotOpts, tt.wantOpts) || gotIgnored != tt.wantIgnored || !equalError(gotErr, tt.wantErr) {
 				t.Errorf("%s: parseFieldOptions(%T) = (\n\t%v,\n\t%v,\n\t%v\n), want (\n\t%v,\n\t%v,\n\t%v\n)", tt.name.Where, tt.in, gotOpts, gotIgnored, gotErr, tt.wantOpts, tt.wantIgnored, tt.wantErr)
 			}
 		})

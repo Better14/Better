@@ -4666,7 +4666,7 @@ func TestMarshal(t *testing.T) {
 			if string(got) != tt.want {
 				t.Errorf("%s: Marshal output mismatch:\ngot  %s\nwant %s", tt.name.Where, got, tt.want)
 			}
-			if !reflect.DeepEqual(gotErr, tt.wantErr) {
+			if !equalError(gotErr, tt.wantErr) {
 				t.Errorf("%s: Marshal error mismatch:\ngot  %v\nwant %v", tt.name.Where, gotErr, tt.wantErr)
 			}
 		})
@@ -9325,7 +9325,7 @@ func TestUnmarshal(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) && tt.want != nil {
 				t.Errorf("%s: Unmarshal output mismatch:\ngot  %v\nwant %v", tt.name.Where, got, tt.want)
 			}
-			if !reflect.DeepEqual(gotErr, tt.wantErr) {
+			if !equalError(gotErr, tt.wantErr) {
 				t.Errorf("%s: Unmarshal error mismatch:\ngot  %v\nwant %v", tt.name.Where, gotErr, tt.wantErr)
 			}
 		})
@@ -9741,7 +9741,7 @@ func TestUnmarshalDecodeStream(t *testing.T) {
 		for {
 			var v any
 			if err := UnmarshalDecode(d, &v); err != nil {
-				if !reflect.DeepEqual(err, tt.err) {
+				if !equalError(err, tt.err) {
 					t.Errorf("`%s`: UnmarshalDecode error = %v, want %v", tt.in, err, tt.err)
 				}
 				break

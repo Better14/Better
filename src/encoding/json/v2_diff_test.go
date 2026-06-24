@@ -7,7 +7,6 @@
 package json_test
 
 import (
-	"errors"
 	"path"
 	"reflect"
 	"strings"
@@ -1047,6 +1046,8 @@ func TestTimeDurations(t *testing.T) {
 // Rejecting unserializable structs in v2 is intended to be a clear signal
 // that the type is not supposed to be serialized.
 func TestEmptyStructs(t *testing.T) {
+	type unexportedFields struct{ x int }
+
 	never := func(string) bool { return false }
 	onlyV2 := func(v string) bool { return v == "v2" }
 	values := []struct {
@@ -1057,8 +1058,7 @@ func TestEmptyStructs(t *testing.T) {
 		{in: addr(struct{}{}), wantError: never},
 		// In v1, a non-empty struct without exported fields
 		// is equivalent to an empty struct, but is rejected in v2.
-		// Note that errors.errorString type has only unexported fields.
-		{in: errors.New("error"), wantError: onlyV2},
+		{in: addr(unexportedFields{}), wantError: onlyV2},
 		// A mix of exported and unexported fields is permitted.
 		{in: addr(struct{ Exported, unexported int }{}), wantError: never},
 	}

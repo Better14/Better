@@ -13,7 +13,6 @@ import (
 	"math"
 	"math/rand"
 	"path"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -40,7 +39,10 @@ func (e *SyntacticError) withPos(prefix string, pointer Pointer) *SyntacticError
 }
 
 func equalError(x, y error) bool {
-	return reflect.DeepEqual(x, y)
+	if x == nil || y == nil {
+		return x == nil && y == nil
+	}
+	return x.Error() == y.Error()
 }
 
 var (

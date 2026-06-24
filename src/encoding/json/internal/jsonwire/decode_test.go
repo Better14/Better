@@ -10,10 +10,16 @@ import (
 	"errors"
 	"io"
 	"math"
-	"reflect"
 	"strings"
 	"testing"
 )
+
+func errorsEqual(a, b error) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return a.Error() == b.Error()
+}
 
 func TestConsumeWhitespace(t *testing.T) {
 	tests := []struct {
@@ -95,7 +101,7 @@ func TestConsumeLiteral(t *testing.T) {
 			}
 
 			got, gotErr := ConsumeLiteral([]byte(tt.in), tt.literal)
-			if got != tt.want || !reflect.DeepEqual(gotErr, tt.wantErr) {
+			if got != tt.want || !errorsEqual(gotErr, tt.wantErr) {
 				t.Errorf("ConsumeLiteral(%q, %q) = (%v, %v), want (%v, %v)", tt.in, tt.literal, got, gotErr, tt.want, tt.wantErr)
 			}
 		})
@@ -204,17 +210,17 @@ func TestConsumeString(t *testing.T) {
 			if gotFlags != tt.wantFlags {
 				t.Errorf("consumeString(%q, false) flags = %v, want %v", tt.in, gotFlags, tt.wantFlags)
 			}
-			if got != tt.want || !reflect.DeepEqual(gotErr, tt.wantErr) {
+			if got != tt.want || !errorsEqual(gotErr, tt.wantErr) {
 				t.Errorf("consumeString(%q, false) = (%v, %v), want (%v, %v)", tt.in, got, gotErr, tt.want, tt.wantErr)
 			}
 
 			got, gotErr = ConsumeString(&gotFlags, []byte(tt.in), true)
-			if got != tt.wantUTF8 || !reflect.DeepEqual(gotErr, tt.wantErrUTF8) {
+			if got != tt.wantUTF8 || !errorsEqual(gotErr, tt.wantErrUTF8) {
 				t.Errorf("consumeString(%q, false) = (%v, %v), want (%v, %v)", tt.in, got, gotErr, tt.wantUTF8, tt.wantErrUTF8)
 			}
 
 			gotUnquote, gotErr := AppendUnquote(nil, []byte(tt.in))
-			if string(gotUnquote) != tt.wantUnquote || !reflect.DeepEqual(gotErr, tt.wantErrUnquote) {
+			if string(gotUnquote) != tt.wantUnquote || !errorsEqual(gotErr, tt.wantErrUnquote) {
 				t.Errorf("AppendUnquote(nil, %q) = (%q, %v), want (%q, %v)", tt.in[:got], gotUnquote, gotErr, tt.wantUnquote, tt.wantErrUnquote)
 			}
 		})
@@ -307,7 +313,7 @@ func TestConsumeNumber(t *testing.T) {
 			}
 
 			got, gotErr := ConsumeNumber([]byte(tt.in))
-			if got != tt.want || !reflect.DeepEqual(gotErr, tt.wantErr) {
+			if got != tt.want || !errorsEqual(gotErr, tt.wantErr) {
 				t.Errorf("ConsumeNumber(%q) = (%v, %v), want (%v, %v)", tt.in, got, gotErr, tt.want, tt.wantErr)
 			}
 		})
