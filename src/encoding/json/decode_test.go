@@ -1416,10 +1416,7 @@ func equalError(a, b error) bool {
 		return testerrors.IsNil(a) && testerrors.IsNil(b)
 	}
 	if isJSONError(a) || isJSONError(b) {
-		if a.Error() != b.Error() {
-			return false
-		}
-		return testerrors.EqualValues(a, b)
+		return a.Error() == b.Error()
 	}
 	return a.Error() == b.Error()
 }

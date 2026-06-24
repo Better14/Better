@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"math"
 	"math/rand"
-	"reflect"
 	"strings"
 	"testing"
 )

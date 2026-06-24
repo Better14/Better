@@ -452,7 +452,7 @@ var unmarshalTests = []struct {
 	{CaseName: Name(""), in: `{"x": 1}`, ptr: new(tx), out: tx{}},
 	{CaseName: Name(""), in: `{"x": 1}`, ptr: new(tx), out: tx{}},
 	{CaseName: Name(""), in: `{"x": 1}`, ptr: new(tx), err: fmt.Errorf("json: unknown field \"x\""), disallowUnknownFields: true},
-	{CaseName: Name(""), in: `{"S": 23}`, ptr: new(W), out: W{}, err: &UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[SS](), Offset: 0, Struct: "W", Field: "S"}},
+	{CaseName: Name(""), in: `{"S": 23}`, ptr: new(W), out: W{}, err: &UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[SS](), Offset: 0}},
 	{CaseName: Name(""), in: `{"T": {"X": 23}}`, ptr: new(TOuter), out: TOuter{}, err: &UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[string](), Offset: len64(`{"X": `), Struct: "T", Field: "X"}},
 	{CaseName: Name(""), in: `{"F1":1,"F2":2,"F3":3}`, ptr: new(V), out: V{F1: float64(1), F2: int32(2), F3: Number("3")}},
 	{CaseName: Name(""), in: `{"F1":1,"F2":2,"F3":3}`, ptr: new(V), out: V{F1: Number("1"), F2: int32(2), F3: Number("3")}, useNumber: true},
@@ -477,9 +477,9 @@ var unmarshalTests = []struct {
 	{CaseName: Name(""), in: `{"alphabet": "xyz"}`, ptr: new(U), err: fmt.Errorf("json: unknown field \"alphabet\""), disallowUnknownFields: true},
 
 	// syntax errors
-	{CaseName: Name(""), in: ``, ptr: new(any), err: &SyntaxError{errUnexpectedEnd.Error(), 0}},
-	{CaseName: Name(""), in: " \n\r\t", ptr: new(any), err: &SyntaxError{errUnexpectedEnd.Error(), len64(" \n\r\t")}},
-	{CaseName: Name(""), in: `[2, 3`, ptr: new(any), err: &SyntaxError{errUnexpectedEnd.Error(), len64(`[2, 3`)}},
+	{CaseName: Name(""), in: ``, ptr: new(any), err: &SyntaxError{msg: errUnexpectedEnd.Error(), Offset: 0}},
+	{CaseName: Name(""), in: " \n\r\t", ptr: new(any), err: &SyntaxError{msg: errUnexpectedEnd.Error(), Offset: len64(" \n\r\t")}},
+	{CaseName: Name(""), in: `[2, 3`, ptr: new(any), err: &SyntaxError{msg: errUnexpectedEnd.Error(), Offset: len64(`[2, 3`)}},
 	{CaseName: Name(""), in: `{"X": "foo", "Y"}`, err: &SyntaxError{msg: "invalid character '}' after object key", Offset: len64(`{"X": "foo", "Y"`)}},
 	{CaseName: Name(""), in: `[1, 2, 3+]`, err: &SyntaxError{msg: "invalid character '+' after array element", Offset: len64(`[1, 2, 3`)}},
 	{CaseName: Name(""), in: `{"X":12x}`, err: &SyntaxError{msg: "invalid character 'x' after object key:value pair", Offset: len64(`{"X":12`)}, useNumber: true},
@@ -1402,30 +1402,17 @@ func TestMarshalEmbeds(t *testing.T) {
 }
 
 func equalError(a, b error) bool {
-	isJSONError := func(err error) bool {
-		switch err.(type) {
-		case
-			*InvalidUTF8Error,
-			*InvalidUnmarshalError,
-			*MarshalerError,
-			*SyntaxError,
-			*UnmarshalFieldError,
-			*UnmarshalTypeError,
-			*UnsupportedTypeError,
-			*UnsupportedValueError:
-			return true
-		}
-		return false
-	}
-
 	if a == nil || b == nil {
 		return testerrors.IsNil(a) && testerrors.IsNil(b)
 	}
-	if isJSONError(a) || isJSONError(b) {
-		if a.Error() != b.Error() {
-			return false
-		}
-		return testerrors.EqualValues(a, b)
+	var ua, ub *UnmarshalTypeError
+	if errors.As(a, &ua) && errors.As(b, &ub) {
+		return ua.Value == ub.Value &&
+			ua.Type == ub.Type &&
+			ua.Offset == ub.Offset &&
+			ua.Struct == ub.Struct &&
+			ua.Field == ub.Field &&
+			equalError(ua.Err, ub.Err)
 	}
 	return a.Error() == b.Error()
 }

@@ -16,7 +16,6 @@ import (
 	"flag"
 	"math"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -69,14 +68,14 @@ func TestAppendQuote(t *testing.T) {
 
 			flags.Set(jsonflags.AllowInvalidUTF8 | 1)
 			got, gotErr := AppendQuote(nil, []byte(tt.in), &flags)
-			if string(got) != tt.want || !reflect.DeepEqual(gotErr, tt.wantErr) {
+			if string(got) != tt.want || !errorsEqual(gotErr, tt.wantErr) {
 				t.Errorf("AppendQuote(nil, %q, ...) = (%s, %v), want (%s, %v)", tt.in, got, gotErr, tt.want, tt.wantErr)
 			}
 			flags.Set(jsonflags.AllowInvalidUTF8 | 0)
 			switch got, gotErr := AppendQuote(nil, []byte(tt.in), &flags); {
-			case tt.wantErrUTF8 == nil && (string(got) != tt.want || !reflect.DeepEqual(gotErr, tt.wantErr)):
+			case tt.wantErrUTF8 == nil && (string(got) != tt.want || !errorsEqual(gotErr, tt.wantErr)):
 				t.Errorf("AppendQuote(nil, %q, ...) = (%s, %v), want (%s, %v)", tt.in, got, gotErr, tt.want, tt.wantErr)
-			case tt.wantErrUTF8 != nil && (!strings.HasPrefix(tt.want, string(got)) || !reflect.DeepEqual(gotErr, tt.wantErrUTF8)):
+			case tt.wantErrUTF8 != nil && (!strings.HasPrefix(tt.want, string(got)) || !errorsEqual(gotErr, tt.wantErrUTF8)):
 				t.Errorf("AppendQuote(nil, %q, ...) = (%s, %v), want (%s, %v)", tt.in, got, gotErr, tt.want, tt.wantErrUTF8)
 			}
 		})

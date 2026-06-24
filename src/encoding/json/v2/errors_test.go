@@ -18,6 +18,13 @@ import (
 	"encoding/json/jsontext"
 )
 
+func equalError(a, b error) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return a.Error() == b.Error()
+}
+
 func TestSemanticError(t *testing.T) {
 	tests := []struct {
 		err  error
