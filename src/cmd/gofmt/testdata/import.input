@@ -2,11 +2,11 @@
 package main
 
 import (
-	"fmt"
-	"math"
-	"log"
 	"errors"
+	"fmt"
 	"io"
+	"log"
+	"math"
 )
 
 import (
@@ -26,11 +26,11 @@ import (
 //line :19
 
 import (
-	"fmt"
-	"math"
-	"log"
 	"errors"
+	"fmt"
 	"io"
+	"log"
+	"math"
 
 	"fmt"
 
@@ -45,11 +45,11 @@ import (
 
 import (
 	// a block with comments
-	"fmt" // for Printf
-	"math"
-	"log" // for Fatal
 	"errors"
-	"io" // for Reader
+	"fmt" // for Printf
+	"io"  // for Reader
+	"log" // for Fatal
+	"math"
 )
 
 import (
@@ -80,11 +80,11 @@ import (
 )
 
 import (
-	"fmt" // for Printf
-	"math"
-	"log" // for Fatal
 	"errors"
-	"io" // for Reader
+	"fmt" // for Printf
+	"io"  // for Reader
+	"log" // for Fatal
+	"math"
 
 	"fmt" // for Printf
 
@@ -100,69 +100,64 @@ import (
 import (
 	"fmt" // for Printf
 
-	"math"
-	"log" // for Fatal
 	"errors"
-	"io" // for Reader
+	"io"  // for Reader
+	"log" // for Fatal
+	"math"
 
-	"fmt" // for Printf
-	"math"
-	"log" // for Fatal
 	"errors"
-	"io" // for Reader
+	"fmt" // for Printf
+	"io"  // for Reader
+	"log" // for Fatal
+	"math"
 )
 
 // Test deduping and extended sorting
 import (
-	"B" // B
 	a "A" // aA
-	b "A" // bA2
 	b "A" // bA1
+	b "A" // bA2
+	"B"   // B
 	. "B" // .B
-	. "B"
-	"C"
-	"C"
+	_ "B" // _b
 	"C"
 	a "D" // aD
-	"B"
-	_ "B" // _b
 )
 
 import (
 	"dedup_by_group"
-	"dedup_by_group"
 
 	"dedup_by_group"
 )
 
 import (
-	/* comment */ io1 "io"
 	"fmt" // for Printf
-	/* comment */ "log"
-	/* comment */ io2 "io"
-)
-
-import (
-	/* comment */ io2 "io" // hello
 	/* comment */ io1 "io"
-	"math" /* right side */
+	/* comment */ io2 "io"
+	/* comment */ "log"
+)
+
+import (
 	"fmt"
+	/* comment */ io1 "io"
+	/* comment */ io2 "io" // hello
+	"math"                 /* right side */
 	// end
 )
 
 import (
+	"errors" // for New
+	"fmt"
 	/* comment */ io1 "io" /* before */ // after
-	"fmt"
-	"errors" // for New
-	io2 "io" // another
+	io2 "io"               // another
 	// end
 )
 
 import (
-	/* left */ "fmt" /* right */
 	"errors" // for New
+	/* left */ "fmt" /* right */
+	"log"            // for Fatal
 	/* left */ "math" /* right */
-	"log" // for Fatal
 )
 
 import /* why */ /* comment here? */ (
@@ -178,22 +173,22 @@ import (
 	"path"
 	. "path"
 	_ "path"
-	"path"
 	pathpkg "path"
 )
 
 /* comment */
 import (
-	"math" // for Abs
 	"fmt"
+	"math" // for Abs
 	// This is a new run
 	"errors"
 	"fmt"
-	"errors"
 )
 
 // End an import declaration in the same line
 // as the last import. See golang.org/issue/33538.
 // Note: Must be the last (or 2nd last) line of the file.
-import("fmt"
-"math")
+import (
+	"fmt"
+	"math"
+)
