@@ -361,20 +361,32 @@ L:
 				continue L
 			}
 		}
-		// look for duplicate types (O(1) map lookup; bucket size is 1 unless hash collides)
+		// look for duplicate types (compare against all prior cases; hash key is
+		// only for bucketing and may differ for Identical types such as func(int)
+		// vs func(x int)).
 		key := typeSwitchCaseKey(check, T)
-		for _, prev := range seen[key] {
-			if typeSwitchTypesEqual(T, prev.typ) {
-				Ts := "nil"
-				if T != nil {
-					Ts = TypeString(T, check.qualifier)
+		var dup *typeSwitchCaseEntry
+		for _, entries := range seen {
+			for i := range entries {
+				if typeSwitchTypesEqual(T, entries[i].typ) {
+					dup = &entries[i]
+					break
 				}
-				err := check.newError(DuplicateCase)
-				err.addf(e, "duplicate case %s in type switch", Ts)
-				err.addf(prev.expr, "previous case")
-				err.report()
-				continue L
 			}
+			if dup != nil {
+				break
+			}
+		}
+		if dup != nil {
+			Ts := "nil"
+			if T != nil {
+				Ts = TypeString(T, check.qualifier)
+			}
+			err := check.newError(DuplicateCase)
+			err.addf(e, "duplicate case %s in type switch", Ts)
+			err.addf(dup.expr, "previous case")
+			err.report()
+			continue L
 		}
 		seen[key] = append(seen[key], typeSwitchCaseEntry{T, e})
 		if x != nil && T != nil {
