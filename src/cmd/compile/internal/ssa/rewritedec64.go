@@ -558,7 +558,7 @@ func rewriteValuedec64_OpLast(v *Value) bool {
 	// match: (Last ___)
 	// result: v.Args[len(v.Args)-1]
 	for {
-		v.copyOf(v.Args[len(v.Args)-1])
+		v.copyOf(v.Args[len(v.Args) - 1])
 		return true
 	}
 }
@@ -1393,7 +1393,7 @@ func rewriteValuedec64_OpOr32(v *Value) bool {
 		if v.Type != typ.UInt32 {
 			break
 		}
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			if v_0.Op != OpZeromask {
 				continue
 			}
@@ -1418,7 +1418,7 @@ func rewriteValuedec64_OpOr32(v *Value) bool {
 		if v.Type != typ.UInt32 {
 			break
 		}
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			if v_0.Op != OpZeromask {
 				continue
 			}
@@ -1526,7 +1526,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(c&63 == 0) {
+		if !(c & 63 == 0) {
 			break
 		}
 		v.copyOf(x)
@@ -1541,7 +1541,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(c&63 == 0) {
+		if !(c & 63 == 0) {
 			break
 		}
 		v.copyOf(x)
@@ -1556,7 +1556,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt16(v_1.AuxInt)
-		if !(c&63 == 0) {
+		if !(c & 63 == 0) {
 			break
 		}
 		v.copyOf(x)
@@ -1571,7 +1571,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt8(v_1.AuxInt)
-		if !(c&63 == 0) {
+		if !(c & 63 == 0) {
 			break
 		}
 		v.copyOf(x)
@@ -1587,7 +1587,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(c&63 == 32) {
+		if !(c & 63 == 32) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1609,7 +1609,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(c&63 == 32) {
+		if !(c & 63 == 32) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1631,7 +1631,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt16(v_1.AuxInt)
-		if !(c&63 == 32) {
+		if !(c & 63 == 32) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1653,7 +1653,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt8(v_1.AuxInt)
-		if !(c&63 == 32) {
+		if !(c & 63 == 32) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1675,7 +1675,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(0 < c&63 && c&63 < 32) {
+		if !(0 < c & 63 && c & 63 < 32) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1691,7 +1691,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 		v5 := b.NewValue0(v.Pos, OpInt64Lo, typ.UInt32)
 		v5.AddArg(x)
 		v6 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v6.AuxInt = int32ToAuxInt(int32(32 - c&31))
+		v6.AuxInt = int32ToAuxInt(int32(32 - c & 31))
 		v4.AddArg2(v5, v6)
 		v0.AddArg2(v1, v4)
 		v7 := b.NewValue0(v.Pos, OpOr32, typ.UInt32)
@@ -1713,7 +1713,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(0 < c&63 && c&63 < 32) {
+		if !(0 < c & 63 && c & 63 < 32) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1729,7 +1729,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 		v5 := b.NewValue0(v.Pos, OpInt64Lo, typ.UInt32)
 		v5.AddArg(x)
 		v6 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v6.AuxInt = int32ToAuxInt(int32(32 - c&31))
+		v6.AuxInt = int32ToAuxInt(int32(32 - c & 31))
 		v4.AddArg2(v5, v6)
 		v0.AddArg2(v1, v4)
 		v7 := b.NewValue0(v.Pos, OpOr32, typ.UInt32)
@@ -1751,7 +1751,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt16(v_1.AuxInt)
-		if !(0 < c&63 && c&63 < 32) {
+		if !(0 < c & 63 && c & 63 < 32) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1767,7 +1767,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 		v5 := b.NewValue0(v.Pos, OpInt64Lo, typ.UInt32)
 		v5.AddArg(x)
 		v6 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v6.AuxInt = int32ToAuxInt(int32(32 - c&31))
+		v6.AuxInt = int32ToAuxInt(int32(32 - c & 31))
 		v4.AddArg2(v5, v6)
 		v0.AddArg2(v1, v4)
 		v7 := b.NewValue0(v.Pos, OpOr32, typ.UInt32)
@@ -1789,7 +1789,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt8(v_1.AuxInt)
-		if !(0 < c&63 && c&63 < 32) {
+		if !(0 < c & 63 && c & 63 < 32) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1805,7 +1805,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 		v5 := b.NewValue0(v.Pos, OpInt64Lo, typ.UInt32)
 		v5.AddArg(x)
 		v6 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v6.AuxInt = int32ToAuxInt(int32(32 - c&31))
+		v6.AuxInt = int32ToAuxInt(int32(32 - c & 31))
 		v4.AddArg2(v5, v6)
 		v0.AddArg2(v1, v4)
 		v7 := b.NewValue0(v.Pos, OpOr32, typ.UInt32)
@@ -1827,7 +1827,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(32 < c&63 && c&63 < 64) {
+		if !(32 < c & 63 && c & 63 < 64) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1843,7 +1843,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 		v5 := b.NewValue0(v.Pos, OpInt64Hi, typ.UInt32)
 		v5.AddArg(x)
 		v6 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v6.AuxInt = int32ToAuxInt(int32(32 - c&31))
+		v6.AuxInt = int32ToAuxInt(int32(32 - c & 31))
 		v4.AddArg2(v5, v6)
 		v0.AddArg2(v1, v4)
 		v7 := b.NewValue0(v.Pos, OpOr32, typ.UInt32)
@@ -1865,7 +1865,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(32 < c&63 && c&63 < 64) {
+		if !(32 < c & 63 && c & 63 < 64) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1881,7 +1881,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 		v5 := b.NewValue0(v.Pos, OpInt64Hi, typ.UInt32)
 		v5.AddArg(x)
 		v6 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v6.AuxInt = int32ToAuxInt(int32(32 - c&31))
+		v6.AuxInt = int32ToAuxInt(int32(32 - c & 31))
 		v4.AddArg2(v5, v6)
 		v0.AddArg2(v1, v4)
 		v7 := b.NewValue0(v.Pos, OpOr32, typ.UInt32)
@@ -1903,7 +1903,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt16(v_1.AuxInt)
-		if !(32 < c&63 && c&63 < 64) {
+		if !(32 < c & 63 && c & 63 < 64) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1919,7 +1919,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 		v5 := b.NewValue0(v.Pos, OpInt64Hi, typ.UInt32)
 		v5.AddArg(x)
 		v6 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v6.AuxInt = int32ToAuxInt(int32(32 - c&31))
+		v6.AuxInt = int32ToAuxInt(int32(32 - c & 31))
 		v4.AddArg2(v5, v6)
 		v0.AddArg2(v1, v4)
 		v7 := b.NewValue0(v.Pos, OpOr32, typ.UInt32)
@@ -1941,7 +1941,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt8(v_1.AuxInt)
-		if !(32 < c&63 && c&63 < 64) {
+		if !(32 < c & 63 && c & 63 < 64) {
 			break
 		}
 		v.reset(OpInt64Make)
@@ -1957,7 +1957,7 @@ func rewriteValuedec64_OpRotateLeft64(v *Value) bool {
 		v5 := b.NewValue0(v.Pos, OpInt64Hi, typ.UInt32)
 		v5.AddArg(x)
 		v6 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v6.AuxInt = int32ToAuxInt(int32(32 - c&31))
+		v6.AuxInt = int32ToAuxInt(int32(32 - c & 31))
 		v4.AddArg2(v5, v6)
 		v0.AddArg2(v1, v4)
 		v7 := b.NewValue0(v.Pos, OpOr32, typ.UInt32)

@@ -27,7 +27,7 @@ func rewriteValueRISCV64latelower_OpRISCV64AND(v *Value) bool {
 	// match: (AND x (NOT y))
 	// result: (ANDN x y)
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpRISCV64NOT {
 				continue
@@ -63,7 +63,7 @@ func rewriteValueRISCV64latelower_OpRISCV64OR(v *Value) bool {
 	// match: (OR x (NOT y))
 	// result: (ORN x y)
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpRISCV64NOT {
 				continue
@@ -311,7 +311,7 @@ func rewriteValueRISCV64latelower_OpRISCV64XOR(v *Value) bool {
 	// match: (XOR x (NOT y))
 	// result: (XNOR x y)
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpRISCV64NOT {
 				continue

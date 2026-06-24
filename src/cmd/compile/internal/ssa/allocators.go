@@ -18,9 +18,9 @@ func (c *Cache) allocValueSlice(n int) []*Value {
 		n2 = 32
 	}
 	b := bits.Len(uint(n2 - 1))
-	v := poolFreeValueSlice[b-5].Get()
+	v := poolFreeValueSlice[b - 5].Get()
 	if v == nil {
-		s = make([]*Value, 1<<b)
+		s = make([]*Value, 1 << b)
 	} else {
 		sp := v.(*[]*Value)
 		s = *sp
@@ -37,12 +37,12 @@ func (c *Cache) freeValueSlice(s []*Value) {
 	if len(c.hdrValueSlice) == 0 {
 		sp = new([]*Value)
 	} else {
-		sp = c.hdrValueSlice[len(c.hdrValueSlice)-1]
-		c.hdrValueSlice[len(c.hdrValueSlice)-1] = nil
-		c.hdrValueSlice = c.hdrValueSlice[:len(c.hdrValueSlice)-1]
+		sp = c.hdrValueSlice[len(c.hdrValueSlice) - 1]
+		c.hdrValueSlice[len(c.hdrValueSlice) - 1] = nil
+		c.hdrValueSlice = c.hdrValueSlice[:len(c.hdrValueSlice) - 1]
 	}
 	*sp = s
-	poolFreeValueSlice[b-5].Put(sp)
+	poolFreeValueSlice[b - 5].Put(sp)
 }
 
 var poolFreeLimitSlice [27]sync.Pool
@@ -54,9 +54,9 @@ func (c *Cache) allocLimitSlice(n int) []limit {
 		n2 = 8
 	}
 	b := bits.Len(uint(n2 - 1))
-	v := poolFreeLimitSlice[b-3].Get()
+	v := poolFreeLimitSlice[b - 3].Get()
 	if v == nil {
-		s = make([]limit, 1<<b)
+		s = make([]limit, 1 << b)
 	} else {
 		sp := v.(*[]limit)
 		s = *sp
@@ -73,12 +73,12 @@ func (c *Cache) freeLimitSlice(s []limit) {
 	if len(c.hdrLimitSlice) == 0 {
 		sp = new([]limit)
 	} else {
-		sp = c.hdrLimitSlice[len(c.hdrLimitSlice)-1]
-		c.hdrLimitSlice[len(c.hdrLimitSlice)-1] = nil
-		c.hdrLimitSlice = c.hdrLimitSlice[:len(c.hdrLimitSlice)-1]
+		sp = c.hdrLimitSlice[len(c.hdrLimitSlice) - 1]
+		c.hdrLimitSlice[len(c.hdrLimitSlice) - 1] = nil
+		c.hdrLimitSlice = c.hdrLimitSlice[:len(c.hdrLimitSlice) - 1]
 	}
 	*sp = s
-	poolFreeLimitSlice[b-3].Put(sp)
+	poolFreeLimitSlice[b - 3].Put(sp)
 }
 
 var poolFreeSparseSet [27]sync.Pool
@@ -90,7 +90,7 @@ func (c *Cache) allocSparseSet(n int) *sparseSet {
 		n2 = 32
 	}
 	b := bits.Len(uint(n2 - 1))
-	v := poolFreeSparseSet[b-5].Get()
+	v := poolFreeSparseSet[b - 5].Get()
 	if v == nil {
 		s = newSparseSet(1 << b)
 	} else {
@@ -101,7 +101,7 @@ func (c *Cache) allocSparseSet(n int) *sparseSet {
 func (c *Cache) freeSparseSet(s *sparseSet) {
 	s.clear()
 	b := bits.Len(uint(s.cap()) - 1)
-	poolFreeSparseSet[b-5].Put(s)
+	poolFreeSparseSet[b - 5].Put(s)
 }
 
 var poolFreeSparseMap [27]sync.Pool
@@ -113,7 +113,7 @@ func (c *Cache) allocSparseMap(n int) *sparseMap {
 		n2 = 32
 	}
 	b := bits.Len(uint(n2 - 1))
-	v := poolFreeSparseMap[b-5].Get()
+	v := poolFreeSparseMap[b - 5].Get()
 	if v == nil {
 		s = newSparseMap(1 << b)
 	} else {
@@ -124,7 +124,7 @@ func (c *Cache) allocSparseMap(n int) *sparseMap {
 func (c *Cache) freeSparseMap(s *sparseMap) {
 	s.clear()
 	b := bits.Len(uint(s.cap()) - 1)
-	poolFreeSparseMap[b-5].Put(s)
+	poolFreeSparseMap[b - 5].Put(s)
 }
 
 var poolFreeSparseMapPos [27]sync.Pool
@@ -136,7 +136,7 @@ func (c *Cache) allocSparseMapPos(n int) *sparseMapPos {
 		n2 = 32
 	}
 	b := bits.Len(uint(n2 - 1))
-	v := poolFreeSparseMapPos[b-5].Get()
+	v := poolFreeSparseMapPos[b - 5].Get()
 	if v == nil {
 		s = newSparseMapPos(1 << b)
 	} else {
@@ -147,7 +147,7 @@ func (c *Cache) allocSparseMapPos(n int) *sparseMapPos {
 func (c *Cache) freeSparseMapPos(s *sparseMapPos) {
 	s.clear()
 	b := bits.Len(uint(s.cap()) - 1)
-	poolFreeSparseMapPos[b-5].Put(s)
+	poolFreeSparseMapPos[b - 5].Put(s)
 }
 func (c *Cache) allocBlockSlice(n int) []*Block {
 	var base *Value

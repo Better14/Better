@@ -352,9 +352,6 @@ func (sew stickyErrWriter) Write(p []byte) (n int, err error) {
 // from a user's x/net/http2. As such, as it has a unique method name
 // (IsHTTP2NoCachedConnError) that net/http sniffs for via func
 // isNoCachedConnError.
-<<<<<<< HEAD
-type noCachedConnError struct{}
-=======
 type noCachedConnError struct {
 	errors.Base
 }
@@ -364,7 +361,7 @@ func newNoCachedConnError() noCachedConnError {
 	errors.InitCustom(&e.Base, "http2: no cached connection was available")
 	return e
 }
->>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
+
 
 func (noCachedConnError) IsHTTP2NoCachedConnError() {}
 func (noCachedConnError) Error() string             { return "http2: no cached connection was available" }
@@ -1933,21 +1930,12 @@ func (cc *ClientConn) readLoop() {
 // GoAwayError is returned by the Transport when the server closes the
 // TCP connection after sending a GOAWAY frame.
 type GoAwayError struct {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-	errors.Info
->>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
-=======
 	errors.Base
->>>>>>> 82a9f2da53 (Rename errors.Info to errors.Base across the stdlib.)
 	LastStreamID uint32
 	ErrCode      ErrCode
 	DebugData    string
 }
 
-<<<<<<< HEAD
-=======
 func goAwayErrorMessage(lastStreamID uint32, errCode ErrCode, debugData string) string {
 	return fmt.Sprintf("http2: server sent GOAWAY and closed the connection; LastStreamID=%v, ErrCode=%v, debug=%q",
 		lastStreamID, errCode, debugData)
@@ -1959,7 +1947,6 @@ func NewGoAwayError(lastStreamID uint32, errCode ErrCode, debugData string) GoAw
 	return e
 }
 
->>>>>>> 5d4d9083bf (Rename embeddable errors.Layer to Info.)
 func (e GoAwayError) Error() string {
 	return fmt.Sprintf("http2: server sent GOAWAY and closed the connection; LastStreamID=%v, ErrCode=%v, debug=%q",
 		e.LastStreamID, e.ErrCode, e.DebugData)

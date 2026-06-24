@@ -1044,7 +1044,7 @@ func rewriteValueARM64latelower_OpARM64TSTWconst(v *Value) bool {
 	for {
 		c := auxIntToInt32(v.AuxInt)
 		x := v_0
-		if !(!isARM64bitcon(uint64(c) | uint64(c)<<32)) {
+		if !(!isARM64bitcon(uint64(c) | uint64(c) << 32)) {
 			break
 		}
 		v.reset(OpARM64TSTW)

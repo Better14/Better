@@ -31,7 +31,7 @@ func rewriteValuedivisible_OpEq16(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Eq16 (And16 <t> x (Const16 <t> [c-1])) (Const16 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul16 {
 				continue
@@ -40,7 +40,7 @@ func rewriteValuedivisible_OpEq16(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv16u {
 					continue
 				}
@@ -73,7 +73,7 @@ func rewriteValuedivisible_OpEq16(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Eq16 (And16 <t> x (Const16 <t> [c-1])) (Const16 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul16 {
 				continue
@@ -82,7 +82,7 @@ func rewriteValuedivisible_OpEq16(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv16 {
 					continue
 				}
@@ -115,7 +115,7 @@ func rewriteValuedivisible_OpEq16(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst16 && udivisibleOK16(c)
 	// result: (Leq16U (RotateLeft16 <t> (Mul16 <t> x (Const16 <t> [int16(udivisible16(c).m)])) (Const16 <t> [int16(16 - udivisible16(c).k)])) (Const16 <t> [int16(udivisible16(c).max)]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul16 {
 				continue
@@ -124,7 +124,7 @@ func rewriteValuedivisible_OpEq16(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv16u {
 					continue
@@ -162,7 +162,7 @@ func rewriteValuedivisible_OpEq16(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst16 && sdivisibleOK16(c)
 	// result: (Leq16U (RotateLeft16 <t> (Add16 <t> (Mul16 <t> x (Const16 <t> [int16(sdivisible16(c).m)])) (Const16 <t> [int16(sdivisible16(c).a)])) (Const16 <t> [int16(16 - sdivisible16(c).k)])) (Const16 <t> [int16(sdivisible16(c).max)]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul16 {
 				continue
@@ -171,7 +171,7 @@ func rewriteValuedivisible_OpEq16(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv16 {
 					continue
@@ -219,7 +219,7 @@ func rewriteValuedivisible_OpEq32(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Eq32 (And32 <t> x (Const32 <t> [c-1])) (Const32 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul32 {
 				continue
@@ -228,7 +228,7 @@ func rewriteValuedivisible_OpEq32(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv32u {
 					continue
 				}
@@ -261,7 +261,7 @@ func rewriteValuedivisible_OpEq32(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Eq32 (And32 <t> x (Const32 <t> [c-1])) (Const32 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul32 {
 				continue
@@ -270,7 +270,7 @@ func rewriteValuedivisible_OpEq32(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv32 {
 					continue
 				}
@@ -303,7 +303,7 @@ func rewriteValuedivisible_OpEq32(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst32 && udivisibleOK32(c)
 	// result: (Leq32U (RotateLeft32 <t> (Mul32 <t> x (Const32 <t> [int32(udivisible32(c).m)])) (Const32 <t> [int32(32 - udivisible32(c).k)])) (Const32 <t> [int32(udivisible32(c).max)]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul32 {
 				continue
@@ -312,7 +312,7 @@ func rewriteValuedivisible_OpEq32(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv32u {
 					continue
@@ -350,7 +350,7 @@ func rewriteValuedivisible_OpEq32(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst32 && sdivisibleOK32(c)
 	// result: (Leq32U (RotateLeft32 <t> (Add32 <t> (Mul32 <t> x (Const32 <t> [int32(sdivisible32(c).m)])) (Const32 <t> [int32(sdivisible32(c).a)])) (Const32 <t> [int32(32 - sdivisible32(c).k)])) (Const32 <t> [int32(sdivisible32(c).max)]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul32 {
 				continue
@@ -359,7 +359,7 @@ func rewriteValuedivisible_OpEq32(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv32 {
 					continue
@@ -407,7 +407,7 @@ func rewriteValuedivisible_OpEq64(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Eq64 (And64 <t> x (Const64 <t> [c-1])) (Const64 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul64 {
 				continue
@@ -416,7 +416,7 @@ func rewriteValuedivisible_OpEq64(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv64u {
 					continue
 				}
@@ -449,7 +449,7 @@ func rewriteValuedivisible_OpEq64(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Eq64 (And64 <t> x (Const64 <t> [c-1])) (Const64 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul64 {
 				continue
@@ -458,7 +458,7 @@ func rewriteValuedivisible_OpEq64(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv64 {
 					continue
 				}
@@ -491,7 +491,7 @@ func rewriteValuedivisible_OpEq64(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst64 && udivisibleOK64(c)
 	// result: (Leq64U (RotateLeft64 <t> (Mul64 <t> x (Const64 <t> [int64(udivisible64(c).m)])) (Const64 <t> [int64(64 - udivisible64(c).k)])) (Const64 <t> [int64(udivisible64(c).max)]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul64 {
 				continue
@@ -500,7 +500,7 @@ func rewriteValuedivisible_OpEq64(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv64u {
 					continue
@@ -538,7 +538,7 @@ func rewriteValuedivisible_OpEq64(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst64 && sdivisibleOK64(c)
 	// result: (Leq64U (RotateLeft64 <t> (Add64 <t> (Mul64 <t> x (Const64 <t> [int64(sdivisible64(c).m)])) (Const64 <t> [int64(sdivisible64(c).a)])) (Const64 <t> [int64(64 - sdivisible64(c).k)])) (Const64 <t> [int64(sdivisible64(c).max)]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul64 {
 				continue
@@ -547,7 +547,7 @@ func rewriteValuedivisible_OpEq64(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv64 {
 					continue
@@ -595,7 +595,7 @@ func rewriteValuedivisible_OpEq8(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Eq8 (And8 <t> x (Const8 <t> [c-1])) (Const8 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul8 {
 				continue
@@ -604,7 +604,7 @@ func rewriteValuedivisible_OpEq8(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv8u {
 					continue
 				}
@@ -637,7 +637,7 @@ func rewriteValuedivisible_OpEq8(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Eq8 (And8 <t> x (Const8 <t> [c-1])) (Const8 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul8 {
 				continue
@@ -646,7 +646,7 @@ func rewriteValuedivisible_OpEq8(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv8 {
 					continue
 				}
@@ -679,7 +679,7 @@ func rewriteValuedivisible_OpEq8(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst8 && udivisibleOK8(c)
 	// result: (Leq8U (RotateLeft8 <t> (Mul8 <t> x (Const8 <t> [int8(udivisible8(c).m)])) (Const8 <t> [int8(8 - udivisible8(c).k)])) (Const8 <t> [int8(udivisible8(c).max)]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul8 {
 				continue
@@ -688,7 +688,7 @@ func rewriteValuedivisible_OpEq8(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv8u {
 					continue
@@ -726,7 +726,7 @@ func rewriteValuedivisible_OpEq8(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst8 && sdivisibleOK8(c)
 	// result: (Leq8U (RotateLeft8 <t> (Add8 <t> (Mul8 <t> x (Const8 <t> [int8(sdivisible8(c).m)])) (Const8 <t> [int8(sdivisible8(c).a)])) (Const8 <t> [int8(8 - sdivisible8(c).k)])) (Const8 <t> [int8(sdivisible8(c).max)]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul8 {
 				continue
@@ -735,7 +735,7 @@ func rewriteValuedivisible_OpEq8(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv8 {
 					continue
@@ -783,7 +783,7 @@ func rewriteValuedivisible_OpNeq16(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Neq16 (And16 <t> x (Const16 <t> [c-1])) (Const16 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul16 {
 				continue
@@ -792,7 +792,7 @@ func rewriteValuedivisible_OpNeq16(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv16u {
 					continue
 				}
@@ -825,7 +825,7 @@ func rewriteValuedivisible_OpNeq16(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Neq16 (And16 <t> x (Const16 <t> [c-1])) (Const16 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul16 {
 				continue
@@ -834,7 +834,7 @@ func rewriteValuedivisible_OpNeq16(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv16 {
 					continue
 				}
@@ -867,7 +867,7 @@ func rewriteValuedivisible_OpNeq16(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst16 && udivisibleOK16(c)
 	// result: (Less16U (Const16 <t> [int16(udivisible16(c).max)]) (RotateLeft16 <t> (Mul16 <t> x (Const16 <t> [int16(udivisible16(c).m)])) (Const16 <t> [int16(16 - udivisible16(c).k)])))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul16 {
 				continue
@@ -876,7 +876,7 @@ func rewriteValuedivisible_OpNeq16(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv16u {
 					continue
@@ -914,7 +914,7 @@ func rewriteValuedivisible_OpNeq16(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst16 && sdivisibleOK16(c)
 	// result: (Less16U (Const16 <t> [int16(sdivisible16(c).max)]) (RotateLeft16 <t> (Add16 <t> (Mul16 <t> x (Const16 <t> [int16(sdivisible16(c).m)])) (Const16 <t> [int16(sdivisible16(c).a)])) (Const16 <t> [int16(16 - sdivisible16(c).k)])))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul16 {
 				continue
@@ -923,7 +923,7 @@ func rewriteValuedivisible_OpNeq16(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv16 {
 					continue
@@ -971,7 +971,7 @@ func rewriteValuedivisible_OpNeq32(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Neq32 (And32 <t> x (Const32 <t> [c-1])) (Const32 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul32 {
 				continue
@@ -980,7 +980,7 @@ func rewriteValuedivisible_OpNeq32(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv32u {
 					continue
 				}
@@ -1013,7 +1013,7 @@ func rewriteValuedivisible_OpNeq32(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Neq32 (And32 <t> x (Const32 <t> [c-1])) (Const32 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul32 {
 				continue
@@ -1022,7 +1022,7 @@ func rewriteValuedivisible_OpNeq32(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv32 {
 					continue
 				}
@@ -1055,7 +1055,7 @@ func rewriteValuedivisible_OpNeq32(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst32 && udivisibleOK32(c)
 	// result: (Less32U (Const32 <t> [int32(udivisible32(c).max)]) (RotateLeft32 <t> (Mul32 <t> x (Const32 <t> [int32(udivisible32(c).m)])) (Const32 <t> [int32(32 - udivisible32(c).k)])))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul32 {
 				continue
@@ -1064,7 +1064,7 @@ func rewriteValuedivisible_OpNeq32(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv32u {
 					continue
@@ -1102,7 +1102,7 @@ func rewriteValuedivisible_OpNeq32(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst32 && sdivisibleOK32(c)
 	// result: (Less32U (Const32 <t> [int32(sdivisible32(c).max)]) (RotateLeft32 <t> (Add32 <t> (Mul32 <t> x (Const32 <t> [int32(sdivisible32(c).m)])) (Const32 <t> [int32(sdivisible32(c).a)])) (Const32 <t> [int32(32 - sdivisible32(c).k)])))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul32 {
 				continue
@@ -1111,7 +1111,7 @@ func rewriteValuedivisible_OpNeq32(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv32 {
 					continue
@@ -1159,7 +1159,7 @@ func rewriteValuedivisible_OpNeq64(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Neq64 (And64 <t> x (Const64 <t> [c-1])) (Const64 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul64 {
 				continue
@@ -1168,7 +1168,7 @@ func rewriteValuedivisible_OpNeq64(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv64u {
 					continue
 				}
@@ -1201,7 +1201,7 @@ func rewriteValuedivisible_OpNeq64(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Neq64 (And64 <t> x (Const64 <t> [c-1])) (Const64 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul64 {
 				continue
@@ -1210,7 +1210,7 @@ func rewriteValuedivisible_OpNeq64(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv64 {
 					continue
 				}
@@ -1243,7 +1243,7 @@ func rewriteValuedivisible_OpNeq64(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst64 && udivisibleOK64(c)
 	// result: (Less64U (Const64 <t> [int64(udivisible64(c).max)]) (RotateLeft64 <t> (Mul64 <t> x (Const64 <t> [int64(udivisible64(c).m)])) (Const64 <t> [int64(64 - udivisible64(c).k)])))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul64 {
 				continue
@@ -1252,7 +1252,7 @@ func rewriteValuedivisible_OpNeq64(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv64u {
 					continue
@@ -1290,7 +1290,7 @@ func rewriteValuedivisible_OpNeq64(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst64 && sdivisibleOK64(c)
 	// result: (Less64U (Const64 <t> [int64(sdivisible64(c).max)]) (RotateLeft64 <t> (Add64 <t> (Mul64 <t> x (Const64 <t> [int64(sdivisible64(c).m)])) (Const64 <t> [int64(sdivisible64(c).a)])) (Const64 <t> [int64(64 - sdivisible64(c).k)])))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul64 {
 				continue
@@ -1299,7 +1299,7 @@ func rewriteValuedivisible_OpNeq64(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv64 {
 					continue
@@ -1347,7 +1347,7 @@ func rewriteValuedivisible_OpNeq8(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Neq8 (And8 <t> x (Const8 <t> [c-1])) (Const8 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul8 {
 				continue
@@ -1356,7 +1356,7 @@ func rewriteValuedivisible_OpNeq8(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv8u {
 					continue
 				}
@@ -1389,7 +1389,7 @@ func rewriteValuedivisible_OpNeq8(v *Value) bool {
 	// cond: x.Op != OpConst64 && isPowerOfTwo(c)
 	// result: (Neq8 (And8 <t> x (Const8 <t> [c-1])) (Const8 <t> [0]))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul8 {
 				continue
@@ -1398,7 +1398,7 @@ func rewriteValuedivisible_OpNeq8(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				if v_1_0.Op != OpDiv8 {
 					continue
 				}
@@ -1431,7 +1431,7 @@ func rewriteValuedivisible_OpNeq8(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst8 && udivisibleOK8(c)
 	// result: (Less8U (Const8 <t> [int8(udivisible8(c).max)]) (RotateLeft8 <t> (Mul8 <t> x (Const8 <t> [int8(udivisible8(c).m)])) (Const8 <t> [int8(8 - udivisible8(c).k)])))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul8 {
 				continue
@@ -1440,7 +1440,7 @@ func rewriteValuedivisible_OpNeq8(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv8u {
 					continue
@@ -1478,7 +1478,7 @@ func rewriteValuedivisible_OpNeq8(v *Value) bool {
 	// cond: div.Uses == 1 && x.Op != OpConst8 && sdivisibleOK8(c)
 	// result: (Less8U (Const8 <t> [int8(sdivisible8(c).max)]) (RotateLeft8 <t> (Add8 <t> (Mul8 <t> x (Const8 <t> [int8(sdivisible8(c).m)])) (Const8 <t> [int8(sdivisible8(c).a)])) (Const8 <t> [int8(8 - sdivisible8(c).k)])))
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if v_1.Op != OpMul8 {
 				continue
@@ -1487,7 +1487,7 @@ func rewriteValuedivisible_OpNeq8(v *Value) bool {
 			_ = v_1.Args[1]
 			v_1_0 := v_1.Args[0]
 			v_1_1 := v_1.Args[1]
-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1 + 1, v_1_1, v_1_0 {
 				div := v_1_0
 				if div.Op != OpDiv8 {
 					continue

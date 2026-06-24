@@ -2091,7 +2091,7 @@ func rewriteValueWasm_OpLast(v *Value) bool {
 	// match: (Last ___)
 	// result: v.Args[len(v.Args)-1]
 	for {
-		v.copyOf(v.Args[len(v.Args)-1])
+		v.copyOf(v.Args[len(v.Args) - 1])
 		return true
 	}
 }
@@ -6426,11 +6426,11 @@ func rewriteValueWasm_OpWasmI64Load(v *Value) bool {
 		off2 := auxIntToInt32(v_0.AuxInt)
 		sym := auxToSym(v_0.Aux)
 		v_0_0 := v_0.Args[0]
-		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off+int64(off2))) {
+		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off + int64(off2))) {
 			break
 		}
 		v.reset(OpWasmI64Const)
-		v.AuxInt = int64ToAuxInt(int64(read64(sym, off+int64(off2), config.ctxt.Arch.ByteOrder)))
+		v.AuxInt = int64ToAuxInt(int64(read64(sym, off + int64(off2), config.ctxt.Arch.ByteOrder)))
 		return true
 	}
 	return false
@@ -6470,11 +6470,11 @@ func rewriteValueWasm_OpWasmI64Load16S(v *Value) bool {
 		off2 := auxIntToInt32(v_0.AuxInt)
 		sym := auxToSym(v_0.Aux)
 		v_0_0 := v_0.Args[0]
-		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off+int64(off2))) {
+		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off + int64(off2))) {
 			break
 		}
 		v.reset(OpWasmI64Const)
-		v.AuxInt = int64ToAuxInt(int64(int16(read16(sym, off+int64(off2), config.ctxt.Arch.ByteOrder))))
+		v.AuxInt = int64ToAuxInt(int64(int16(read16(sym, off + int64(off2), config.ctxt.Arch.ByteOrder))))
 		return true
 	}
 	return false
@@ -6514,11 +6514,11 @@ func rewriteValueWasm_OpWasmI64Load16U(v *Value) bool {
 		off2 := auxIntToInt32(v_0.AuxInt)
 		sym := auxToSym(v_0.Aux)
 		v_0_0 := v_0.Args[0]
-		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off+int64(off2))) {
+		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off + int64(off2))) {
 			break
 		}
 		v.reset(OpWasmI64Const)
-		v.AuxInt = int64ToAuxInt(int64(read16(sym, off+int64(off2), config.ctxt.Arch.ByteOrder)))
+		v.AuxInt = int64ToAuxInt(int64(read16(sym, off + int64(off2), config.ctxt.Arch.ByteOrder)))
 		return true
 	}
 	return false
@@ -6558,11 +6558,11 @@ func rewriteValueWasm_OpWasmI64Load32S(v *Value) bool {
 		off2 := auxIntToInt32(v_0.AuxInt)
 		sym := auxToSym(v_0.Aux)
 		v_0_0 := v_0.Args[0]
-		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off+int64(off2))) {
+		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off + int64(off2))) {
 			break
 		}
 		v.reset(OpWasmI64Const)
-		v.AuxInt = int64ToAuxInt(int64(int32(read32(sym, off+int64(off2), config.ctxt.Arch.ByteOrder))))
+		v.AuxInt = int64ToAuxInt(int64(int32(read32(sym, off + int64(off2), config.ctxt.Arch.ByteOrder))))
 		return true
 	}
 	return false
@@ -6602,11 +6602,11 @@ func rewriteValueWasm_OpWasmI64Load32U(v *Value) bool {
 		off2 := auxIntToInt32(v_0.AuxInt)
 		sym := auxToSym(v_0.Aux)
 		v_0_0 := v_0.Args[0]
-		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off+int64(off2))) {
+		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off + int64(off2))) {
 			break
 		}
 		v.reset(OpWasmI64Const)
-		v.AuxInt = int64ToAuxInt(int64(read32(sym, off+int64(off2), config.ctxt.Arch.ByteOrder)))
+		v.AuxInt = int64ToAuxInt(int64(read32(sym, off + int64(off2), config.ctxt.Arch.ByteOrder)))
 		return true
 	}
 	return false
@@ -6644,11 +6644,11 @@ func rewriteValueWasm_OpWasmI64Load8S(v *Value) bool {
 		off2 := auxIntToInt32(v_0.AuxInt)
 		sym := auxToSym(v_0.Aux)
 		v_0_0 := v_0.Args[0]
-		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off+int64(off2))) {
+		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off + int64(off2))) {
 			break
 		}
 		v.reset(OpWasmI64Const)
-		v.AuxInt = int64ToAuxInt(int64(int8(read8(sym, off+int64(off2)))))
+		v.AuxInt = int64ToAuxInt(int64(int8(read8(sym, off + int64(off2)))))
 		return true
 	}
 	return false
@@ -6686,11 +6686,11 @@ func rewriteValueWasm_OpWasmI64Load8U(v *Value) bool {
 		off2 := auxIntToInt32(v_0.AuxInt)
 		sym := auxToSym(v_0.Aux)
 		v_0_0 := v_0.Args[0]
-		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off+int64(off2))) {
+		if v_0_0.Op != OpSB || !(symIsRO(sym) && isU32Bit(off + int64(off2))) {
 			break
 		}
 		v.reset(OpWasmI64Const)
-		v.AuxInt = int64ToAuxInt(int64(read8(sym, off+int64(off2))))
+		v.AuxInt = int64ToAuxInt(int64(read8(sym, off + int64(off2))))
 		return true
 	}
 	return false
