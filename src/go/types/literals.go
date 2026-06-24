@@ -109,7 +109,7 @@ func (check *Checker) funcLit(x *operand, e *ast.FuncLit) {
 }
 
 func (check *Checker) compositeLit(x *operand, e *ast.CompositeLit, hint Type) {
-	if check.tryEnumCompositeLit(x, e, hint) {
+	if check.pkgHasEnums && check.tryEnumCompositeLit(x, e, hint) {
 		return
 	}
 

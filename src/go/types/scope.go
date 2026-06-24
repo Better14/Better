@@ -147,7 +147,7 @@ func (s *Scope) WriteTo(w io.Writer, n int, recurse bool) {
 
 	if recurse {
 		for _, s := range s.children {
-			s.WriteTo(w, n+1, recurse)
+			s.WriteTo(w, n + 1, recurse)
 		}
 	}
 

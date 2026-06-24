@@ -284,7 +284,7 @@ func fib(x int) int {
 	// 10:10 | x                   | var     : int
 	// 12: 9 | fib                 | value   : func(x int) int
 	// 12: 9 | fib(x - 1)          | value   : int
-	// 12: 9 | fib(x-1) - fib(x-2) | value   : int
+	// 12: 9 | fib(x - 1) - fib(x - 2) | value   : int
 	// 12:13 | x                   | var     : int
 	// 12:13 | x - 1               | value   : int
 	// 12:15 | 1                   | value   : int = 1

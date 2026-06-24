@@ -104,32 +104,32 @@ func representableConst(x constant.Value, check *Checker, typ *Basic, rounded *c
 			switch typ.kind {
 			case Int:
 				var s = uint(sizeof(typ)) * 8
-				return int64(-1)<<(s-1) <= x && x <= int64(1)<<(s-1)-1
+				return int64(-1) << (s - 1) <= x && x <= int64(1) << (s - 1) - 1
 			case Int8:
 				const s = 8
-				return -1<<(s-1) <= x && x <= 1<<(s-1)-1
+				return -1 << (s - 1) <= x && x <= 1 << (s - 1) - 1
 			case Int16:
 				const s = 16
-				return -1<<(s-1) <= x && x <= 1<<(s-1)-1
+				return -1 << (s - 1) <= x && x <= 1 << (s - 1) - 1
 			case Int32:
 				const s = 32
-				return -1<<(s-1) <= x && x <= 1<<(s-1)-1
+				return -1 << (s - 1) <= x && x <= 1 << (s - 1) - 1
 			case Int64, UntypedInt:
 				return true
 			case Uint, Uintptr:
 				if s := uint(sizeof(typ)) * 8; s < 64 {
-					return 0 <= x && x <= int64(1)<<s-1
+					return 0 <= x && x <= int64(1) << s - 1
 				}
 				return 0 <= x
 			case Uint8:
 				const s = 8
-				return 0 <= x && x <= 1<<s-1
+				return 0 <= x && x <= 1 << s - 1
 			case Uint16:
 				const s = 16
-				return 0 <= x && x <= 1<<s-1
+				return 0 <= x && x <= 1 << s - 1
 			case Uint32:
 				const s = 32
-				return 0 <= x && x <= 1<<s-1
+				return 0 <= x && x <= 1 << s - 1
 			case Uint64:
 				return 0 <= x
 			default:

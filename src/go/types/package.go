@@ -30,6 +30,19 @@ type Package struct {
 	operatorUnaryExact map[string]map[string]*Func          // unary operator overload by operand type
 	overloadBySig      map[string]*Func                     // overload funcs keyed by name·paramSuffix
 	extensionByName    map[string][]*Func                   // extension funcs indexed by method name
+
+	// forkFeatureCache holds fork language feature presence computed once per
+	// package, either from export data or after type-checking.
+	forkFeatureCache forkFeatureCache
+}
+
+// forkFeatureCache records which fork language features are present in a package.
+type forkFeatureCache struct {
+	valid             bool
+	callOverloads     bool // multiple call overload candidates for some name
+	operatorOverloads bool // any operator or package-level overload func
+	extensions        bool // extension methods
+	enums             bool // enum types
 }
 
 // NewPackage returns a new Package for the given package path and name.

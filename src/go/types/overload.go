@@ -279,6 +279,7 @@ func (check *Checker) assignOverloadSuffixes() {
 			}
 		}
 	}
+	check.initForkFeatureCaches()
 }
 
 func (check *Checker) recvBaseNameFromExpr(x ast.Expr) string {

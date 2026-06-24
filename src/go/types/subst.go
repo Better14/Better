@@ -219,7 +219,7 @@ func (subst *subster) typ(typ Type) Type {
 				// existing entries plus an entry for each fresh type
 				// parameter so that they are substituted simultaneously
 				// when we proceed with the outer substitution.
-				smap := make(substMap, len(subst.smap)+n)
+				smap := make(substMap, len(subst.smap) + n)
 				for k, v := range subst.smap {
 					smap[k] = v
 				}

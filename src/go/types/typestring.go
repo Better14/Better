@@ -454,7 +454,7 @@ func (w *typeWriter) tuple(tup *Tuple, variadic bool) {
 				w.byte(' ')
 			}
 			typ := v.typ
-			if variadic && i == len(tup.vars)-1 {
+			if variadic && i == len(tup.vars) - 1 {
 				if slice, ok := typ.(*Slice); ok {
 					w.string("...")
 					w.typ(slice.elem)
@@ -517,7 +517,7 @@ func subscript(x uint64) string {
 	i := len(buf)
 	for {
 		i -= w
-		utf8.EncodeRune(buf[i:], '₀'+rune(x % 10)) // '₀' == U+2080
+		utf8.EncodeRune(buf[i:], '₀' + rune(x % 10)) // '₀' == U+2080
 		x /= 10
 		if x == 0 {
 			break

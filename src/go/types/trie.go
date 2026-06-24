@@ -44,7 +44,7 @@ func (tr trie[V]) insert(key []int, val V) (V, int) {
 			}
 		} else {
 			// Path doesn't exist yet, we need to build it.
-			if l == len(key)-1 {
+			if l == len(key) - 1 {
 				// No prefix collision detected; insert val as a new leaf node.
 				tr[index] = val
 				return val, 0
