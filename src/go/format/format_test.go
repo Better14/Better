@@ -23,8 +23,8 @@ func diff(t *testing.T, dst, src []byte) {
 		d := dst[i]
 		s := src[i]
 		if d != s {
-			t.Errorf("dst:%d: %s\n", line, dst[offs:i+1])
-			t.Errorf("src:%d: %s\n", line, src[offs:i+1])
+			t.Errorf("dst:%d: %s\n", line, dst[offs:i + 1])
+			t.Errorf("src:%d: %s\n", line, src[offs:i + 1])
 			return
 		}
 		if s == '\n' {
