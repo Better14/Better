@@ -93,7 +93,7 @@ func (s *StdSizes) Alignof(T Type) (result int64) {
 		return s.WordSize
 	case *Basic:
 		// Strings are like slices and interfaces.
-		if t.Info()&IsString != 0 {
+		if t.Info() & IsString != 0 {
 			return s.WordSize
 		}
 	case *TypeParam, *Union:
@@ -199,11 +199,11 @@ func (s *StdSizes) Sizeof(T Type) int64 {
 		// ea >= 1
 		n1 := n - 1 // n1 >= 0
 		// Final size is ea*n1 + esize; and size must be <= maxInt64.
-		const maxInt64 = 1<<63 - 1
-		if n1 > 0 && ea > maxInt64/n1 {
+		const maxInt64 = 1 << 63 - 1
+		if n1 > 0 && ea > maxInt64 / n1 {
 			return -1 // ea*n1 overflows
 		}
-		return ea*n1 + esize // may still overflow to < 0 which is ok
+		return ea * n1 + esize // may still overflow to < 0 which is ok
 	case *Slice:
 		return s.WordSize * 3
 	case *Struct:
@@ -212,8 +212,8 @@ func (s *StdSizes) Sizeof(T Type) int64 {
 			return 0
 		}
 		offsets := s.Offsetsof(t.fields)
-		offs := offsets[n-1]
-		size := s.Sizeof(t.fields[n-1].typ)
+		offs := offsets[n - 1]
+		size := s.Sizeof(t.fields[n - 1].typ)
 		if offs < 0 || size < 0 {
 			return -1 // type too large
 		}
@@ -338,6 +338,6 @@ func (conf *Config) sizeof(T Type) int64 {
 // a must be within 1 and 8 and it must be a power of 2.
 // The result may be negative due to overflow.
 func align(x, a int64) int64 {
-	assert(x >= 0 && 1 <= a && a <= 8 && a&(a-1) == 0)
+	assert(x >= 0 && 1 <= a && a <= 8 && a & (a - 1) == 0)
 	return (x + a - 1) &^ (a - 1)
 }

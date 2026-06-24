@@ -55,7 +55,7 @@ func (s *gcSizes) Alignof(T Type) (result int64) {
 		return s.WordSize
 	case *Basic:
 		// Strings are like slices and interfaces.
-		if t.Info()&IsString != 0 {
+		if t.Info() & IsString != 0 {
 			return s.WordSize
 		}
 	case *TypeParam, *Union:
@@ -126,8 +126,8 @@ func (s *gcSizes) Sizeof(T Type) int64 {
 		}
 		// esize > 0
 		// Final size is esize * n; and size must be <= maxInt64.
-		const maxInt64 = 1<<63 - 1
-		if esize > maxInt64/n {
+		const maxInt64 = 1 << 63 - 1
+		if esize > maxInt64 / n {
 			return -1 // esize * n overflows
 		}
 		return esize * n
@@ -139,8 +139,8 @@ func (s *gcSizes) Sizeof(T Type) int64 {
 			return 0
 		}
 		offsets := s.Offsetsof(t.fields)
-		offs := offsets[n-1]
-		size := s.Sizeof(t.fields[n-1].typ)
+		offs := offsets[n - 1]
+		size := s.Sizeof(t.fields[n - 1].typ)
 		if offs < 0 || size < 0 {
 			return -1 // type too large
 		}
@@ -150,7 +150,7 @@ func (s *gcSizes) Sizeof(T Type) int64 {
 			size = 1
 		}
 		// gc: Size includes alignment padding.
-		return align(offs+size, s.Alignof(t)) // may overflow to < 0 which is ok
+		return align(offs + size, s.Alignof(t)) // may overflow to < 0 which is ok
 	case *Interface:
 		// Type parameters lead to variable sizes/alignments;
 		// StdSizes.Sizeof won't be called for them.

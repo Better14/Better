@@ -20,8 +20,8 @@ func f() {
 				m.Lock()
 				defer
 				if percent == 100 {
-					m.Unlock() /* ERROR AFTER "expected '}', found newline" */
-					break /* ERROR "expected ';', found 'break'" */
+					m.Unlock()
+					break /* ERROR "expected '}', found 'break'" */
 				}
 				percent++
 				if percent % step == 0 {

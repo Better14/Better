@@ -340,7 +340,7 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 	// we will fail at function instantiation or argument assignment time.
 	//
 	// If we have at least one defined type, there is one in y.
-	if ny := asNamed(y); mode&exact == 0 && ny != nil && isTypeLit(x) && !(u.enableInterfaceInference && IsInterface(x)) {
+	if ny := asNamed(y); mode & exact == 0 && ny != nil && isTypeLit(x) && !(u.enableInterfaceInference && IsInterface(x)) {
 		if traceInference {
 			u.tracef("%s ≡ under %s", x, ny)
 		}
@@ -426,7 +426,7 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 				//
 				// If we have defined and literal channel types, a defined type wins to avoid
 				// order dependencies.
-				if mode&exact == 0 {
+				if mode & exact == 0 {
 					switch {
 					case xn:
 						// x is a defined type: nothing to do.
@@ -458,7 +458,7 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 	// methods of the other and corresponding method signatures must unify.
 	// If only one type is an interface, all its methods must be present in the
 	// other type and corresponding method signatures must unify.
-	if u.enableInterfaceInference && mode&exact == 0 {
+	if u.enableInterfaceInference && mode & exact == 0 {
 		// One or both interfaces may be defined types.
 		// Look under the name, but not under type parameters (go.dev/issue/60564).
 		xi := asInterface(x)
@@ -578,7 +578,7 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 	// Type elements (array, slice, etc. elements) use emode for unification.
 	// Element types must match exactly if the types are used in an assignment.
 	emode := mode
-	if mode&assign != 0 {
+	if mode & assign != 0 {
 		emode |= exact
 	}
 
@@ -666,7 +666,7 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 		}
 
 	case *Interface:
-		assert(!u.enableInterfaceInference || mode&exact != 0) // handled before this switch
+		assert(!u.enableInterfaceInference || mode & exact != 0) // handled before this switch
 
 		// Two interface types unify if they have the same set of methods with
 		// the same names, and corresponding function types unify.
@@ -738,7 +738,7 @@ func (u *unifier) nify(x, y Type, mode unifyMode, p *ifacePair) (result bool) {
 		// and if they have the same direction.
 		// The channel direction is ignored for inexact unification.
 		if y, ok := y.(*Chan); ok {
-			return (mode&exact == 0 || x.dir == y.dir) && u.nify(x.elem, y.elem, emode, p)
+			return (mode & exact == 0 || x.dir == y.dir) && u.nify(x.elem, y.elem, emode, p)
 		}
 
 	case *Named:

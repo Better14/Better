@@ -547,14 +547,14 @@ func typeParamsString(list []*TypeParam) string {
 
 	// general case (n > 2)
 	var buf strings.Builder
-	for i, tname := range list[:n-1] {
+	for i, tname := range list[:n - 1] {
 		if i > 0 {
 			buf.WriteString(", ")
 		}
 		buf.WriteString(tname.obj.name)
 	}
 	buf.WriteString(", and ")
-	buf.WriteString(list[n-1].obj.name)
+	buf.WriteString(list[n - 1].obj.name)
 	return buf.String()
 }
 

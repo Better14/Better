@@ -160,6 +160,17 @@ type Checker struct {
 	operatorUnaryExact   map[string]map[string]*Func          // unary operator overload by operand type
 	overloadBySig        map[string]*Func                     // overload funcs keyed by name·paramSuffix
 	overloadResolveCache map[overloadResolveKey]*Func         // memoized overload resolution by arg types
+
+	// Fork language feature presence, computed once in assignOverloadSuffixes.
+	pkgHasCallOverloads     bool
+	pkgHasOperatorOverloads bool
+	pkgHasExtensions        bool
+	pkgHasEnums             bool
+
+	// Per-name memoization when the corresponding pkgHas* flag is true.
+	operatorOverloadsByName map[string][]*Func
+	extensionMethodByName   map[string]bool
+
 	inExtensionProbe     bool                                 // guard against recursive extension call probing
 	inOverloadProbe      bool                                 // suppress errors while probing overload candidates
 	pendingRecvMethod    string                               // method name while checking a method signature

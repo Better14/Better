@@ -344,6 +344,12 @@ type Info struct {
 	// IndexAssignCalls maps index assignment left-hand sides a[i] to desugared []=(a, i, v) calls.
 	IndexAssignCalls map[ast.Expr]*ast.CallExpr
 
+	// OperatorCalls maps binary/unary operator expressions to desugared operator calls.
+	OperatorCalls map[ast.Expr]*ast.CallExpr
+
+	// OperatorAssignCalls maps +=, ++, and similar assignment statements to desugared rhs calls.
+	OperatorAssignCalls map[*ast.AssignStmt]*ast.CallExpr
+
 	// UsedImportNames maps local import identifiers to true for imports referenced
 	// during type-checking, including side-effect imports required for extension
 	// methods (e.g. import "linq" for .Where on slices).

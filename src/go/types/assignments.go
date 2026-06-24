@@ -337,7 +337,7 @@ func (check *Checker) typesSummary(list []Type, variadic, hasDots bool) string {
 			s = check.sprintf("%s", t)
 		}
 		// handle ... parameters/arguments
-		if i == len(list)-1 {
+		if i == len(list) - 1 {
 			switch {
 			case variadic:
 				// In correct code, the parameter type is a slice, but be careful.
@@ -382,7 +382,7 @@ func (check *Checker) returnError(at positioner, lhs []*Var, rhs []*operand) {
 		at = rhs[l] // report at first extra value
 		qualifier = "too many"
 	} else if r > 0 {
-		at = rhs[r-1] // report at last value
+		at = rhs[r - 1] // report at last value
 	}
 	err := check.newError(WrongResultCount)
 	err.addf(at, "%s return values", qualifier)
@@ -672,7 +672,7 @@ func (check *Checker) shortVarDecl(pos positioner, lhs, rhs []ast.Expr) {
 	// a function begins at the end of the ConstSpec or VarSpec (ShortVarDecl
 	// for short variable declarations) and ends at the end of the innermost
 	// containing block."
-	scopePos := endPos(rhs[len(rhs)-1])
+	scopePos := endPos(rhs[len(rhs) - 1])
 	for _, obj := range newVars {
 		check.declare(scope, nil, obj, scopePos) // id = nil: recordDef already called
 	}

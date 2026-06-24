@@ -287,7 +287,7 @@ func (n *Named) unpack() *Named {
 
 // stateHas atomically determines whether the current state includes any active bit in sm.
 func (n *Named) stateHas(m stateMask) bool {
-	return stateMask(atomic.LoadUint32(&n.state_))&m != 0
+	return stateMask(atomic.LoadUint32(&n.state_)) & m != 0
 }
 
 // setState atomically sets the current state to include each active bit in sm.
@@ -297,21 +297,21 @@ func (n *Named) setState(m stateMask) {
 	// verify state transitions
 	if debug {
 		m := stateMask(atomic.LoadUint32(&n.state_))
-		u := m&unpacked != 0
+		u := m & unpacked != 0
 		// unpacked => lazyLoaded
 		if u {
-			assert(m&lazyLoaded != 0)
+			assert(m & lazyLoaded != 0)
 		}
 		// hasMethods => unpacked
-		if m&hasMethods != 0 {
+		if m & hasMethods != 0 {
 			assert(u)
 		}
 		// hasUnder => unpacked
-		if m&hasUnder != 0 {
+		if m & hasUnder != 0 {
 			assert(u)
 		}
 		// hasVarSize => unpacked
-		if m&hasVarSize != 0 {
+		if m & hasVarSize != 0 {
 			assert(u)
 		}
 	}

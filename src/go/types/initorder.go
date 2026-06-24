@@ -341,8 +341,8 @@ func (a *nodeQueue) Push(x any) {
 
 func (a *nodeQueue) Pop() any {
 	n := len(*a)
-	x := (*a)[n-1]
+	x := (*a)[n - 1]
 	x.index = -1 // for safety
-	*a = (*a)[:n-1]
+	*a = (*a)[:n - 1]
 	return x
 }

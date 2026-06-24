@@ -61,8 +61,8 @@ func main() {
 	g.product(n)
 	g.verify(n)
 	g.printProduct(n)
-	g.binomials(2*n - 1)
-	g.factorials(2*n - 1)
+	g.binomials(2 * n - 1)
+	g.factorials(2 * n - 1)
 
 	return g.Bytes()
 }
@@ -93,7 +93,7 @@ const (
 				if j > 0 {
 					g.p(", ")
 				}
-				g.p("1.0/(iota + %d)", j+1)
+				g.p("1.0/(iota + %d)", j + 1)
 			}
 		}
 		g.p("\n")
@@ -108,11 +108,11 @@ const (
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
 			s := "+"
-			if (i+j)&1 != 0 {
+			if (i + j) & 1 != 0 {
 				s = "-"
 			}
 			g.p("\ti%d_%d = %s%d * b%d_%d * b%d_%d * b%d_%d * b%d_%d\n",
-				i, j, s, i+j+1, n+i, n-j-1, n+j, n-i-1, i+j, i, i+j, i)
+				i, j, s, i + j + 1, n + i, n - j - 1, n + j, n - i - 1, i + j, i, i + j, i)
 		}
 		g.p("\n")
 	}
@@ -190,7 +190,7 @@ const (
 			g.p("\n")
 		}
 		for k := 0; k <= j; k++ {
-			g.p("\tb%d_%d = f%d / (f%d*f%d)\n", j, k, j, k, j-k)
+			g.p("\tb%d_%d = f%d / (f%d*f%d)\n", j, k, j, k, j - k)
 		}
 	}
 	g.p(")\n\n")
@@ -203,7 +203,7 @@ const (
 	f1 = 1
 `)
 	for i := 2; i <= n; i++ {
-		g.p("\tf%d = f%d * %d\n", i, i-1, i)
+		g.p("\tf%d = f%d * %d\n", i, i - 1, i)
 	}
 	g.p(")\n\n")
 }
