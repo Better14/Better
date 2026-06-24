@@ -143,7 +143,7 @@ func rewriteValuedivmod_OpDiv16u(v *Value) bool {
 		v2 := b.NewValue0(v.Pos, OpZeroExt16to64, typ.UInt64)
 		v2.AddArg(x)
 		v3 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
-		v3.AuxInt = int64ToAuxInt(int64(1<<16 + umagic16(c).m))
+		v3.AuxInt = int64ToAuxInt(int64(1 << 16 + umagic16(c).m))
 		v1.AddArg2(v2, v3)
 		v4 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v4.AuxInt = int64ToAuxInt(16 + umagic16(c).s)
@@ -161,7 +161,7 @@ func rewriteValuedivmod_OpDiv16u(v *Value) bool {
 			break
 		}
 		c := auxIntToInt16(v_1.AuxInt)
-		if !(umagicOK16(c) && umagic16(c).m&1 == 0) {
+		if !(umagicOK16(c) && umagic16(c).m & 1 == 0) {
 			break
 		}
 		v.reset(OpTrunc32to16)
@@ -171,7 +171,7 @@ func rewriteValuedivmod_OpDiv16u(v *Value) bool {
 		v2 := b.NewValue0(v.Pos, OpZeroExt16to32, typ.UInt32)
 		v2.AddArg(x)
 		v3 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v3.AuxInt = int32ToAuxInt(int32(1<<15 + umagic16(c).m/2))
+		v3.AuxInt = int32ToAuxInt(int32(1 << 15 + umagic16(c).m / 2))
 		v1.AddArg2(v2, v3)
 		v4 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v4.AuxInt = int64ToAuxInt(16 + umagic16(c).s - 1)
@@ -189,7 +189,7 @@ func rewriteValuedivmod_OpDiv16u(v *Value) bool {
 			break
 		}
 		c := auxIntToInt16(v_1.AuxInt)
-		if !(umagicOK16(c) && config.RegSize == 4 && c&1 == 0) {
+		if !(umagicOK16(c) && config.RegSize == 4 && c & 1 == 0) {
 			break
 		}
 		v.reset(OpTrunc32to16)
@@ -203,7 +203,7 @@ func rewriteValuedivmod_OpDiv16u(v *Value) bool {
 		v4.AuxInt = int64ToAuxInt(1)
 		v2.AddArg2(v3, v4)
 		v5 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v5.AuxInt = int32ToAuxInt(int32(1<<15 + (umagic16(c).m+1)/2))
+		v5.AuxInt = int32ToAuxInt(int32(1 << 15 + (umagic16(c).m + 1) / 2))
 		v1.AddArg2(v2, v5)
 		v6 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v6.AuxInt = int64ToAuxInt(16 + umagic16(c).s - 2)
@@ -324,7 +324,7 @@ func rewriteValuedivmod_OpDiv32(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(smagicOK32(c) && config.RegSize == 4 && smagic32(c).m&1 == 0) {
+		if !(smagicOK32(c) && config.RegSize == 4 && smagic32(c).m & 1 == 0) {
 			break
 		}
 		v.reset(OpSub32)
@@ -354,7 +354,7 @@ func rewriteValuedivmod_OpDiv32(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(smagicOK32(c) && config.RegSize == 4 && smagic32(c).m&1 != 0) {
+		if !(smagicOK32(c) && config.RegSize == 4 && smagic32(c).m & 1 != 0) {
 			break
 		}
 		v.reset(OpSub32)
@@ -444,7 +444,7 @@ func rewriteValuedivmod_OpDiv32u(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(umagicOK32(c) && umagic32(c).m&1 == 0 && config.RegSize == 8) {
+		if !(umagicOK32(c) && umagic32(c).m & 1 == 0 && config.RegSize == 8) {
 			break
 		}
 		v.reset(OpTrunc64to32)
@@ -454,7 +454,7 @@ func rewriteValuedivmod_OpDiv32u(v *Value) bool {
 		v2 := b.NewValue0(v.Pos, OpZeroExt32to64, typ.UInt64)
 		v2.AddArg(x)
 		v3 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
-		v3.AuxInt = int64ToAuxInt(int64(1<<31 + umagic32(c).m/2))
+		v3.AuxInt = int64ToAuxInt(int64(1 << 31 + umagic32(c).m / 2))
 		v1.AddArg2(v2, v3)
 		v4 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v4.AuxInt = int64ToAuxInt(32 + umagic32(c).s - 1)
@@ -472,14 +472,14 @@ func rewriteValuedivmod_OpDiv32u(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(umagicOK32(c) && umagic32(c).m&1 == 0 && config.RegSize == 4) {
+		if !(umagicOK32(c) && umagic32(c).m & 1 == 0 && config.RegSize == 4) {
 			break
 		}
 		v.reset(OpRsh32Ux64)
 		v.Type = t
 		v0 := b.NewValue0(v.Pos, OpHmul32u, typ.UInt32)
 		v1 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v1.AuxInt = int32ToAuxInt(int32(1<<31 + umagic32(c).m/2))
+		v1.AuxInt = int32ToAuxInt(int32(1 << 31 + umagic32(c).m / 2))
 		v0.AddArg2(x, v1)
 		v2 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v2.AuxInt = int64ToAuxInt(umagic32(c).s - 1)
@@ -496,7 +496,7 @@ func rewriteValuedivmod_OpDiv32u(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(umagicOK32(c) && config.RegSize == 8 && c&1 == 0) {
+		if !(umagicOK32(c) && config.RegSize == 8 && c & 1 == 0) {
 			break
 		}
 		v.reset(OpTrunc64to32)
@@ -510,7 +510,7 @@ func rewriteValuedivmod_OpDiv32u(v *Value) bool {
 		v4.AuxInt = int64ToAuxInt(1)
 		v2.AddArg2(v3, v4)
 		v5 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
-		v5.AuxInt = int64ToAuxInt(int64(1<<31 + (umagic32(c).m+1)/2))
+		v5.AuxInt = int64ToAuxInt(int64(1 << 31 + (umagic32(c).m + 1) / 2))
 		v1.AddArg2(v2, v5)
 		v6 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v6.AuxInt = int64ToAuxInt(32 + umagic32(c).s - 2)
@@ -528,7 +528,7 @@ func rewriteValuedivmod_OpDiv32u(v *Value) bool {
 			break
 		}
 		c := auxIntToInt32(v_1.AuxInt)
-		if !(umagicOK32(c) && config.RegSize == 4 && c&1 == 0) {
+		if !(umagicOK32(c) && config.RegSize == 4 && c & 1 == 0) {
 			break
 		}
 		v.reset(OpRsh32Ux64)
@@ -539,7 +539,7 @@ func rewriteValuedivmod_OpDiv32u(v *Value) bool {
 		v2.AuxInt = int64ToAuxInt(1)
 		v1.AddArg2(x, v2)
 		v3 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v3.AuxInt = int32ToAuxInt(int32(1<<31 + (umagic32(c).m+1)/2))
+		v3.AuxInt = int32ToAuxInt(int32(1 << 31 + (umagic32(c).m + 1) / 2))
 		v0.AddArg2(v1, v3)
 		v4 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v4.AuxInt = int64ToAuxInt(umagic32(c).s - 2)
@@ -652,7 +652,7 @@ func rewriteValuedivmod_OpDiv64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(smagicOK64(c) && smagic64(c).m&1 == 0) {
+		if !(smagicOK64(c) && smagic64(c).m & 1 == 0) {
 			break
 		}
 		v.reset(OpSub64)
@@ -682,7 +682,7 @@ func rewriteValuedivmod_OpDiv64(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(smagicOK64(c) && smagic64(c).m&1 != 0) {
+		if !(smagicOK64(c) && smagic64(c).m & 1 != 0) {
 			break
 		}
 		v.reset(OpSub64)
@@ -745,14 +745,14 @@ func rewriteValuedivmod_OpDiv64u(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(umagicOK64(c) && umagic64(c).m&1 == 0) {
+		if !(umagicOK64(c) && umagic64(c).m & 1 == 0) {
 			break
 		}
 		v.reset(OpRsh64Ux64)
 		v.Type = t
 		v0 := b.NewValue0(v.Pos, OpHmul64u, typ.UInt64)
 		v1 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
-		v1.AuxInt = int64ToAuxInt(int64(1<<63 + umagic64(c).m/2))
+		v1.AuxInt = int64ToAuxInt(int64(1 << 63 + umagic64(c).m / 2))
 		v0.AddArg2(x, v1)
 		v2 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v2.AuxInt = int64ToAuxInt(umagic64(c).s - 1)
@@ -769,7 +769,7 @@ func rewriteValuedivmod_OpDiv64u(v *Value) bool {
 			break
 		}
 		c := auxIntToInt64(v_1.AuxInt)
-		if !(umagicOK64(c) && c&1 == 0) {
+		if !(umagicOK64(c) && c & 1 == 0) {
 			break
 		}
 		v.reset(OpRsh64Ux64)
@@ -780,7 +780,7 @@ func rewriteValuedivmod_OpDiv64u(v *Value) bool {
 		v2.AuxInt = int64ToAuxInt(1)
 		v1.AddArg2(x, v2)
 		v3 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
-		v3.AuxInt = int64ToAuxInt(int64(1<<63 + (umagic64(c).m+1)/2))
+		v3.AuxInt = int64ToAuxInt(int64(1 << 63 + (umagic64(c).m + 1) / 2))
 		v0.AddArg2(v1, v3)
 		v4 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v4.AuxInt = int64ToAuxInt(umagic64(c).s - 2)
@@ -908,7 +908,7 @@ func rewriteValuedivmod_OpDiv8u(v *Value) bool {
 		v2 := b.NewValue0(v.Pos, OpZeroExt8to32, typ.UInt32)
 		v2.AddArg(x)
 		v3 := b.NewValue0(v.Pos, OpConst32, typ.UInt32)
-		v3.AuxInt = int32ToAuxInt(int32(1<<8 + umagic8(c).m))
+		v3.AuxInt = int32ToAuxInt(int32(1 << 8 + umagic8(c).m))
 		v1.AddArg2(v2, v3)
 		v4 := b.NewValue0(v.Pos, OpConst64, typ.UInt64)
 		v4.AuxInt = int64ToAuxInt(8 + umagic8(c).s)

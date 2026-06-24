@@ -34,13 +34,13 @@ func rewriteValuePPC64latelower_OpPPC64ADD(v *Value) bool {
 	// cond: supportsPPC64PCRel() && (m<<30)>>30 == m
 	// result: (ADDconst [m] x)
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			if v_0.Op != OpPPC64MOVDconst {
 				continue
 			}
 			m := auxIntToInt64(v_0.AuxInt)
 			x := v_1
-			if !(supportsPPC64PCRel() && (m<<30)>>30 == m) {
+			if !(supportsPPC64PCRel() && (m << 30) >> 30 == m) {
 				continue
 			}
 			v.reset(OpPPC64ADDconst)
@@ -59,7 +59,7 @@ func rewriteValuePPC64latelower_OpPPC64AND(v *Value) bool {
 	// cond: isPPC64ValidShiftMask(m)
 	// result: (RLDICL [encodePPC64RotateMask(0,m,64)] n)
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if x.Op != OpPPC64MOVDconst {
 				continue
@@ -80,7 +80,7 @@ func rewriteValuePPC64latelower_OpPPC64AND(v *Value) bool {
 	// cond: m != 0 && isPPC64ValidShiftMask(^m)
 	// result: (RLDICR [encodePPC64RotateMask(0,m,64)] n)
 	for {
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if x.Op != OpPPC64MOVDconst {
 				continue
@@ -102,7 +102,7 @@ func rewriteValuePPC64latelower_OpPPC64AND(v *Value) bool {
 	// result: (RLWINM [encodePPC64RotateMask(0,m,32)] n)
 	for {
 		t := v.Type
-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0 + 1, v_1, v_0 {
 			x := v_0
 			if x.Op != OpPPC64MOVDconst {
 				continue

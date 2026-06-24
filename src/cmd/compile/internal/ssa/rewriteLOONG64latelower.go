@@ -48,7 +48,7 @@ func rewriteBlockLOONG64latelower(b *Block) bool {
 			_ = v_0.Args[1]
 			v_0_0 := v_0.Args[0]
 			v_0_1 := v_0.Args[1]
-			for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
+			for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0 + 1, v_0_1, v_0_0 {
 				x := v_0_0
 				y := v_0_1
 				b.resetWithControl2(BlockLOONG64BEQ, x, y)
@@ -63,7 +63,7 @@ func rewriteBlockLOONG64latelower(b *Block) bool {
 			_ = v_0.Args[1]
 			v_0_0 := v_0.Args[0]
 			v_0_1 := v_0.Args[1]
-			for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
+			for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0 + 1, v_0_1, v_0_0 {
 				x := v_0_0
 				y := v_0_1
 				b.resetWithControl2(BlockLOONG64BNE, x, y)
