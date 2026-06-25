@@ -1,6 +1,6 @@
-# BetterGo — a better version of Go
+# Better
 
-BetterGo is a fork of the [Go programming language](https://go.dev/) with language and standard-library extensions aimed at clearer, more expressive code. Full design notes live in `[doc/new_features/](doc/new_features/new_features.md)`.
+Better is a fork of the [Go programming language](https://go.dev/) with language and standard-library extensions aimed at clearer, more expressive code. Full design notes live in `[doc/new_features/](doc/new_features/new_features.md)`.
 
 ---
 
@@ -8,7 +8,7 @@ BetterGo is a fork of the [Go programming language](https://go.dev/) with langua
 
 [Go is small, not simple](https://medium.com/@the_atomic_architect/go-isnt-simple-it-s-just-missing-features-and-that-s-costing-teams-millions-8d84cd9cc7a7). Error handling in Go is very verbose and makes code hard to read. Go is also missing tons of modern features that make code simpler — and in many cases easier to read, in our opinion.
 
-BetterGo keeps Go’s strengths (fully compiled, fast compile times, goroutines / no async, simple syntax, a strong stdlib, explicit style) while greatly improving the language.
+Better keeps Go’s strengths (fully compiled, fast compile times, goroutines / no async, simple syntax, a strong stdlib, explicit style) while greatly improving the language.
 
 ---
 
@@ -305,13 +305,13 @@ Full spec: [doc/new_features/nullable_pointer_types.md](doc/new_features/nullabl
 
 ### 14. Compiler performance (compiler internals)
 
-Type-checker indexes to keep compile times fast with BetterGo features (operator overload resolution, extension methods, enums, and more).
+Type-checker indexes to keep compile times fast with Better features (operator overload resolution, extension methods, enums, and more).
 
 Full spec: [doc/new_features/compiler_performance.md](doc/new_features/compiler_performance.md)
 
 ### 15. gopls (IDE support)
 
-Language-server support for BetterGo syntax — completion, diagnostics, and signature help for overloads and extensions.
+Language-server support for Better syntax — completion, diagnostics, and signature help for overloads and extensions.
 
 Full spec: [doc/new_features/gopls.md](doc/new_features/gopls.md)
 
@@ -325,7 +325,7 @@ Unless otherwise noted, the Go source files are distributed under the BSD-style 
 
 ### Step 1: Install upstream Go (bootstrap)
 
-Building BetterGo requires a working **upstream Go toolchain** (Go **1.24.6 or later**). Download an official binary release from Google:
+Building Better requires a working **upstream Go toolchain** (Go **1.24.6 or later**). Download an official binary release from Google:
 
 **[https://go.dev/dl/](https://go.dev/dl/)**
 
@@ -343,21 +343,21 @@ On Windows (PowerShell):
 go version
 ```
 
-### Step 2: Build BetterGo
+### Step 2: Build Better
 
 Clone or copy this repository, then follow **[doc/new_docs/installation.md](doc/new_docs/installation.md)** for the full build process. A short summary is in [Build from source](#build-from-source-bootstrap) below.
 
-After the build, add BetterGo’s `bin` directory to your `PATH` and set `GOROOT` to the fork root.
+After the build, add Better’s `bin` directory to your `PATH` and set `GOROOT` to the fork root.
 
 ---
 
 ## Build from source (bootstrap)
 
-BetterGo follows the upstream [Installing Go from source](https://go.dev/doc/install/source) process: a bootstrap Go compiler builds this tree, then the result becomes your new `GOROOT`.
+Better follows the upstream [Installing Go from source](https://go.dev/doc/install/source) process: a bootstrap Go compiler builds this tree, then the result becomes your new `GOROOT`.
 
 **Full instructions:** [doc/new_docs/installation.md](doc/new_docs/installation.md)
 
-You need **`GOROOT_BOOTSTRAP`** pointing at upstream Go (not BetterGo) — typically the install from [go.dev/dl](https://go.dev/dl/). Set it explicitly if `go` on your `PATH` is missing or already points at BetterGo.
+You need **`GOROOT_BOOTSTRAP`** pointing at upstream Go (not Better) — typically the install from [go.dev/dl](https://go.dev/dl/). Set it explicitly if `go` on your `PATH` is missing or already points at Better.
 
 | Platform | Build command | Notes |
 | -------- | ------------- | ----- |
@@ -365,7 +365,7 @@ You need **`GOROOT_BOOTSTRAP`** pointing at upstream Go (not BetterGo) — typic
 | **macOS** | `./make.bash` | Same as Linux. Do not use `make.bash` on Windows. |
 | **Windows** | `make.bat` | Run from `%GOROOT%\src`. Requires MinGW — see below. Use `all.bat` to build and test. |
 
-Replace `/path/to/bettergo/go` with the absolute path to this repository’s `go` directory.
+Replace `/path/to/better/go` with the absolute path to this repository’s `go` directory.
 
 ### Linux and macOS
 
@@ -373,16 +373,16 @@ Replace `/path/to/bettergo/go` with the absolute path to this repository’s `go
 export GOROOT_BOOTSTRAP=$(go env GOROOT)
 export GOEXPERIMENT=genericmethods   # optional; generic methods
 
-cd /path/to/bettergo/go/src
+cd /path/to/better/go/src
 ./make.bash          # build toolchain only
 # ./all.bash         # build + run tests (long)
 
-export GOROOT=/path/to/bettergo/go
+export GOROOT=/path/to/better/go
 export PATH=$GOROOT/bin:$PATH
 go version
 ```
 
-Add the `export` lines to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to make BetterGo permanent.
+Add the `export` lines to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to make Better permanent.
 
 ### Windows
 
@@ -401,23 +401,23 @@ Install upstream Go from [go.dev/dl](https://go.dev/dl/), then:
 $env:GOROOT_BOOTSTRAP = (go env GOROOT)
 $env:GOEXPERIMENT = "genericmethods"   # optional
 
-cd C:\path\to\bettergo\go\src
+cd C:\path\to\better\go\src
 .\make.bat           # build toolchain only
 # .\all.bat          # build + run tests (long)
 
-$env:GOROOT = "C:\path\to\bettergo\go"
+$env:GOROOT = "C:\path\to\better\go"
 $env:PATH = "$env:GOROOT\bin;$env:PATH"
 go version
 ```
 
-Add `GOROOT` and update `PATH` in System Environment Variables to keep BetterGo across sessions.
+Add `GOROOT` and update `PATH` in System Environment Variables to keep Better across sessions.
 
 ### Bootstrap details
 
 - **`GOROOT_BOOTSTRAP`** must contain `bin/go` (or `bin\go.exe` on Windows) from upstream Go ≥ 1.24.6.
-- If unset, the scripts search common locations (`$HOME/go1.24.6`, `$HOME/sdk/go1.24.6`, etc.) and any other `go` on `PATH` whose `GOROOT` is not BetterGo.
+- If unset, the scripts search common locations (`$HOME/go1.24.6`, `$HOME/sdk/go1.24.6`, etc.) and any other `go` on `PATH` whose `GOROOT` is not Better.
 - **`make.bash` / `make.bat`** only build the toolchain. **`all.bash` / `all.bat`** also run the full test suite.
-- For IDE support, build [gopls](doc/new_features/gopls.md) from the `go_tools` repository against BetterGo’s `GOROOT`.
+- For IDE support, build [gopls](doc/new_features/gopls.md) from the `go_tools` repository against Better’s `GOROOT`.
 
 ---
 
@@ -425,4 +425,4 @@ Add `GOROOT` and update `PATH` in System Environment Variables to keep BetterGo 
 
 Go is the work of thousands of contributors. We appreciate your help!
 
-To contribute upstream, read [https://go.dev/doc/contribute](https://go.dev/doc/contribute). For BetterGo, see [`doc/new_features/`](doc/new_features/new_features.md) for the feature index and design docs.
+To contribute upstream, read [https://go.dev/doc/contribute](https://go.dev/doc/contribute). For Better, see [`doc/new_features/`](doc/new_features/new_features.md) for the feature index and design docs.

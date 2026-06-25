@@ -1,13 +1,13 @@
-# Installing BetterGo from source
+# Installing Better from source
 
-BetterGo is built the same way as upstream Go: a **bootstrap Go toolchain** compiles the sources in this tree, then reinstalls the result as your new `GOROOT`. The process follows [Installing Go from source](https://go.dev/doc/install/source); this document covers BetterGo-specific paths and Windows prerequisites.
+Better is built the same way as upstream Go: a **bootstrap Go toolchain** compiles the sources in this tree, then reinstalls the result as your new `GOROOT`. The process follows [Installing Go from source](https://go.dev/doc/install/source); this document covers Better-specific paths and Windows prerequisites.
 
 ## Overview
 
-1. Install a **bootstrap** Go binary (upstream, not BetterGo) — [go.dev/dl](https://go.dev/dl/).
+1. Install a **bootstrap** Go binary (upstream, not Better) — [go.dev/dl](https://go.dev/dl/).
 2. Clone or copy this repository; the `go/` directory is your future `GOROOT`.
 3. Run **`make.bash`** (Linux/macOS) or **`make.bat`** (Windows) from `$GOROOT/src`.
-4. Set **`GOROOT`** and **`PATH`** to use BetterGo’s `bin/go`.
+4. Set **`GOROOT`** and **`PATH`** to use Better’s `bin/go`.
 
 | Step | Linux / macOS | Windows |
 | ---- | ------------- | ------- |
@@ -25,8 +25,8 @@ Do **not** use `make.bash` on Windows; use `make.bat`. See also the upstream [Wi
 The Go compiler is written in Go. **`make.bash` / `make.bat`** need an existing `go` command to bootstrap.
 
 - **Minimum bootstrap version:** Go **1.24.6** (see `$GOROOT/src/make.bash` / `make.bat`).
-- Set **`GOROOT_BOOTSTRAP`** to the root of your upstream install if `go` on `PATH` points at BetterGo or is missing.
-- **`GOROOT_BOOTSTRAP`** must **not** be the BetterGo tree you are building.
+- Set **`GOROOT_BOOTSTRAP`** to the root of your upstream install if `go` on `PATH` points at Better or is missing.
+- **`GOROOT_BOOTSTRAP`** must **not** be the Better tree you are building.
 
 If unset, the scripts look for another `go` on `PATH`, then common locations such as `$HOME/go1.24.6` or `%USERPROFILE%\go1.24.6`.
 
@@ -43,7 +43,7 @@ export GOROOT_BOOTSTRAP=$(go env GOROOT)
 # Optional — required for generic methods in this fork
 export GOEXPERIMENT=genericmethods
 
-cd /path/to/bettergo/go/src
+cd /path/to/better/go/src
 ./make.bash          # toolchain only
 # ./all.bash         # toolchain + full test suite (long)
 ```
@@ -51,12 +51,12 @@ cd /path/to/bettergo/go/src
 After a successful build:
 
 ```bash
-export GOROOT=/path/to/bettergo/go
+export GOROOT=/path/to/better/go
 export PATH=$GOROOT/bin:$PATH
 go version
 ```
 
-Add those exports to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to keep BetterGo as the default.
+Add those exports to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to keep Better as the default.
 
 ### Optional: C compiler
 
@@ -74,7 +74,7 @@ Windows builds use **`make.bat`** from `%GOROOT%\src`. Upstream documents additi
 
 ### Install MinGW (C compiler)
 
-BetterGo’s Windows build expects a C toolchain on `PATH` (typically **`gcc.exe`**) for parts of the runtime and cgo. Install **MinGW** with the **MSYS Basic System** and ensure `gcc` is available.
+Better’s Windows build expects a C toolchain on `PATH` (typically **`gcc.exe`**) for parts of the runtime and cgo. Install **MinGW** with the **MSYS Basic System** and ensure `gcc` is available.
 
 **Using the MinGW installer (upstream wiki approach):**
 
@@ -105,7 +105,7 @@ To skip cgo during the build:
 $env:CGO_ENABLED = "0"
 ```
 
-### Build BetterGo
+### Build Better
 
 Install upstream Go from [go.dev/dl](https://go.dev/dl/) first.
 
@@ -115,7 +115,7 @@ $env:GOROOT_BOOTSTRAP = (go env GOROOT)
 # Optional
 $env:GOEXPERIMENT = "genericmethods"
 
-cd C:\path\to\bettergo\go\src
+cd C:\path\to\better\go\src
 .\make.bat           # toolchain only
 # .\all.bat          # toolchain + tests (long)
 ```
@@ -123,7 +123,7 @@ cd C:\path\to\bettergo\go\src
 After a successful build:
 
 ```powershell
-$env:GOROOT = "C:\path\to\bettergo\go"
+$env:GOROOT = "C:\path\to\better\go"
 $env:PATH = "$env:GOROOT\bin;$env:PATH"
 go version
 ```
@@ -136,8 +136,8 @@ Set **`GOROOT`** and update **`PATH`** in System Environment Variables to persis
 
 | Variable | Purpose |
 | -------- | ------- |
-| `GOROOT_BOOTSTRAP` | Upstream Go tree used to compile BetterGo (must contain `bin/go` or `bin\go.exe`) |
-| `GOROOT` | Root of the **built** BetterGo tree (set after install) |
+| `GOROOT_BOOTSTRAP` | Upstream Go tree used to compile Better (must contain `bin/go` or `bin\go.exe`) |
+| `GOROOT` | Root of the **built** Better tree (set after install) |
 | `GOEXPERIMENT=genericmethods` | Enable generic methods (extension methods, LINQ, etc.) |
 | `CGO_ENABLED=0` | Build without cgo (no C compiler required) |
 | `GOOS` / `GOARCH` | Cross-compile target (defaults to host) |
@@ -154,7 +154,7 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("hello, BetterGo")
+	fmt.Println("hello, Better")
 }
 EOF
 
@@ -165,10 +165,10 @@ go run hello.go
 
 ## gopls (IDE support)
 
-Build [gopls](doc/new_features/gopls.md) from the `go_tools` repository against BetterGo’s `GOROOT`:
+Build [gopls](doc/new_features/gopls.md) from the `go_tools` repository against Better’s `GOROOT`:
 
 ```bash
-export GOROOT=/path/to/bettergo/go
+export GOROOT=/path/to/better/go
 export GOPATH=/path/to/gopath    # must not equal GOROOT
 export GOEXPERIMENT=genericmethods
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
