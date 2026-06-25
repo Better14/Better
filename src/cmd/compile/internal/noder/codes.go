@@ -69,6 +69,9 @@ const (
 	exprNullCoalesce   // e ?? f — null coalescing
 	exprResultCoalesce // e ?? f — result coalescing (T!)
 	exprResultWrap       // wrap T as T! {value, nil} or error as T! {zero, err}; Bool selects
+	exprOptionalWrap       // wrap T as T? {hasValue, value}; Bool: true = nil optional
+	exprOptionalWrapFromPtr // wrap *T as T?; nil pointer -> nil optional
+	exprOptionalNilTest    // test T? against nil; Bool: true for == nil, false for != nil
 	exprOptionalUnwrap   // unwrap T? to T; Bool: panic if nil
 	exprResultUnwrap     // unwrap T!.value to T; Bool: panic if err != nil
 	exprResultErr        // T!.err field

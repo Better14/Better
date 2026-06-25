@@ -537,7 +537,8 @@ func (r *reader) doTyp() *types.Type {
 	case pkgbits.TypePointer:
 		return types.NewPtr(r.typ())
 	case pkgbits.TypeOptional:
-		return types.NewPtr(r.typ())
+		elem := r.typ()
+		return optionalLoweredStruct(elem)
 	case pkgbits.TypeSignature:
 		return r.signature(nil)
 	case pkgbits.TypeSlice:
@@ -616,6 +617,15 @@ func (r *reader) structType() *types.Type {
 			field.Embedded = 1
 		}
 		fields[i] = field
+	}
+	return types.NewStruct(fields)
+}
+
+func optionalLoweredStruct(elem *types.Type) *types.Type {
+	pos := src.NoXPos
+	fields := []*types.Field{
+		types.NewField(pos, types.LocalPkg.Lookup("hasValue"), types.Types[types.TBOOL]),
+		types.NewField(pos, types.LocalPkg.Lookup("value"), elem),
 	}
 	return types.NewStruct(fields)
 }
@@ -2472,7 +2482,11 @@ func (r *reader) expr() (res ir.Node) {
 		typ := r.typ()
 		x := r.expr()
 		sym := r.selector()
-		dot := typecheck.XDotField(pos, x, sym)
+		base := x
+		if typecheck.IsOptionalStruct(x.Type()) {
+			base = typecheck.OptionalValue(pos, x)
+		}
+		dot := typecheck.XDotField(pos, base, sym)
 		return ir.NewNullCondExpr(pos, typ, x, dot)
 
 	case exprNullCoalesce:
@@ -2497,6 +2511,43 @@ func (r *reader) expr() (res ir.Node) {
 		typ := r.typ()
 		x := r.expr()
 		return ir.NewNullUnwrapExpr(pos, typ, x, checkNil)
+
+	case exprOptionalWrap:
+		fromNil := r.Bool()
+		pos := r.pos()
+		typ := r.typ()
+		if fromNil {
+			return typecheck.OptionalWrapNil(pos, typ)
+		}
+		val := r.expr()
+		return typecheck.OptionalWrapValue(pos, typ, val)
+
+	case exprOptionalWrapFromPtr:
+		pos := r.pos()
+		typ := r.typ()
+		ptr := r.expr()
+		elem := typ.Field(1).Type
+		nilOpt := typecheck.OptionalWrapNil(pos, typ)
+		star := typecheck.Expr(ir.NewStarExpr(pos, ptr))
+		star.SetType(elem)
+		star.SetTypecheck(1)
+		valOpt := typecheck.OptionalWrapValue(pos, typ, star)
+		niln := ir.NewNilExpr(pos, ptr.Type())
+		niln.SetTypecheck(1)
+		cmp := ir.NewBinaryExpr(pos, ir.OEQ, ptr, niln)
+		cmp.SetType(types.Types[types.TBOOL])
+		cmp.SetTypecheck(1)
+		return typecheck.Expr(ir.NewIfExpr(pos, typ, cmp, nilOpt, valOpt))
+
+	case exprOptionalNilTest:
+		wantNil := r.Bool()
+		pos := r.pos()
+		_ = r.typ()
+		x := r.expr()
+		if wantNil {
+			return typecheck.OptionalIsNil(pos, x)
+		}
+		return typecheck.OptionalHasValue(pos, x)
 
 	case exprResultUnwrap:
 		checkErr := r.Bool()

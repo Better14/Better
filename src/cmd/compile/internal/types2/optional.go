@@ -31,6 +31,15 @@ func AsOptional(t Type) (*Optional, bool) {
 	return o, o != nil
 }
 
+// OptionalType returns the struct type used to lower T? to Option[T].
+func OptionalType(pkg *Package, opt *Optional) *Struct {
+	pos := nopos
+	return NewStruct([]*Var{
+		newVar(FieldVar, pos, pkg, "hasValue", Typ[Bool]),
+		newVar(FieldVar, pos, pkg, "value", opt.elem),
+	}, nil)
+}
+
 // isNullish reports whether t may be compared to nil and used with ?. and ??.
 func isNullish(t Type) bool {
 	if t == nil {
@@ -65,6 +74,9 @@ func ptrForNullish(t Type) Type {
 	if _, ok := t.Underlying().(*Pointer); ok {
 		return t
 	}
+	if o, ok := t.Underlying().(*Optional); ok {
+		return o.elem
+	}
 	elem := optionalElem(t)
 	if elem == nil {
 		return Typ[Invalid]
@@ -80,11 +92,7 @@ func optionalResultType(t Type) Type {
 	if _, ok := t.Underlying().(*Optional); ok {
 		return t
 	}
-	elem := t
-	if p, ok := t.Underlying().(*Pointer); ok {
-		elem = p.base
-	}
-	return NewOptional(elem)
+	return NewOptional(t)
 }
 
 func (check *Checker) nullCondSelector(x *operand, e *syntax.SelectorExpr, nc *syntax.NullCondExpr) {

@@ -420,37 +420,20 @@ func tcConv(n *ir.ConvExpr) ir.Node {
 }
 
 // nullableBasicWrap reports whether src is a basic value that should be
-// boxed into dst when dst is *src (nullable basic types lower to pointers).
+// wrapped into dst when dst is a lowered T? struct.
 func nullableBasicWrap(src, dst *types.Type) bool {
-	if src == nil || dst == nil || !dst.IsPtr() {
+	if src == nil || dst == nil || !IsOptionalStruct(dst) {
 		return false
 	}
-	if !types.Identical(src, dst.Elem()) {
+	if !types.Identical(src, dst.Field(1).Type) {
 		return false
 	}
 	return src.IsScalar() || src.IsString()
 }
 
-// tcNullableBasicWrap rewrites implicit conversion of a basic value to *basic.
+// tcNullableBasicWrap rewrites implicit conversion of a basic value to T?.
 func tcNullableBasicWrap(n *ir.ConvExpr) ir.Node {
-	pos := n.Pos()
-	elem := n.X.Type()
-	ptr := n.Type()
-	tmp := TempAt(pos, ir.CurFunc, elem)
-	as := ir.NewAssignStmt(pos, tmp, n.X)
-	as.SetTypecheck(1)
-	addr := NodAddrAt(pos, tmp)
-	addr.SetType(ptr)
-	addr.SetTypecheck(1)
-	if n.Implicit() {
-		addr.SetImplicit(true)
-	}
-	n.SetOp(ir.OCONVNOP)
-	n.SetTypecheck(1)
-	n.X = addr
-	n.PtrInit().Append(ir.NewDecl(pos, ir.ODCL, tmp))
-	n.PtrInit().Append(as)
-	return n
+	return OptionalWrapValue(n.Pos(), n.Type(), n.X)
 }
 
 // DotField returns a field selector expression that selects the

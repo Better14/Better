@@ -71,7 +71,41 @@ if v == nil {
 }
 ```
 
-Conceptually, `int?` is a optional value (value + “has value” flag). The compiler may lower it to a struct or pointer; the source-level model is **value or `nil`**, not value + `error`.
+Conceptually, `int?` is an optional value (value + “has value” flag). The source-level model is **value or `nil`**, not value + `error`.
+
+### Compiler lowering
+
+At compile time, `T?` is lowered to a struct with the same layout as `Option[T]`:
+
+```go
+type Option[T any] struct {
+	hasValue bool
+	value  T
+}
+```
+
+For example, `int?` becomes:
+
+```go
+struct {
+	hasValue bool
+	value  int
+}
+```
+
+| Source              | Lowered meaning                                      |
+| ------------------- | ---------------------------------------------------- |
+| `nil`               | `{hasValue: false, value: zero}`                     |
+| `5`                 | `{hasValue: true, value: 5}`                       |
+| `v == nil`          | `!v.hasValue`                                        |
+| `v != nil`          | `v.hasValue` (then `v` narrows to `T` in type check) |
+| `int(v)`            | read `v.value`; panic if `!v.hasValue`               |
+| `v ?? fallback`     | if `!v.hasValue` then `fallback` else `v.value`      |
+| `*T` assignable to `T?` | `nil` pointer → nil optional; non-nil → `{true, *p}` |
+
+Field names `hasValue` and `value` are fixed; the compiler generates anonymous structs with this shape (there is no user-visible `Option` type name in object code unless you define one yourself).
+
+See [Compiler lowering](result_types.md#compiler-lowering) for the analogous `T!` → `Result[T]` representation.
 
 ### Assignability: `T?` is not `T`
 

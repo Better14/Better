@@ -1322,24 +1322,53 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		pos := n.Pos()
 		x := o.expr1(n.X, nil)
 		res := o.newTemp(n.Type(), n.Type().HasPointers())
-		niln := ir.NewNilExpr(pos, x.Type())
-		niln.SetTypecheck(1)
-		cmp := ir.NewBinaryExpr(pos, ir.OEQ, x, niln)
-		cmp.SetType(types.Types[types.TBOOL])
-		cmp.SetTypecheck(1)
-		z := ir.NewNilExpr(pos, n.Type())
-		z.SetTypecheck(1)
-		thenAs := ir.NewAssignStmt(pos, res, z)
-		thenAs.SetTypecheck(1)
+
+		var cmp ir.Node
+		if typecheck.IsOptionalStruct(x.Type()) {
+			cmp = o.optionalIsNil(pos, x)
+		} else {
+			niln := ir.NewNilExpr(pos, x.Type())
+			niln.SetTypecheck(1)
+			cmp = ir.NewBinaryExpr(pos, ir.OEQ, x, niln)
+			cmp.SetType(types.Types[types.TBOOL])
+			cmp.SetTypecheck(1)
+		}
+
+		saveout := o.out
+		o.out = nil
+		if typecheck.IsOptionalStruct(n.Type()) {
+			o.optionalInitNilInto(pos, res)
+		} else {
+			z := ir.NewNilExpr(pos, n.Type())
+			z.SetTypecheck(1)
+			thenAs := ir.NewAssignStmt(pos, res, z)
+			thenAs.SetTypecheck(1)
+			o.out = append(o.out, thenAs)
+		}
+		thenBody := o.out
+		o.out = saveout
+
+		saveout = o.out
+		o.out = nil
+		mark := o.markTemp()
 		end := nullCondEnd(n.End, n.X, x)
 		end = o.expr1(end, nil)
-		elseVal := end
-		if res.Type().IsPtr() && end.Type() != nil && types.Identical(res.Type().Elem(), end.Type()) {
-			elseVal = typecheck.Expr(typecheck.NodAddrAt(pos, end))
+		if typecheck.IsOptionalStruct(n.Type()) {
+			o.optionalInitFromEnd(pos, res, end)
+		} else {
+			elseVal := end
+			if res.Type().IsPtr() && end.Type() != nil && types.Identical(res.Type().Elem(), end.Type()) {
+				elseVal = typecheck.Expr(typecheck.NodAddrAt(pos, end))
+			}
+			elseAs := ir.NewAssignStmt(pos, res, elseVal)
+			elseAs.SetTypecheck(1)
+			o.out = append(o.out, elseAs)
 		}
-		elseAs := ir.NewAssignStmt(pos, res, elseVal)
-		elseAs.SetTypecheck(1)
-		ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{thenAs}, []ir.Node{elseAs})
+		elseBody := o.out
+		o.popTemp(mark)
+		o.out = saveout
+
+		ifStmt := ir.NewIfStmt(pos, cmp, thenBody, elseBody)
 		ifStmt.SetTypecheck(1)
 		o.out = append(o.out, ifStmt)
 		return res
@@ -1429,6 +1458,23 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 			o.out = append(o.out, ifStmt)
 			return res
 		}
+		if typecheck.IsOptionalStruct(x.Type()) {
+			val := typecheck.OptionalValue(pos, x)
+			if !n.CheckNil {
+				return val
+			}
+			res := o.newTemp(n.Type(), n.Type().HasPointers())
+			cmp := o.optionalIsNil(pos, x)
+			lit := ir.NewBasicLit(pos, types.UntypedString, constant.MakeString("unwrap of nil nullable value"))
+			msg := typecheck.DefaultLit(lit, types.Types[types.TSTRING])
+			panicStmt := mkcallstmt("gopanic", msg)
+			elseAs := ir.NewAssignStmt(pos, res, val)
+			elseAs.SetTypecheck(1)
+			ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{panicStmt}, []ir.Node{elseAs})
+			ifStmt.SetTypecheck(1)
+			o.out = append(o.out, ifStmt)
+			return res
+		}
 		star := ir.NewStarExpr(pos, x)
 		star.SetType(n.Type())
 		star.SetTypecheck(1)
@@ -1469,6 +1515,16 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 			cmp.SetType(types.Types[types.TBOOL])
 			cmp.SetTypecheck(1)
 			elseAs := ir.NewAssignStmt(pos, res, val)
+			elseAs.SetTypecheck(1)
+			ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{thenAs}, []ir.Node{elseAs})
+			ifStmt.SetTypecheck(1)
+			o.out = append(o.out, ifStmt)
+			return res
+		}
+		if typecheck.IsOptionalStruct(lhs.Type()) {
+			cmp := o.optionalIsNil(pos, lhs)
+			elseVal := typecheck.OptionalValue(pos, lhs)
+			elseAs := ir.NewAssignStmt(pos, res, elseVal)
 			elseAs.SetTypecheck(1)
 			ifStmt := ir.NewIfStmt(pos, cmp, []ir.Node{thenAs}, []ir.Node{elseAs})
 			ifStmt.SetTypecheck(1)
@@ -1902,6 +1958,76 @@ func (o *orderState) as2ok(n *ir.AssignListStmt) {
 
 	o.out = append(o.out, n)
 	o.stmt(typecheck.Stmt(as))
+}
+
+// optionalInitNilInto sets dst to a nil T? ({hasValue: false, value: zero}).
+func (o *orderState) optionalInitNilInto(pos src.XPos, dst ir.Node) {
+	hv := typecheck.DotField(pos, dst, 0)
+	hvAs := ir.NewAssignStmt(pos, hv, typecheck.TypedFalse(pos))
+	hvAs.SetTypecheck(1)
+	val := typecheck.DotField(pos, dst, 1)
+	zero := typecheck.DefaultLit(ir.NewZero(pos, dst.Type().Field(1).Type), dst.Type().Field(1).Type)
+	valAs := ir.NewAssignStmt(pos, val, zero)
+	valAs.SetTypecheck(1)
+	o.out = append(o.out, hvAs, valAs)
+}
+
+// optionalInitValueInto sets dst to a non-nil T? with the given value.
+func (o *orderState) optionalInitValueInto(pos src.XPos, dst ir.Node, value ir.Node) {
+	hv := typecheck.DotField(pos, dst, 0)
+	hvAs := ir.NewAssignStmt(pos, hv, typecheck.TypedTrue(pos))
+	hvAs.SetTypecheck(1)
+	val := typecheck.DotField(pos, dst, 1)
+	value = typecheck.DefaultLit(value, dst.Type().Field(1).Type)
+	valAs := ir.NewAssignStmt(pos, val, value)
+	valAs.SetTypecheck(1)
+	o.out = append(o.out, hvAs, valAs)
+}
+
+// optionalInitFromEnd sets dst to a T? reflecting end; nil pointers become nil optionals.
+func (o *orderState) optionalInitFromEnd(pos src.XPos, dst ir.Node, end ir.Node) {
+	elem := dst.Type().Field(1).Type
+	if ir.IsNil(end) {
+		o.optionalInitNilInto(pos, dst)
+		return
+	}
+	if elem.HasNil() {
+		niln := ir.NewNilExpr(pos, elem)
+		niln.SetTypecheck(1)
+		cmp := ir.NewBinaryExpr(pos, ir.OEQ, end, niln)
+		cmp.SetType(types.Types[types.TBOOL])
+		cmp.SetTypecheck(1)
+
+		saveout := o.out
+		o.out = nil
+		o.optionalInitNilInto(pos, dst)
+		thenBody := o.out
+		o.out = saveout
+
+		saveout = o.out
+		o.out = nil
+		o.optionalInitValueInto(pos, dst, end)
+		elseBody := o.out
+		o.out = saveout
+
+		ifStmt := ir.NewIfStmt(pos, cmp, thenBody, elseBody)
+		ifStmt.SetTypecheck(1)
+		o.out = append(o.out, ifStmt)
+		return
+	}
+	o.optionalInitValueInto(pos, dst, end)
+}
+
+// optionalIsNil reports whether a lowered T? temp holds nil (!hasValue).
+func (o *orderState) optionalIsNil(pos src.XPos, x ir.Node) ir.Node {
+	hv := o.newTemp(types.Types[types.TBOOL], false)
+	as := ir.NewAssignStmt(pos, hv, typecheck.OptionalHasValue(pos, x))
+	as.SetTypecheck(1)
+	o.out = append(o.out, as)
+	cmp := ir.NewBinaryExpr(pos, ir.OEQ, hv, typecheck.TypedFalse(pos))
+	cmp.SetType(types.Types[types.TBOOL])
+	cmp.SetTypecheck(1)
+	return cmp
 }
 
 // nullCondEnd rewrites the receiver in a ?. access to use newX after the

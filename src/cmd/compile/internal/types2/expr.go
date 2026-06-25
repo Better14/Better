@@ -417,7 +417,7 @@ func (check *Checker) updateExprType(x syntax.Expr, typ Type, final bool) {
 	// Everything's fine, record final type and value for x.
 	mode, val := old.mode, old.val
 	if _, ok := typ.Underlying().(*Optional); ok && val != nil {
-		// Nullable values are lowered to pointers; not compile-time constants.
+		// Nullable values are lowered to Option[T] structs; not compile-time constants.
 		mode = value
 		val = nil
 	}

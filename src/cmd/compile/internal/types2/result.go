@@ -29,8 +29,8 @@ func AsResult(t Type) (*Result, bool) {
 	return r, r != nil
 }
 
-// ResultStruct returns the struct type used to lower T!.
-func ResultStruct(pkg *Package, res *Result) *Struct {
+// ResultType returns the struct type used to lower T! to Result[T].
+func ResultType(pkg *Package, res *Result) *Struct {
 	pos := nopos
 	return NewStruct([]*Var{
 		newVar(FieldVar, pos, pkg, "value", res.elem),

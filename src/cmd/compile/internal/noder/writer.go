@@ -614,12 +614,12 @@ func (pw *pkgWriter) typIdx(typ types2.Type, dict *writerDict) typeInfo {
 		w.typ(typ.Elem())
 
 	case *types2.Optional:
-		w.Code(pkgbits.TypeOptional)
-		w.typ(typ.Elem())
+		w.Code(pkgbits.TypeStruct)
+		w.optionalType(typ)
 
 	case *types2.Result:
 		w.Code(pkgbits.TypeStruct)
-		w.resultStructType(typ)
+		w.resultType(typ)
 
 	case *types2.Signature:
 		base.Assertf(typ.TypeParams() == nil, "unexpected type params: %v", typ)
@@ -691,8 +691,12 @@ func (w *writer) structType(typ *types2.Struct) {
 	}
 }
 
-func (w *writer) resultStructType(res *types2.Result) {
-	w.structType(types2.ResultStruct(w.p.curpkg, res))
+func (w *writer) resultType(res *types2.Result) {
+	w.structType(types2.ResultType(w.p.curpkg, res))
+}
+
+func (w *writer) optionalType(opt *types2.Optional) {
+	w.structType(types2.OptionalType(w.p.curpkg, opt))
 }
 
 func (w *writer) unionType(typ *types2.Union) {
@@ -2300,6 +2304,12 @@ func (w *writer) expr(expr syntax.Expr) {
 			break
 		}
 
+		if expr.Op == syntax.Eql || expr.Op == syntax.Neq {
+			if w.tryWriteOptionalNilCompare(expr) {
+				break
+			}
+		}
+
 		var commonType types2.Type
 		switch expr.Op {
 		case syntax.Shl, syntax.Shr:
@@ -2845,10 +2855,27 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 	// Omit implicit no-op conversions.
 	identical := dst == nil || types2.Identical(src, dst)
 	if o, ok := types2.AsOptional(dst); ok && implicit {
-		ptr := types2.NewPointer(o.Elem())
-		if types2.AssignableTo(src, o.Elem()) && !types2.Identical(src, ptr) {
-			identical = false
-			dst = o
+		if isNil(w.p, expr) {
+			w.Code(exprOptionalWrap)
+			w.Bool(true)
+			w.pos(expr)
+			w.typ(dst)
+			return
+		}
+		if p, ok := types2.CoreType(src).(*types2.Pointer); ok && types2.Identical(p.Elem(), o.Elem()) {
+			w.Code(exprOptionalWrapFromPtr)
+			w.pos(expr)
+			w.typ(dst)
+			w.expr(expr)
+			return
+		}
+		if types2.AssignableTo(src, o.Elem()) {
+			w.Code(exprOptionalWrap)
+			w.Bool(false)
+			w.pos(expr)
+			w.typ(dst)
+			w.implicitConvExpr(o.Elem(), expr)
+			return
 		}
 	}
 	if o, ok := types2.AsOptional(src); ok && types2.Identical(dst, o.Elem()) {
@@ -3727,6 +3754,27 @@ func isPkgQual(info *types2.Info, sel *syntax.SelectorExpr) bool {
 		return isPkgName
 	}
 	return false
+}
+
+// tryWriteOptionalNilCompare emits a hasValue test when comparing T? to nil.
+func (w *writer) tryWriteOptionalNilCompare(expr *syntax.Operation) bool {
+	var optExpr syntax.Expr
+	if isNil(w.p, expr.X) {
+		optExpr = expr.Y
+	} else if isNil(w.p, expr.Y) {
+		optExpr = expr.X
+	} else {
+		return false
+	}
+	if _, ok := types2.AsOptional(w.p.typeOf(optExpr)); !ok {
+		return false
+	}
+	w.Code(exprOptionalNilTest)
+	w.Bool(expr.Op == syntax.Eql)
+	w.pos(expr)
+	w.typ(types2.Typ[types2.Bool])
+	w.expr(optExpr)
+	return true
 }
 
 // isNil reports whether expr is a (possibly parenthesized) reference

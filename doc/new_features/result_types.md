@@ -189,29 +189,44 @@ On the success path, `defer f.Close()` runs normally — including when a later 
 
 ## Conceptual Representation
 
-A `T!` can be thought of as a pair:
+A `T!` value type corresponds to `Result[T]`:
 
 ```go
-struct TValueOrErr {
+type Result[T any] struct {
 	value T
 	err   error
 }
 ```
 
-For example, `int!` corresponds conceptually to:
+For example, `int!` is lowered to:
 
 ```go
-struct intOrErr {
+struct {
 	value int
 	err   error
 }
 ```
 
-This is a conceptual model for documentation; syntax-level behavior is defined by compiler lowering and type checking.
+## Compiler lowering
+
+At compile time, `T!` (as a **value type**, not only as `(T, error)` in a function signature) is lowered to a struct with the same layout as `Result[T]` above. Field names are always `value` and `err`.
+
+| Source | Lowered meaning |
+| ------ | --------------- |
+| `v` (`T` assignable) | `{value: v, err: nil}` |
+| `err` (`error`) | `{value: zero, err: err}` |
+| `v!` / `v!.field` | if `v.err != nil` then early return; else use `v.value` |
+| `v ?? fallback` | if `v.err != nil` then `fallback` else `v.value` |
+| `v.value` (force) | read `v.value`; panic if `v.err != nil` |
+| `v.err == nil` | compare `v.err` to `nil` |
+
+Function results written as `T!` remain the ordinary Go pair `(T, error)` at the ABI; the struct lowering applies to `T!` **values** (locals, fields, `T!` in composite types, etc.).
+
+This is the implementation model; syntax-level behavior is defined by type checking and the lowering rules above.
 
 ## Usage Patterns
 
-`T!` is also a **value type** (lowered to a struct with `value` and `err` fields), in addition to the function-result shorthand.
+`T!` is also a **value type** (lowered to `Result[T]` with `value` and `err` fields), in addition to the function-result shorthand.
 
 ```go
 var a int! = 0                            // value=0, err=nil
