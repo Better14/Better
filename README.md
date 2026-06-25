@@ -436,7 +436,7 @@ Better adds new syntax and stdlib features. To move an existing codebase over:
 1. **Automate common rewrites** with [modernize](https://github.com/Better14/modernize) — a small source rewriter that updates common error-handling patterns to Better’s `T!` result types and `!` error propagation.
 2. **Clone reference material** alongside your project:
    - [Better](https://github.com/Better14/Better) (this repository)
-   - [SyntaxTest](https://github.com/Better14/SyntaxTest) (example programs using the new syntax)
-3. **Use an AI assistant** (Cursor, Claude, etc.): point it at `doc/new_features/` in Better and at `SyntaxTest/`, then ask it to rewrite your code to use the new features (result types, LINQ, enums, extension methods, and the rest documented there).
+   - [SyntaxExample](https://github.com/Better14/SyntaxExample) (example programs using the new syntax)
+3. **Use an AI assistant** (Cursor, Claude, etc.): point it at `doc/new_features/` in Better and at `SyntaxExample/`, then ask it to rewrite your code to use the new features (result types, LINQ, enums, extension methods, and the rest documented there).
 
 Build and run `modernize` with **Better** as `GOROOT`; see the [modernize README](https://github.com/Better14/modernize) for usage.
