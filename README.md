@@ -319,11 +319,8 @@ See also the [quick reference table](doc/new_features/new_features.md#quick-refe
 
 ---
 
-
-Gopher image
-*Gopher image by [Renee French](https://reneefrench.blogspot.com/), licensed under [Creative Commons 4.0 Attribution license](https://creativecommons.org/licenses/by/4.0/).*
-
 Unless otherwise noted, the Go source files are distributed under the BSD-style license found in the LICENSE file.
+
 ## Download and install
 
 ### Step 1: Install upstream Go (bootstrap)
