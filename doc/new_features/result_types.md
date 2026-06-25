@@ -149,6 +149,44 @@ func doThing() int! {
 
 `err!` is only valid in a function that can return an error (typically a `T!` result). It does not produce a value; it is a control-flow statement like `return`.
 
+## Interaction with `defer`
+
+`expr!`, `expr!.field`, and `err!` lower to an ordinary `if err != nil { return ... }`. They are not a special exit path. **Any `defer` already registered in the function runs (in LIFO order) before an `!`-triggered early return completes**, the same as for an explicit `return` or `if err != nil { return zero, err }`.
+
+```go
+func example() int! {
+	defer cleanup()       // runs even when other()! fails
+	x := other()!
+	return x
+}
+```
+
+This is equivalent to:
+
+```go
+func example() (int, error) {
+	defer cleanup()
+	t0, t1 := other()
+	if t1 != nil {
+		return 0, t1   // defer runs here
+	}
+	return t0, nil
+}
+```
+
+**A `defer` only runs if execution reaches its statement before an `!` fires.** If the failing `!` appears earlier in the function, later `defer`s are never registered:
+
+```go
+func saveFile(path string) error {
+	f := os.Create(path)! // error here returns before defer is registered
+	defer f.Close()
+	_, err := f.WriteString("ok")
+	return err
+}
+```
+
+On the success path, `defer f.Close()` runs normally — including when a later statement returns an error through a plain `return err`.
+
 ## Conceptual Representation
 
 A `T!` can be thought of as a pair:
