@@ -124,7 +124,7 @@ func (check *Checker) ident(x *operand, e *ast.Ident, wantType bool) {
 		if !isValid(typ) {
 			return
 		}
-		if narrow, ok := check.nullableNarrow[obj]; ok {
+		if narrow, ok := check.nilableNarrow[obj]; ok {
 			typ = narrow
 		}
 		x.mode_ = variable
@@ -399,13 +399,13 @@ func (check *Checker) typInternal(e0 ast.Expr, def *TypeName) (T Type) {
 		}
 		return NewResult(elem)
 
-	case *ast.NullableTypeExpr:
+	case *ast.NilableTypeExpr:
 		elem := check.varType(e.X)
 		if !isValid(elem) {
 			return Typ[Invalid]
 		}
 		if _, ok := elem.Underlying().(*Optional); ok {
-			check.errorf(e, InvalidSyntaxTree, "invalid nullable type %s?; cannot apply ? to an already-nullable type", elem)
+			check.errorf(e, InvalidSyntaxTree, "invalid nilable type %s?; cannot apply ? to an already-nilable type", elem)
 			return Typ[Invalid]
 		}
 		return NewOptional(elem)

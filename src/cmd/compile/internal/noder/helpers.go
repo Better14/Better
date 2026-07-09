@@ -126,9 +126,9 @@ func basicLitConstant(lit *syntax.BasicLit) constant.Value {
 	return constant.MakeFromLiteral(lit.Value, litKind2tok[lit.Kind], 0)
 }
 
-// nullableBasicElemType reports whether typ is a nullable basic (T? -> Option[T])
+// nilableBasicElemType reports whether typ is a nilable basic (T? -> Option[T])
 // or result basic wrapper, and returns the element/basic type for literals.
-func nullableBasicElemType(typ types2.Type) (types2.Type, bool) {
+func nilableBasicElemType(typ types2.Type) (types2.Type, bool) {
 	if o, ok := types2.AsOptional(typ); ok {
 		if b, ok := o.Elem().Underlying().(*types2.Basic); ok {
 			return b, true

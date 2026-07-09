@@ -311,7 +311,7 @@ const (
 	OTRY   // X? — X is (T, error); lowers to guard + return
 	OFORCE // X! — X is (T, error) or error; lowers to guard + early return
 
-	ONULLCOND     // ?. access on nullable value
+	ONULLCOND     // ?. access on nilable value
 	ONULLCOALESCE // ?? null coalescing
 	ONULLUNWRAP   // unwrap T? to T; may panic if nil
 

@@ -393,8 +393,8 @@ type (
 		expr
 	}
 
-	// Elem?  nullable type: Elem or nil
-	NullableType struct {
+	// Elem?  nilable type: Elem or nil
+	NilableType struct {
 		Elem Expr
 		QPos Pos // position of '?'
 		expr

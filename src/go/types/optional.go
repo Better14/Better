@@ -10,12 +10,12 @@ import (
 	. "internal/types/errors"
 )
 
-// An Optional represents a nullable type T? (value or nil).
+// An Optional represents a nilable type T? (value or nil).
 type Optional struct {
 	elem Type
 }
 
-// NewOptional returns a new nullable type for the given element type.
+// NewOptional returns a new nilable type for the given element type.
 func NewOptional(elem Type) Type {
 	return &Optional{elem: elem}
 }
@@ -41,10 +41,29 @@ func OptionalType(pkg *Package, opt *Optional) *Struct {
 	}, nil)
 }
 
+// optionalStructElem reports whether t is a lowered T? struct and returns its value type.
+func optionalStructElem(t Type) (Type, bool) {
+	if t == nil {
+		return nil, false
+	}
+	s, ok := t.Underlying().(*Struct)
+	if !ok || s.NumFields() != 2 {
+		return nil, false
+	}
+	f0, f1 := s.Field(0), s.Field(1)
+	if f0.Name() != "hasValue" || !Identical(f0.Type(), Typ[Bool]) || f1.Name() != "value" {
+		return nil, false
+	}
+	return f1.Type(), true
+}
+
 // isNullish reports whether t may be compared to nil and used with ?. and ??.
 func isNullish(t Type) bool {
 	if t == nil {
 		return false
+	}
+	if _, ok := optionalStructElem(t); ok {
+		return true
 	}
 	switch t.Underlying().(type) {
 	case *Optional, *Pointer, *Slice, *Map, *Chan, *Signature, *Interface:
@@ -56,6 +75,9 @@ func isNullish(t Type) bool {
 
 // optionalElem returns the element type for null-conditional access on t.
 func optionalElem(t Type) Type {
+	if elem, ok := optionalStructElem(t); ok {
+		return elem
+	}
 	switch u := t.Underlying().(type) {
 	case *Optional:
 		return u.elem
@@ -78,6 +100,9 @@ func ptrForNullish(t Type) Type {
 	if o, ok := t.Underlying().(*Optional); ok {
 		return o.elem
 	}
+	if elem, ok := optionalStructElem(t); ok {
+		return elem
+	}
 	elem := optionalElem(t)
 	if elem == nil {
 		return Typ[Invalid]
@@ -93,6 +118,9 @@ func optionalResultType(t Type) Type {
 	if _, ok := t.Underlying().(*Optional); ok {
 		return t
 	}
+	if _, ok := optionalStructElem(t); ok {
+		return t
+	}
 	return NewOptional(t)
 }
 
@@ -104,7 +132,7 @@ func (check *Checker) nullCondSelector(x *operand, e *ast.SelectorExpr, nc *ast.
 		return
 	}
 	if !isNullish(base.typ()) {
-		check.errorf(nc, InvalidSyntaxTree, "invalid operation: ?. requires nullable operand, got %s", base.typ())
+		check.errorf(nc, InvalidSyntaxTree, "invalid operation: ?. requires nilable operand, got %s", base.typ())
 		x.invalidate()
 		return
 	}
@@ -136,7 +164,7 @@ func (check *Checker) nullCondIndex(x *operand, e *ast.IndexExpr, nc *ast.NullCo
 		return
 	}
 	if !isNullish(base.typ()) {
-		check.errorf(nc, InvalidSyntaxTree, "invalid operation: ?. requires nullable operand, got %s", base.typ())
+		check.errorf(nc, InvalidSyntaxTree, "invalid operation: ?. requires nilable operand, got %s", base.typ())
 		x.invalidate()
 		return
 	}
@@ -183,7 +211,7 @@ func (check *Checker) nullCoalesce(x *operand, e ast.Expr, lhs, rhs ast.Expr) {
 		return
 	}
 	if !isNullish(x.typ()) {
-		check.errorf(e, InvalidSyntaxTree, "invalid operation: ?? requires nullable or result left operand, got %s", x.typ())
+		check.errorf(e, InvalidSyntaxTree, "invalid operation: ?? requires nilable or result left operand, got %s", x.typ())
 		x.invalidate()
 		return
 	}
@@ -206,6 +234,20 @@ func (check *Checker) nullCoalesce(x *operand, e ast.Expr, lhs, rhs ast.Expr) {
 			x.typ_ = o.elem
 		} else {
 			check.errorf(e, MismatchedTypes, "invalid operation: ?? (cannot use %s as %s)", y.typ(), o.elem)
+			x.invalidate()
+		}
+	} else if elem, ok := optionalStructElem(x.typ()); ok {
+		if o2, ok2 := y.typ().Underlying().(*Optional); ok2 {
+			if Identical(elem, o2.elem) {
+				x.typ_ = x.typ()
+			} else {
+				check.errorf(e, MismatchedTypes, "invalid operation: ?? (mismatched types %s and %s)", x.typ(), y.typ())
+				x.invalidate()
+			}
+		} else if ok, _ := y.assignableTo(check, elem, nil); ok {
+			x.typ_ = elem
+		} else {
+			check.errorf(e, MismatchedTypes, "invalid operation: ?? (cannot use %s as %s)", y.typ(), elem)
 			x.invalidate()
 		}
 	} else if p, ok := x.typ().Underlying().(*Pointer); ok {
@@ -241,21 +283,24 @@ func (check *Checker) nullCoalesce(x *operand, e ast.Expr, lhs, rhs ast.Expr) {
 	}
 }
 
-// nullableElem returns the element type if t is T?, or nil.
-func nullableElem(t Type) Type {
+// nilableElem returns the element type if t is T?, or nil.
+func nilableElem(t Type) Type {
 	if o, ok := t.Underlying().(*Optional); ok {
 		return o.elem
+	}
+	if elem, ok := optionalStructElem(t); ok {
+		return elem
 	}
 	return nil
 }
 
-// withNullableNarrow runs f with extra nullable variable narrowing in effect.
-func (check *Checker) withNullableNarrow(narrow map[*Var]Type, f func()) {
+// withNilableNarrow runs f with extra nilable variable narrowing in effect.
+func (check *Checker) withNilableNarrow(narrow map[*Var]Type, f func()) {
 	if len(narrow) == 0 {
 		f()
 		return
 	}
-	old := check.nullableNarrow
+	old := check.nilableNarrow
 	merged := make(map[*Var]Type, len(old)+len(narrow))
 	for v, t := range old {
 		merged[v] = t
@@ -263,28 +308,28 @@ func (check *Checker) withNullableNarrow(narrow map[*Var]Type, f func()) {
 	for v, t := range narrow {
 		merged[v] = t
 	}
-	check.nullableNarrow = merged
+	check.nilableNarrow = merged
 	f()
-	check.nullableNarrow = old
+	check.nilableNarrow = old
 }
 
-// parseNullableGuard recognizes v != nil, nil != v, and v == nil for nullable v.
-func (check *Checker) parseNullableGuard(cond ast.Expr) (v *Var, nonNil bool, ok bool) {
+// parseNilableGuard recognizes v != nil, nil != v, and v == nil for nilable v.
+func (check *Checker) parseNilableGuard(cond ast.Expr) (v *Var, nonNil bool, ok bool) {
 	op, ok := ast.Unparen(cond).(*ast.BinaryExpr)
 	if !ok {
 		return nil, false, false
 	}
 	switch op.Op {
 	case token.NEQ:
-		return check.nullableGuardIdent(op.X, op.Y, true)
+		return check.nilableGuardIdent(op.X, op.Y, true)
 	case token.EQL:
-		return check.nullableGuardIdent(op.X, op.Y, false)
+		return check.nilableGuardIdent(op.X, op.Y, false)
 	default:
 		return nil, false, false
 	}
 }
 
-func (check *Checker) nullableGuardIdent(x, y ast.Expr, nonNil bool) (*Var, bool, bool) {
+func (check *Checker) nilableGuardIdent(x, y ast.Expr, nonNil bool) (*Var, bool, bool) {
 	if check.isNil(x) {
 		x, y = y, x
 	} else if !check.isNil(y) {
@@ -296,7 +341,7 @@ func (check *Checker) nullableGuardIdent(x, y ast.Expr, nonNil bool) (*Var, bool
 	}
 	obj := check.lookup(name.Name)
 	v, ok := obj.(*Var)
-	if !ok || nullableElem(v.typ) == nil {
+	if !ok || nilableElem(v.typ) == nil {
 		return nil, false, false
 	}
 	return v, nonNil, true

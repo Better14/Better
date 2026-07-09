@@ -133,7 +133,7 @@ func walk(v *visitor, ek edge.Kind, index int, node ast.Node) {
 	case *ast.TryExpr:
 		walk(v, edge.Invalid, -1, n.X)
 
-	case *ast.NullableTypeExpr:
+	case *ast.NilableTypeExpr:
 		walk(v, edge.Invalid, -1, n.X)
 
 	case *ast.NullCondExpr:

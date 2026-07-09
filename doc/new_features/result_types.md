@@ -64,7 +64,7 @@ func QueryBooks(...) []BookRow! {
 var perRow [](BookRow!) // [] of BookRow! value type — uncommon; not a function result shorthand
 ```
 
-This matches pointer binding: `*T!` means `(*T, error)`, not `*(T!)`. See [Suffix binding with composite types](nullable_types.md#suffix-binding-with-composite-types) for the same rules with `?`.
+This matches pointer binding: `*T!` means `(*T, error)`, not `*(T!)`. See [Suffix binding with composite types](nilable_types.md#suffix-binding-with-composite-types) for the same rules with `?`.
 
 ## Postfix `!` and `!.field`
 
@@ -296,7 +296,7 @@ func main() {
 
 The same rules apply to assignment, return values, and other contexts that expect `T` rather than `T!`.
 
-See [Null-coalescing operator (`??`)](nullable_types.md#null-coalescing-operator-) in nullable types for general `??` syntax; for `T!`, the left-hand side is treated as failed when `err != nil` (not when the value is `nil`).
+See [Null-coalescing operator (`??`)](nilable_types.md#null-coalescing-operator-) in nilable types for general `??` syntax; for `T!`, the left-hand side is treated as failed when `err != nil` (not when the value is `nil`).
 
 ## Notes
 

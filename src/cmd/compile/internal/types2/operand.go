@@ -407,7 +407,7 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 		}
 	}
 
-	// untyped nil assignable to nullable and nil-able types
+	// untyped nil assignable to nilable and nil-able types
 	if x.isNil() && isNullish(T) {
 		return true, 0
 	}
@@ -418,6 +418,16 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 			return true, 0
 		}
 		if p, ok := Vu.(*Pointer); ok && Identical(p.base, o.elem) {
+			return true, 0
+		}
+	}
+
+	// T or *T assignable to lowered T? struct
+	if elem, ok := optionalStructElem(T); ok && Vp == nil && Tp == nil {
+		if Identical(V, elem) || Identical(Vu, elem.Underlying()) {
+			return true, 0
+		}
+		if p, ok := Vu.(*Pointer); ok && Identical(p.base, elem) {
 			return true, 0
 		}
 	}

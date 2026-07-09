@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Test nullable types (T?), ?. null-conditional access, and ?? coalescing.
+// Test nilable types (T?), ?. null-conditional access, and ?? coalescing.
 
 package main
 

@@ -128,7 +128,7 @@ func WriteExpr(buf *bytes.Buffer, x ast.Expr) {
 		WriteExpr(buf, x.X)
 		buf.WriteByte('!')
 
-	case *ast.NullableTypeExpr:
+	case *ast.NilableTypeExpr:
 		WriteExpr(buf, x.X)
 		buf.WriteByte('?')
 

@@ -83,7 +83,7 @@ log.Printf("%+v", newNotFound(404, "user missing"))
 
 Full spec: [doc/new_features/errors.md](doc/new_features/errors.md)
 
-### 3. Nullable types (`T?`)
+### 3. Nilable types (`T?`)
 
 Optional values with `?.` and `??` — distinct from `T!` (result / error).
 
@@ -98,7 +98,7 @@ if v := lookup(3); v != nil {
 }
 ```
 
-Full spec: [doc/new_features/nullable_types.md](doc/new_features/nullable_types.md)
+Full spec: [doc/new_features/nilable_types.md](doc/new_features/nilable_types.md)
 
 ### 4. Enums
 
@@ -292,16 +292,16 @@ interface Reader {
 
 Full spec: [doc/new_features/syntax.md](doc/new_features/syntax.md)
 
-### 13. Nullable pointer types (proposed)
+### 13. Nilable pointer types (proposed)
 
 Compile-time null safety for pointers via `go.mod`.
 
 ```go
 // go.mod
-nullable_pointers enable   // *T vs *T?
+nilable_pointers enable   // *T vs *T?
 ```
 
-Full spec: [doc/new_features/nullable_pointer_types.md](doc/new_features/nullable_pointer_types.md)
+Full spec: [doc/new_features/nilable_pointer_types.md](doc/new_features/nilable_pointer_types.md)
 
 ### 14. Compiler performance (compiler internals)
 

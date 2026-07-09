@@ -995,7 +995,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.setPos(x.Bang)
 		p.print(token.NOT)
 
-	case *ast.NullableTypeExpr:
+	case *ast.NilableTypeExpr:
 		p.expr1(x.X, token.LowestPrec, depth)
 		p.setPos(x.QPos)
 		p.print(token.QUESTION)

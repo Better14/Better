@@ -848,7 +848,7 @@ func NewNullCoalesceExpr(pos src.XPos, typ *types.Type, x, y Node) *NullCoalesce
 	return n
 }
 
-// A NullUnwrapExpr unwraps a nullable value to its element type.
+// A NullUnwrapExpr unwraps a nilable value to its element type.
 type NullUnwrapExpr struct {
 	miniExpr
 	X         Node

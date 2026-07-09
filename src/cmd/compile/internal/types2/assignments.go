@@ -38,6 +38,13 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 
 	if isUntyped(x.typ()) {
 		target := T
+		if T != nil && !x.isNil() {
+			if o, ok := T.Underlying().(*Optional); ok {
+				target = o.elem
+			} else if elem, ok := optionalStructElem(T); ok {
+				target = elem
+			}
+		}
 		// spec: "If an untyped constant is assigned to a variable of interface
 		// type or the blank identifier, the constant is first converted to type
 		// bool, rune, int, float64, complex128 or string respectively, depending

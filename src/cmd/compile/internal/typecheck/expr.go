@@ -362,8 +362,8 @@ func tcConv(n *ir.ConvExpr) ir.Node {
 		n.SetType(nil)
 		return n
 	}
-	if nullableBasicWrap(t, n.Type()) {
-		return tcNullableBasicWrap(n)
+	if nilableBasicWrap(t, n.Type()) {
+		return tcNilableBasicWrap(n)
 	}
 	op, why := convertOp(n.X.Op() == ir.OLITERAL, t, n.Type())
 	if op == ir.OXXX {
@@ -419,9 +419,9 @@ func tcConv(n *ir.ConvExpr) ir.Node {
 	return n
 }
 
-// nullableBasicWrap reports whether src is a basic value that should be
+// nilableBasicWrap reports whether src is a basic value that should be
 // wrapped into dst when dst is a lowered T? struct.
-func nullableBasicWrap(src, dst *types.Type) bool {
+func nilableBasicWrap(src, dst *types.Type) bool {
 	if src == nil || dst == nil || !IsOptionalStruct(dst) {
 		return false
 	}
@@ -431,8 +431,8 @@ func nullableBasicWrap(src, dst *types.Type) bool {
 	return src.IsScalar() || src.IsString()
 }
 
-// tcNullableBasicWrap rewrites implicit conversion of a basic value to T?.
-func tcNullableBasicWrap(n *ir.ConvExpr) ir.Node {
+// tcNilableBasicWrap rewrites implicit conversion of a basic value to T?.
+func tcNilableBasicWrap(n *ir.ConvExpr) ir.Node {
 	return OptionalWrapValue(n.Pos(), n.Type(), n.X)
 }
 

@@ -256,7 +256,7 @@ func (w walker) node(n Node) {
 	case *ResultType:
 		w.node(n.Elem)
 
-	case *NullableType:
+	case *NilableType:
 		w.node(n.Elem)
 
 	case *NullCondExpr:

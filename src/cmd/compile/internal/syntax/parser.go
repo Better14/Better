@@ -1695,7 +1695,7 @@ func (p *parser) typeOrNil() Expr {
 	for typ != nil && p.tok == _Question {
 		qpos := p.pos()
 		p.next()
-		nt := new(NullableType)
+		nt := new(NilableType)
 		nt.pos = typ.Pos()
 		nt.QPos = qpos
 		nt.Elem = typ
@@ -1986,7 +1986,7 @@ func (p *parser) funcResult() []*Field {
 			for typ != nil && p.tok == _Question {
 				qpos := p.pos()
 				p.next()
-				nt := new(NullableType)
+				nt := new(NilableType)
 				nt.pos = typ.Pos()
 				nt.QPos = qpos
 				nt.Elem = typ

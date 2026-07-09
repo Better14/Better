@@ -1,15 +1,15 @@
-# Nullable Types (`T?`)
+# Nilable Types (`T?`)
 
 `T?` on a value type `T` means **either a `T` or `nil`** — an optional value with no error channel. This is separate from [`T!`](result_types.md), which means **value or `error`**.
 
 
 | Syntax | Meaning                                    |
 | ------ | ------------------------------------------ |
-| `int?` | `int` or `nil` (nullable)                  |
+| `int?` | `int` or `nil` (nilable)                  |
 | `int!` | `int` or `error` (result / `(int, error)`) |
 
 
-Nullable types are useful for primitives and structs that cannot otherwise hold `nil` in Go. Reference types (`*T`, `map`, `slice`, `chan`, `func`, `interface`) are already “nullable” via `nil`; `T?` is most important for `int`, `bool`, `float64`, struct types, etc.
+Nilable types are useful for primitives and structs that cannot otherwise hold `nil` in Go. Reference types (`*T`, `map`, `slice`, `chan`, `func`, `interface`) are already “nilable” via `nil`; `T?` is most important for `int`, `bool`, `float64`, struct types, etc.
 
 ## Suffix binding with composite types
 
@@ -18,9 +18,9 @@ Nullable types are useful for primitives and structs that cannot otherwise hold 
 | Written | Meaning |
 | ------- | ------- |
 | `int?` | `int` or `nil` |
-| `[]int?` | `([]int)?` — the **slice itself** may be `nil` (nullable slice) |
+| `[]int?` | `([]int)?` — the **slice itself** may be `nil` (nilable slice) |
 | `[](int?)` | `[]` of `int?` — each element is `int` or `nil` |
-| `*int?` | `(*int)?` — nullable pointer to `int` (not the same as `*int`, which is already nil-able) |
+| `*int?` | `(*int)?` — nilable pointer to `int` (not the same as `*int`, which is already nil-able) |
 
 So `[]int?` means **slice or null** (the whole slice is optional), not “slice of int-or-null elements”. For per-element optionals, use parentheses:
 
@@ -45,7 +45,7 @@ c = 10
 c = nil
 ```
 
-### Functions returning nullable types
+### Functions returning nilable types
 
 A function may return `T?` and supply either a value or `nil`:
 
@@ -109,7 +109,7 @@ See [Compiler lowering](result_types.md#compiler-lowering) for the analogous `T!
 
 ### Assignability: `T?` is not `T`
 
-`T?` and `T` are distinct types. A nullable value cannot be passed or assigned where a plain `T` is required without an explicit unwrap.
+`T?` and `T` are distinct types. A nilable value cannot be passed or assigned where a plain `T` is required without an explicit unwrap.
 
 ```go
 func myPrint(a int) {
@@ -159,7 +159,7 @@ The same rules apply to assignment, return values, and other contexts that expec
 
 The `?.` operator (null-conditional / “Elvis” access) short-circuits when the left-hand value is `nil`. No panic is raised; the rest of that access or assignment chain is skipped.
 
-**Chained reads** — result type is nullable; any `nil` in the chain yields `nil` for the whole expression:
+**Chained reads** — result type is nilable; any `nil` in the chain yields `nil` for the whole expression:
 
 ```go
 var a string? = someObject?.someProp?.someProp2
@@ -196,7 +196,7 @@ if someObject != nil {
 }
 ```
 
-`?.` applies to fields, methods, and indexers where supported (`obj?.method()`, `arr?.[i]`). It is for **nullable / nil** values only, not for `T!` error results (use `!.value` / `!.field` there).
+`?.` applies to fields, methods, and indexers where supported (`obj?.method()`, `arr?.[i]`). It is for **nilable / nil** values only, not for `T!` error results (use `!.value` / `!.field` there).
 
 Do not confuse:
 
@@ -234,7 +234,7 @@ var x int = first ?? second ?? 0
 
 If `first` is non-`nil`, neither `second` nor `0` is evaluated.
 
-**Types** — the result type is the non-nullable `T` when the right operand is `T` and the left is `T?`. Both operands may be nullable if the fallback is also optional:
+**Types** — the result type is the non-nilable `T` when the right operand is `T` and the left is `T?`. Both operands may be nilable if the fallback is also optional:
 
 ```go
 var m int? = a ?? b   // a, b are int?; m is nil only if both are nil
@@ -251,7 +251,7 @@ if count == nil {
 }
 ```
 
-`??` applies to nullable types and other nil-able values (`*T`, maps, slices, pointers). For [`T!`](result_types.md) result values, `??` uses the success value when `err == nil` and the fallback when `err != nil`; see [Assignability: `T!` is not `T`](result_types.md#assignability-t-is-not-t).
+`??` applies to nilable types and other nil-able values (`*T`, maps, slices, pointers). For [`T!`](result_types.md) result values, `??` uses the success value when `err == nil` and the fallback when `err != nil`; see [Assignability: `T!` is not `T`](result_types.md#assignability-t-is-not-t).
 
 
 | Form               | Role                                                  |
@@ -263,8 +263,8 @@ if count == nil {
 
 ### Notes
 
-- Do not confuse `int?` (nullable type) with `int!` (result type). They use different suffixes on purpose.
+- Do not confuse `int?` (nilable type) with `int!` (result type). They use different suffixes on purpose.
 - Do not confuse `?.` (null-conditional) or `??` (null-coalescing) with `!.` (error propagation on `T!`).
 - `T?` does not support `!.value` error propagation; that syntax applies only to `T!` / `(T, error)`.
-- Nullable defaults in function parameters (e.g. `x int? = nil`) follow the same compile-time constant rules as other [default arguments](default_arguments.md) when/if defaults are added for nullable parameters.
-- For pointer nullability (`*T` vs `*T?`), see [Nullable pointer types](nullable_pointer_types.md) (proposed; separate from value-type `T?`).
+- Nilable defaults in function parameters (e.g. `x int? = nil`) follow the same compile-time constant rules as other [default arguments](default_arguments.md) when/if defaults are added for nilable parameters.
+- For pointer nullability (`*T` vs `*T?`), see [Nilable pointer types](nilable_pointer_types.md) (proposed; separate from value-type `T?`).

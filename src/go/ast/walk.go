@@ -143,7 +143,7 @@ func Walk(v Visitor, node Node) {
 	case *TryExpr:
 		Walk(v, n.X)
 
-	case *NullableTypeExpr:
+	case *NilableTypeExpr:
 		Walk(v, n.X)
 
 	case *NullCondExpr:

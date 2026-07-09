@@ -47,7 +47,7 @@ func use(m *Matrix) {
 	}
 }
 
-func TestNullableNilInStructLiteral(t *testing.T) {
+func TestNilableNilInStructLiteral(t *testing.T) {
 	const src = `
 package data
 

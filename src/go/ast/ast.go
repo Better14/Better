@@ -446,8 +446,8 @@ type (
 		Bang token.Pos // position of '!'
 	}
 
-	// A NullableTypeExpr node represents a nullable type T?.
-	NullableTypeExpr struct {
+	// A NilableTypeExpr node represents a nilable type T?.
+	NilableTypeExpr struct {
 		X    Expr
 		QPos token.Pos // position of '?'
 	}
@@ -642,8 +642,8 @@ func (x *BinaryExpr) End() token.Pos     { return x.Y.End() }
 func (x *KeyValueExpr) End() token.Pos   { return x.Value.End() }
 func (x *ResultTypeExpr) End() token.Pos { return x.Bang + 1 }
 func (x *TryExpr) End() token.Pos        { return x.Bang + 1 }
-func (x *NullableTypeExpr) Pos() token.Pos { return x.X.Pos() }
-func (x *NullableTypeExpr) End() token.Pos { return x.QPos + 1 }
+func (x *NilableTypeExpr) Pos() token.Pos { return x.X.Pos() }
+func (x *NilableTypeExpr) End() token.Pos { return x.QPos + 1 }
 func (x *NullCondExpr) Pos() token.Pos     { return x.X.Pos() }
 func (x *NullCondExpr) End() token.Pos     { return x.QPos + 1 }
 func (x *EnumPatternExpr) Pos() token.Pos  { return x.Variant.Pos() }
@@ -695,7 +695,7 @@ func (*BinaryExpr) exprNode()     {}
 func (*KeyValueExpr) exprNode()   {}
 func (*ResultTypeExpr) exprNode() {}
 func (*TryExpr) exprNode()        {}
-func (*NullableTypeExpr) exprNode() {}
+func (*NilableTypeExpr) exprNode() {}
 func (*NullCondExpr) exprNode()    {}
 func (*EnumPatternExpr) exprNode() {}
 func (*ForceExpr) exprNode()      {}

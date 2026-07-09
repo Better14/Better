@@ -1465,7 +1465,7 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 			}
 			res := o.newTemp(n.Type(), n.Type().HasPointers())
 			cmp := o.optionalIsNil(pos, x)
-			lit := ir.NewBasicLit(pos, types.UntypedString, constant.MakeString("unwrap of nil nullable value"))
+			lit := ir.NewBasicLit(pos, types.UntypedString, constant.MakeString("unwrap of nil nilable value"))
 			msg := typecheck.DefaultLit(lit, types.Types[types.TSTRING])
 			panicStmt := mkcallstmt("gopanic", msg)
 			elseAs := ir.NewAssignStmt(pos, res, val)
@@ -1487,7 +1487,7 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		cmp := ir.NewBinaryExpr(pos, ir.OEQ, x, niln)
 		cmp.SetType(types.Types[types.TBOOL])
 		cmp.SetTypecheck(1)
-		lit := ir.NewBasicLit(pos, types.UntypedString, constant.MakeString("unwrap of nil nullable value"))
+		lit := ir.NewBasicLit(pos, types.UntypedString, constant.MakeString("unwrap of nil nilable value"))
 		msg := typecheck.DefaultLit(lit, types.Types[types.TSTRING])
 		panicStmt := mkcallstmt("gopanic", msg)
 		elseAs := ir.NewAssignStmt(pos, res, star)

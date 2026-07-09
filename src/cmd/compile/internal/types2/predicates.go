@@ -211,6 +211,12 @@ func comparableType(T Type, dynamic bool, seen map[Type]bool) *typeError {
 
 // hasNil reports whether type t includes the nil value.
 func hasNil(t Type) bool {
+	if t == nil {
+		return false
+	}
+	if _, ok := optionalStructElem(t); ok {
+		return true
+	}
 	switch u := t.Underlying().(type) {
 	case *Basic:
 		return u.kind == UnsafePointer

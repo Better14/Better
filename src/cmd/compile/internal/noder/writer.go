@@ -2809,7 +2809,7 @@ func (w *writer) emitBasicLit(lit *syntax.BasicLit, dst types2.Type) {
 		return
 	}
 
-	elem, ok := nullableBasicElemType(tv.Type)
+	elem, ok := nilableBasicElemType(tv.Type)
 	if !ok {
 		w.p.fatalf(lit, "non-constant basic literal %v", syntax.String(lit))
 	}
@@ -2843,7 +2843,7 @@ func (w *writer) emitBasicLit(lit *syntax.BasicLit, dst types2.Type) {
 func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 	if lit, ok := expr.(*syntax.BasicLit); ok {
 		if tv, ok := w.p.maybeTypeAndValue(lit); ok && tv.Value == nil {
-			if _, ok := nullableBasicElemType(tv.Type); ok {
+			if _, ok := nilableBasicElemType(tv.Type); ok {
 				w.emitBasicLit(lit, dst)
 				return
 			}

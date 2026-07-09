@@ -193,7 +193,7 @@ These cannot be declared as operator methods. Several match C# restrictions; com
 | `&` (unary) | Address-of |
 | `:=`, `=` | Assignment, not operators |
 | `...` | Variadic / slice unpacking |
-| `?.`, `??`, `!.` | Nullable / result syntax (see [nullable_types.md](nullable_types.md), [result_types.md](result_types.md)) |
+| `?.`, `??`, `!.` | Nilable / result syntax (see [nilable_types.md](nilable_types.md), [result_types.md](result_types.md)) |
 | `=>` | Lambda syntax |
 
 

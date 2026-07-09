@@ -587,7 +587,7 @@ func (p *parser) parseType() ast.Expr {
 	for typ != nil && p.tok == token.QUESTION {
 		q := p.pos
 		p.next()
-		typ = &ast.NullableTypeExpr{X: typ, QPos: q}
+		typ = &ast.NilableTypeExpr{X: typ, QPos: q}
 	}
 	return typ
 }
@@ -1221,7 +1221,7 @@ func (p *parser) parseParameters(result bool) *ast.FieldList {
 			for p.tok == token.QUESTION {
 				q := p.pos
 				p.next()
-				list[0].Type = &ast.NullableTypeExpr{X: list[0].Type, QPos: q}
+				list[0].Type = &ast.NilableTypeExpr{X: list[0].Type, QPos: q}
 			}
 		}
 		return &ast.FieldList{Opening: lparen, List: list, Closing: rparen}
@@ -1236,7 +1236,7 @@ func (p *parser) parseParameters(result bool) *ast.FieldList {
 		for p.tok == token.QUESTION {
 			q := p.pos
 			p.next()
-			typ = &ast.NullableTypeExpr{X: typ, QPos: q}
+			typ = &ast.NilableTypeExpr{X: typ, QPos: q}
 		}
 		list := make([]*ast.Field, 1)
 		list[0] = &ast.Field{Type: typ}
@@ -1467,7 +1467,7 @@ func (p *parser) parseMapType() *ast.MapType {
 	for value != nil && p.tok == token.QUESTION {
 		q := p.pos
 		p.next()
-		value = &ast.NullableTypeExpr{X: value, QPos: q}
+		value = &ast.NilableTypeExpr{X: value, QPos: q}
 	}
 
 	return &ast.MapType{Map: pos, Key: key, Value: value}

@@ -54,15 +54,15 @@ These are implemented in **`go/parser`**, **`go/ast`**, and **`go/types`**. gopl
 | Function and method overloading | `types.Info.FuncOverloads`, `MethodOverloads`, `CallOverloads` | [overloading.md](overloading.md) |
 | Enums `enum E { … }` | `ast.EnumDecl`, `types.Enum` | [enums.md](enums.md) |
 | Struct/interface shorthand | `ast.StructDecl`, `ast.InterfaceDecl` | [syntax.md](syntax.md) |
-| Nullable types `T?`, `?.`, `??` | `ast.NullableTypeExpr`, `ast.NullCondExpr`, `token.NULLCOALESCE` | [nullable_types.md](nullable_types.md) |
+| Nilable types `T?`, `?.`, `??` | `ast.NilableTypeExpr`, `ast.NullCondExpr`, `token.NULLCOALESCE` | [nilable_types.md](nilable_types.md) |
 | Extension methods | `types.Func.IsExtension`, extension call lowering | [extension_methods.md](extension_methods.md) |
 | Operator overloading | indexed overload resolution in `go/types` | [operator_overloading.md](operator_overloading.md) |
 
 **Overload signature help:** when a call has multiple overload candidates, gopls lists all matching signatures (see `gopls/internal/golang/signature_help.go` and marker test `testdata/signature/overload.txt` in `go_tools`).
 
-**Tests in `go_tools`:** `gopls/internal/cache/parsego/parse_test.go` (syntax nodes including enums and nullable types), `gopls/internal/cache/overload_test.go` (overload typecheck).
+**Tests in `go_tools`:** `gopls/internal/cache/parsego/parse_test.go` (syntax nodes including enums and nilable types), `gopls/internal/cache/overload_test.go` (overload typecheck).
 
-**Semantic tokens:** fork AST nodes (`IfExpr`, `SwitchExpr`, `LambdaExpr`, `EnumDecl`, nullable/result types, enum patterns) are handled in `gopls/internal/golang/semtok.go`.
+**Semantic tokens:** fork AST nodes (`IfExpr`, `SwitchExpr`, `LambdaExpr`, `EnumDecl`, nilable/result types, enum patterns) are handled in `gopls/internal/golang/semtok.go`.
 
 **Standard library extensions** ([LINQ](linq.md), [structured errors](errors.md), [data structures](data_structures.md), etc.) compile with the fork toolchain; IDE support is the same as for normal Go packages once the **language** syntax type-checks. No separate gopls plugin is required for stdlib APIs.
 
