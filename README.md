@@ -1,6 +1,6 @@
-# Better
+# Bow
 
-Better is a fork of the [Go programming language](https://go.dev/) with language and standard-library extensions aimed at clearer, more expressive code. Full design notes live in `[doc/new_features/](doc/new_features/new_features.md)`.
+Bow is a fork of the [Go programming language](https://go.dev/) with language and standard-library extensions aimed at clearer, more expressive code. Full design notes live in `[doc/new_features/](doc/new_features/new_features.md)`.
 
 ---
 
@@ -8,7 +8,7 @@ Better is a fork of the [Go programming language](https://go.dev/) with language
 
 [Go is small, not simple](https://medium.com/@the_atomic_architect/go-isnt-simple-it-s-just-missing-features-and-that-s-costing-teams-millions-8d84cd9cc7a7). Error handling in Go is very verbose and makes code hard to read. Go is also missing tons of modern features that make code simpler — and in many cases easier to read, in our opinion.
 
-Better keeps Go’s strengths (fully compiled, fast compile times, goroutines / no async, simple syntax, a strong stdlib, explicit style) while greatly improving the language.
+Bow keeps Go’s strengths (fully compiled, fast compile times, goroutines / no async, simple syntax, a strong stdlib, explicit style) while greatly improving the language.
 
 ---
 
@@ -261,11 +261,11 @@ q.Enqueue("c")
 
 Full spec: [doc/new_features/data_structures.md](doc/new_features/data_structures.md)
 
-### 11. Better time formatting
+### 11. Custom time formatting
 
 ### Library changes
 
-Better time formatting using .NET-style date/time formatting.
+Custom time formatting using .NET-style date/time formatting.
 
 ```go
 t.FormatCustom("MM/dd/yyyy g")    // "06/15/2009 A.D."
@@ -310,13 +310,13 @@ Full spec: [doc/new_features/nilable_pointer_types.md](doc/new_features/nilable_
 
 ### 14. Compiler performance (compiler internals)
 
-Type-checker indexes to keep compile times fast with Better features (operator overload resolution, extension methods, enums, and more).
+Type-checker indexes to keep compile times fast with Bow features (operator overload resolution, extension methods, enums, and more).
 
 Full spec: [doc/new_features/compiler_performance.md](doc/new_features/compiler_performance.md)
 
 ### 15. gopls (IDE support)
 
-Language-server support for Better syntax — completion, diagnostics, and signature help for overloads and extensions.
+Language-server support for Bow syntax — completion, diagnostics, and signature help for overloads and extensions.
 
 Full spec: [doc/new_features/gopls.md](doc/new_features/gopls.md)
 
@@ -330,7 +330,7 @@ Unless otherwise noted, the Go source files are distributed under the BSD-style 
 
 ### Step 1: Install upstream Go (bootstrap)
 
-Building Better requires a working **upstream Go toolchain** (Go **1.24.6 or later**). Download an official binary release from Google:
+Building Bow requires a working **upstream Go toolchain** (Go **1.24.6 or later**). Download an official binary release from Google:
 
 **[https://go.dev/dl/](https://go.dev/dl/)**
 
@@ -348,21 +348,21 @@ On Windows (PowerShell):
 go version
 ```
 
-### Step 2: Build Better
+### Step 2: Build Bow
 
 Clone or copy this repository, then follow **[doc/new_docs/installation.md](doc/new_docs/installation.md)** for the full build process. A short summary is in [Build from source](#build-from-source-bootstrap) below.
 
-After the build, add Better’s `bin` directory to your `PATH` and set `GOROOT` to the fork root.
+After the build, add Bow’s `bin` directory to your `PATH` and set `GOROOT` to the fork root.
 
 ---
 
 ## Build from source (bootstrap)
 
-Better follows the upstream [Installing Go from source](https://go.dev/doc/install/source) process: a bootstrap Go compiler builds this tree, then the result becomes your new `GOROOT`.
+Bow follows the upstream [Installing Go from source](https://go.dev/doc/install/source) process: a bootstrap Go compiler builds this tree, then the result becomes your new `GOROOT`.
 
 **Full instructions:** [doc/new_docs/installation.md](doc/new_docs/installation.md)
 
-You need **`GOROOT_BOOTSTRAP`** pointing at upstream Go (not Better) — typically the install from [go.dev/dl](https://go.dev/dl/). Set it explicitly if `go` on your `PATH` is missing or already points at Better.
+You need **`GOROOT_BOOTSTRAP`** pointing at upstream Go (not Bow) — typically the install from [go.dev/dl](https://go.dev/dl/). Set it explicitly if `go` on your `PATH` is missing or already points at Bow.
 
 | Platform | Build command | Notes |
 | -------- | ------------- | ----- |
@@ -370,7 +370,7 @@ You need **`GOROOT_BOOTSTRAP`** pointing at upstream Go (not Better) — typical
 | **macOS** | `./make.bash` | Same as Linux. Do not use `make.bash` on Windows. |
 | **Windows** | `make.bat` | Run from `%GOROOT%\src`. Requires MinGW — see below. Use `all.bat` to build and test. |
 
-Replace `/path/to/better/go` with the absolute path to this repository’s `go` directory.
+Replace `/path/to/bow/go` with the absolute path to this repository’s `go` directory.
 
 ### Linux and macOS
 
@@ -378,16 +378,16 @@ Replace `/path/to/better/go` with the absolute path to this repository’s `go` 
 export GOROOT_BOOTSTRAP=$(go env GOROOT)
 export GOEXPERIMENT=genericmethods   # optional; generic methods
 
-cd /path/to/better/go/src
+cd /path/to/bow/go/src
 ./make.bash          # build toolchain only
 # ./all.bash         # build + run tests (long)
 
-export GOROOT=/path/to/better/go
+export GOROOT=/path/to/bow/go
 export PATH=$GOROOT/bin:$PATH
 go version
 ```
 
-Add the `export` lines to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to make Better permanent.
+Add the `export` lines to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to make Bow permanent.
 
 ### Windows
 
@@ -406,23 +406,23 @@ Install upstream Go from [go.dev/dl](https://go.dev/dl/), then:
 $env:GOROOT_BOOTSTRAP = (go env GOROOT)
 $env:GOEXPERIMENT = "genericmethods"   # optional
 
-cd C:\path\to\better\go\src
+cd C:\path\to\bow\go\src
 .\make.bat           # build toolchain only
 # .\all.bat          # build + run tests (long)
 
-$env:GOROOT = "C:\path\to\better\go"
+$env:GOROOT = "C:\path\to\bow\go"
 $env:PATH = "$env:GOROOT\bin;$env:PATH"
 go version
 ```
 
-Add `GOROOT` and update `PATH` in System Environment Variables to keep Better across sessions.
+Add `GOROOT` and update `PATH` in System Environment Variables to keep Bow across sessions.
 
 ### Bootstrap details
 
 - **`GOROOT_BOOTSTRAP`** must contain `bin/go` (or `bin\go.exe` on Windows) from upstream Go ≥ 1.24.6.
-- If unset, the scripts search common locations (`$HOME/go1.24.6`, `$HOME/sdk/go1.24.6`, etc.) and any other `go` on `PATH` whose `GOROOT` is not Better.
+- If unset, the scripts search common locations (`$HOME/go1.24.6`, `$HOME/sdk/go1.24.6`, etc.) and any other `go` on `PATH` whose `GOROOT` is not Bow.
 - **`make.bash` / `make.bat`** only build the toolchain. **`all.bash` / `all.bat`** also run the full test suite.
-- For IDE support, build [gopls](doc/new_features/gopls.md) from the `go_tools` repository against Better’s `GOROOT`.
+- For IDE support, build [gopls](doc/new_features/gopls.md) from the `go_tools` repository against Bow’s `GOROOT`.
 
 ---
 
@@ -430,18 +430,18 @@ Add `GOROOT` and update `PATH` in System Environment Variables to keep Better ac
 
 Go is the work of thousands of contributors. We appreciate your help!
 
-To contribute upstream, read [https://go.dev/doc/contribute](https://go.dev/doc/contribute). For Better, see [`doc/new_features/`](doc/new_features/new_features.md) for the feature index and design docs.
+To contribute upstream, read [https://go.dev/doc/contribute](https://go.dev/doc/contribute). For Bow, see [`doc/new_features/`](doc/new_features/new_features.md) for the feature index and design docs.
 
 ---
 
 ## Migrating existing Go code
 
-Better adds new syntax and stdlib features. To move an existing codebase over:
+Bow adds new syntax and stdlib features. To move an existing codebase over:
 
-1. **Automate common rewrites** with [modernize](https://github.com/Better14/modernize) — a small source rewriter that updates common error-handling patterns to Better’s `T!` result types and `!` error propagation.
+1. **Automate common rewrites** with [modernize](https://github.com/Bow5/modernize) — a small source rewriter that updates common error-handling patterns to Bow’s `T!` result types and `!` error propagation.
 2. **Clone reference material** alongside your project:
-   - [Better](https://github.com/Better14/Better) (this repository)
-   - [SyntaxExample](https://github.com/Better14/SyntaxExample) (example programs using the new syntax)
-3. **Use an AI assistant** (Cursor, Claude, etc.): point it at `doc/new_features/` in Better and at `SyntaxExample/`, then ask it to rewrite your code to use the new features (result types, LINQ, enums, extension methods, and the rest documented there).
+   - [Bow](https://github.com/Bow5/Bow) (this repository)
+   - [SyntaxExample](https://github.com/Bow5/SyntaxExample) (example programs using the new syntax)
+3. **Use an AI assistant** (Cursor, Claude, etc.): point it at `doc/new_features/` in Bow and at `SyntaxExample/`, then ask it to rewrite your code to use the new features (result types, LINQ, enums, extension methods, and the rest documented there).
 
-Build and run `modernize` with **Better** as `GOROOT`; see the [modernize README](https://github.com/Better14/modernize) for usage.
+Build and run `modernize` with **Bow** as `GOROOT`; see the [modernize README](https://github.com/Bow5/modernize) for usage.
