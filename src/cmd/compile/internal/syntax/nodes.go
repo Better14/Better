@@ -43,8 +43,15 @@ type File struct {
 	DeclList  []Decl
 	EOF       Pos
 	GoVersion string
-	NilablePointers string // from //go:nilable_pointers disable|warn|enable
+	NilablePointersRegions []NilablePointersRegion // from //go:nilable_pointers regions
 	node
+}
+
+// NilablePointersRegion is a source range where a //go:nilable_pointers mode applies.
+type NilablePointersRegion struct {
+	Start Pos    // position of the opening directive
+	End   Pos    // position of //go:nilable_pointers end, or unknown for EOF
+	Mode  string // disable, warn, or enable
 }
 
 func (f *File) String() string {

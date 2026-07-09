@@ -519,7 +519,7 @@ func (check *Checker) implicitTypeAndValue(x *operand, target Type) (Type, const
 
 	case *Pointer:
 		if x.isNil() {
-			if check.nilablePointersOn() {
+			if check.nilablePointersOnAt(x.Pos()) {
 				return nil, nil, InvalidUntypedConversion
 			}
 			return target, nil, 0

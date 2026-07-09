@@ -1260,7 +1260,14 @@ type File struct {
 	Unresolved         []*Ident        // unresolved identifiers in this file. Deprecated: see Object
 	Comments           []*CommentGroup // comments in the file, in lexical order
 	GoVersion          string          // minimum Go version required by //go:build or // +build directives
-	NilablePointers    string          // from //go:nilable_pointers disable|warn|enable
+	NilablePointersRegions []NilablePointersRegion // from //go:nilable_pointers regions
+}
+
+// NilablePointersRegion is a source range where a //go:nilable_pointers mode applies.
+type NilablePointersRegion struct {
+	Start token.Pos // position of the opening directive
+	End   token.Pos // position of //go:nilable_pointers end, or invalid for EOF
+	Mode  string    // disable, warn, or enable
 }
 
 // Pos returns the position of the package declaration.

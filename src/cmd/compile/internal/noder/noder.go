@@ -56,8 +56,8 @@ func LoadPackage(filenames []string) {
 				defer f.Close()
 
 				p.file, _ = syntax.Parse(fbase, f, p.error, p.pragma, syntax.CheckBranches) // errors are tracked via p.error
-				if p.file != nil && p.fileNilablePointers != "" {
-					p.file.NilablePointers = p.fileNilablePointers
+				if p.file != nil && len(p.nilablePointersDirectives) > 0 {
+					p.file.NilablePointersRegions = buildNilablePointersRegions(p.nilablePointersDirectives)
 				}
 			}()
 		}
@@ -100,11 +100,41 @@ func trimFilename(b *syntax.PosBase) string {
 
 // noder transforms package syntax's AST into a Node tree.
 type noder struct {
-	file                *syntax.File
-	linknames           []linkname
-	pragcgobuf          [][]string
-	fileNilablePointers string
-	err                 chan syntax.Error
+	file                      *syntax.File
+	linknames                 []linkname
+	pragcgobuf                [][]string
+	nilablePointersDirectives []nilablePointersDirective
+	err                       chan syntax.Error
+}
+
+type nilablePointersDirective struct {
+	pos  syntax.Pos
+	mode string // enable, disable, warn, end
+}
+
+func buildNilablePointersRegions(dirs []nilablePointersDirective) []syntax.NilablePointersRegion {
+	var regions []syntax.NilablePointersRegion
+	var open *syntax.NilablePointersRegion
+	for _, d := range dirs {
+		switch d.mode {
+		case "end":
+			if open != nil {
+				open.End = d.pos
+				regions = append(regions, *open)
+				open = nil
+			}
+		case "enable", "disable", "warn":
+			if open != nil {
+				open.End = d.pos
+				regions = append(regions, *open)
+			}
+			open = &syntax.NilablePointersRegion{Start: d.pos, Mode: d.mode}
+		}
+	}
+	if open != nil {
+		regions = append(regions, *open)
+	}
+	return regions
 }
 
 // linkname records a //go:linkname or //go:linknamestd directive.
@@ -177,7 +207,6 @@ type pragmas struct {
 	Embeds            []pragmaEmbed
 	WasmImport        *WasmImport
 	WasmExport        *WasmExport
-	NilablePointers   string // disable, warn, or enable
 }
 
 func (p *pragmas) Nointerface() bool {
@@ -286,15 +315,14 @@ func (p *noder) pragma(pos syntax.Pos, blankLine bool, text string, old syntax.P
 	case strings.HasPrefix(text, "go:nilable_pointers "):
 		f := strings.Fields(text)
 		if len(f) != 2 {
-			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warn|enable"})
+			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warn|enable|end"})
 			break
 		}
 		switch f[1] {
-		case "disable", "warn", "enable":
-			pragma.NilablePointers = f[1]
-			p.fileNilablePointers = f[1]
+		case "disable", "warn", "enable", "end":
+			p.nilablePointersDirectives = append(p.nilablePointersDirectives, nilablePointersDirective{pos: pos, mode: f[1]})
 		default:
-			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warn|enable"})
+			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warn|enable|end"})
 		}
 
 	case strings.HasPrefix(text, "go:linkname "), strings.HasPrefix(text, "go:linknamestd "):

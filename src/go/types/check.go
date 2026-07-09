@@ -177,8 +177,6 @@ type Checker struct {
 	callExpectedType     Type                                 // if set, infer missing type args from this expected expression type
 	inferResultType      Type                                 // function result type for callExpectedType inference
 
-	nilablePointers nilablePointersMode // effective nilable pointer mode for current file
-
 	firstErr   error                 // first error encountered
 	methods    map[*TypeName][]*Func // maps package scope type names to associated non-blank (non-interface) methods
 	untyped    map[ast.Expr]exprInfo // map of expressions without final type
@@ -286,7 +284,6 @@ func NewChecker(conf *Config, fset *token.FileSet, pkg *Package, info *Info) *Ch
 		impMap:          make(map[importKey]*Package),
 		usedVars:        make(map[*Var]bool),
 		usedPkgNames:    make(map[*PkgName]bool),
-		nilablePointers: parseNilablePointersMode(conf.NilablePointers),
 	}
 }
 
@@ -383,8 +380,8 @@ func (check *Checker) initFiles(files []*ast.File) {
 			}
 		}
 		versions[file] = v
-		if file.NilablePointers == "" {
-			file.NilablePointers = nilablePointersDirective(file)
+		if len(file.NilablePointersRegions) == 0 {
+			file.NilablePointersRegions = buildNilablePointersRegions(collectNilablePointersDirectives(file))
 		}
 	}
 }

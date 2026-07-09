@@ -6,6 +6,7 @@ package types2
 
 import (
 	"cmd/compile/internal/syntax"
+
 	. "internal/types/errors"
 )
 
@@ -28,15 +29,31 @@ func parseNilablePointersMode(s string) nilablePointersMode {
 	}
 }
 
-func (check *Checker) nilablePointersMode() nilablePointersMode {
+func (check *Checker) moduleNilablePointersMode() nilablePointersMode {
+	if check != nil && check.pkg != nil {
+		return parseNilablePointersMode(check.pkg.nilablePointers)
+	}
+	return nptDisable
+}
+
+func (check *Checker) nilablePointersModeAt(pos syntax.Pos) nilablePointersMode {
 	if check == nil {
 		return nptDisable
 	}
-	return check.nilablePointers
+	if pos.IsKnown() {
+		if f := check.fileAt(pos); f != nil {
+			for _, r := range f.NilablePointersRegions {
+				if pos.Cmp(r.Start) >= 0 && (!r.End.IsKnown() || pos.Cmp(r.End) < 0) {
+					return parseNilablePointersMode(r.Mode)
+				}
+			}
+		}
+	}
+	return check.moduleNilablePointersMode()
 }
 
-func (check *Checker) nilablePointersOn() bool {
-	return check.nilablePointersMode() != nptDisable
+func (check *Checker) nilablePointersOnAt(pos syntax.Pos) bool {
+	return check.nilablePointersModeAt(pos) != nptDisable
 }
 
 // isNilablePointerType reports whether t is *T? (Optional wrapping a pointer).
@@ -60,7 +77,6 @@ func nilablePointerElem(t Type) (Type, bool) {
 	return o.elem, true
 }
 
-// isStrictPointerType reports whether t is a plain *T (not *T?).
 func isStrictPointerType(t Type) bool {
 	if t == nil {
 		return false
@@ -69,17 +85,8 @@ func isStrictPointerType(t Type) bool {
 	return ok
 }
 
-// nilablePointerType returns *T? for plain pointer typ when NPT is on.
-func (check *Checker) nilablePointerType(typ Type) Type {
-	if p, ok := typ.Underlying().(*Pointer); ok && check.nilablePointersOn() {
-		return NewOptional(p)
-	}
-	return typ
-}
-
-// collapseNilablePointerType returns *T when NPT is off and typ is *T?.
-func (check *Checker) collapseNilablePointerType(typ Type) Type {
-	if elem, ok := nilablePointerElem(typ); ok && !check.nilablePointersOn() {
+func (check *Checker) collapseNilablePointerType(pos syntax.Pos, typ Type) Type {
+	if elem, ok := nilablePointerElem(typ); ok && !check.nilablePointersOnAt(pos) {
 		return elem
 	}
 	return typ
@@ -87,7 +94,7 @@ func (check *Checker) collapseNilablePointerType(typ Type) Type {
 
 func (check *Checker) reportNilToStrictPointer(at poser, T Type) {
 	msg := check.sprintf("cannot use nil as %s value", T)
-	switch check.nilablePointersMode() {
+	switch check.nilablePointersModeAt(at.Pos()) {
 	case nptEnable:
 		check.errorf(at, IncompatibleAssign, "%s", msg)
 	default:
@@ -95,20 +102,11 @@ func (check *Checker) reportNilToStrictPointer(at poser, T Type) {
 	}
 }
 
-func (check *Checker) reportNilablePointerMismatch(at poser, V, T Type, context string) {
-	msg := check.sprintf("cannot use %s as %s value in %s", V, T, context)
-	switch check.nilablePointersMode() {
-	case nptEnable:
-		check.errorf(at, IncompatibleAssign, "%s", msg)
-	default:
-		check.softErrorf(at, IncompatibleAssign, "%s", msg)
+func (check *Checker) fileAt(pos syntax.Pos) *syntax.File {
+	for _, f := range check.files {
+		if f.Pos().Cmp(pos) <= 0 && pos.Cmp(f.EOF) <= 0 {
+			return f
+		}
 	}
-}
-
-// fileNilablePointersMode returns the effective mode for a file (file > package config).
-func (check *Checker) fileNilablePointersMode(file *syntax.File) nilablePointersMode {
-	if file != nil && file.NilablePointers != "" {
-		return parseNilablePointersMode(file.NilablePointers)
-	}
-	return parseNilablePointersMode(check.conf.NilablePointers)
+	return nil
 }

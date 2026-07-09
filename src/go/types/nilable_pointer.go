@@ -6,6 +6,8 @@ package types
 
 import (
 	"go/ast"
+	"go/token"
+	"sort"
 	"strings"
 
 	. "internal/types/errors"
@@ -30,15 +32,31 @@ func parseNilablePointersMode(s string) nilablePointersMode {
 	}
 }
 
-func (check *Checker) nilablePointersMode() nilablePointersMode {
+func (check *Checker) moduleNilablePointersMode() nilablePointersMode {
+	if check != nil && check.pkg != nil {
+		return parseNilablePointersMode(check.pkg.nilablePointers)
+	}
+	return nptDisable
+}
+
+func (check *Checker) nilablePointersModeAt(pos token.Pos) nilablePointersMode {
 	if check == nil {
 		return nptDisable
 	}
-	return check.nilablePointers
+	if pos.IsValid() {
+		if f := check.fileAt(pos); f != nil {
+			for _, r := range f.NilablePointersRegions {
+				if pos >= r.Start && (!r.End.IsValid() || pos < r.End) {
+					return parseNilablePointersMode(r.Mode)
+				}
+			}
+		}
+	}
+	return check.moduleNilablePointersMode()
 }
 
-func (check *Checker) nilablePointersOn() bool {
-	return check.nilablePointersMode() != nptDisable
+func (check *Checker) nilablePointersOnAt(pos token.Pos) bool {
+	return check.nilablePointersModeAt(pos) != nptDisable
 }
 
 func isNilablePointerType(t Type) bool {
@@ -68,8 +86,8 @@ func isStrictPointerType(t Type) bool {
 	return ok
 }
 
-func (check *Checker) collapseNilablePointerType(typ Type) Type {
-	if elem, ok := nilablePointerElem(typ); ok && !check.nilablePointersOn() {
+func (check *Checker) collapseNilablePointerType(pos token.Pos, typ Type) Type {
+	if elem, ok := nilablePointerElem(typ); ok && !check.nilablePointersOnAt(pos) {
 		return elem
 	}
 	return typ
@@ -77,7 +95,7 @@ func (check *Checker) collapseNilablePointerType(typ Type) Type {
 
 func (check *Checker) reportNilToStrictPointer(at positioner, T Type) {
 	msg := check.sprintf("cannot use nil as %s value", T)
-	switch check.nilablePointersMode() {
+	switch check.nilablePointersModeAt(at.Pos()) {
 	case nptEnable:
 		check.errorf(at, IncompatibleAssign, "%s", msg)
 	default:
@@ -85,27 +103,68 @@ func (check *Checker) reportNilToStrictPointer(at positioner, T Type) {
 	}
 }
 
-func (check *Checker) fileNilablePointersMode(file *ast.File) nilablePointersMode {
-	if file != nil && file.NilablePointers != "" {
-		return parseNilablePointersMode(file.NilablePointers)
+func (check *Checker) fileAt(pos token.Pos) *ast.File {
+	for _, f := range check.files {
+		if f.FileStart <= pos && pos <= f.FileEnd {
+			return f
+		}
 	}
-	return parseNilablePointersMode(check.conf.NilablePointers)
+	return nil
 }
 
-func nilablePointersDirective(file *ast.File) string {
+type nilablePointersDirective struct {
+	pos  token.Pos
+	mode string // enable, disable, warn, end
+}
+
+func collectNilablePointersDirectives(file *ast.File) []nilablePointersDirective {
 	if file == nil {
-		return ""
+		return nil
 	}
+	var dirs []nilablePointersDirective
 	for _, cg := range file.Comments {
 		for _, c := range cg.List {
 			text := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
-			if strings.HasPrefix(text, "go:nilable_pointers ") {
-				f := strings.Fields(text)
-				if len(f) == 2 {
-					return f[1]
-				}
+			if !strings.HasPrefix(text, "go:nilable_pointers ") {
+				continue
+			}
+			f := strings.Fields(text)
+			if len(f) != 2 {
+				continue
+			}
+			switch f[1] {
+			case "enable", "disable", "warn", "end":
+				dirs = append(dirs, nilablePointersDirective{pos: c.Pos(), mode: f[1]})
 			}
 		}
 	}
-	return ""
+	sort.Slice(dirs, func(i, j int) bool {
+		return dirs[i].pos < dirs[j].pos
+	})
+	return dirs
+}
+
+func buildNilablePointersRegions(dirs []nilablePointersDirective) []ast.NilablePointersRegion {
+	var regions []ast.NilablePointersRegion
+	var open *ast.NilablePointersRegion
+	for _, d := range dirs {
+		switch d.mode {
+		case "end":
+			if open != nil {
+				open.End = d.pos
+				regions = append(regions, *open)
+				open = nil
+			}
+		case "enable", "disable", "warn":
+			if open != nil {
+				open.End = d.pos
+				regions = append(regions, *open)
+			}
+			open = &ast.NilablePointersRegion{Start: d.pos, Mode: d.mode}
+		}
+	}
+	if open != nil {
+		regions = append(regions, *open)
+	}
+	return regions
 }

@@ -171,8 +171,6 @@ type Checker struct {
 	inExtensionProbe     bool                                 // guard against recursive extension call probing
 	pendingRecvMethod    string                               // method name while checking a method signature
 
-	nilablePointers nilablePointersMode // effective nilable pointer mode for current file
-
 	firstErr   error                    // first error encountered
 	methods    map[*TypeName][]*Func    // maps package scope type names to associated non-blank (non-interface) methods
 	untyped    map[syntax.Expr]exprInfo // map of expressions without final type
@@ -279,7 +277,6 @@ func NewChecker(conf *Config, pkg *Package, info *Info) *Checker {
 		impMap:          make(map[importKey]*Package),
 		usedVars:        make(map[*Var]bool),
 		usedPkgNames:    make(map[*PkgName]bool),
-		nilablePointers: parseNilablePointersMode(conf.NilablePointers),
 	}
 }
 

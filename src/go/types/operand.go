@@ -413,7 +413,7 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 
 	// untyped nil assignable to nilable and nil-able types
 	if x.isNil() {
-		if isStrictPointerType(T) && check != nil && check.nilablePointersOn() {
+		if isStrictPointerType(T) && check != nil && check.nilablePointersOnAt(x.Pos()) {
 			check.reportNilToStrictPointer(x, T)
 			return false, IncompatibleAssign
 		}
@@ -423,7 +423,7 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 	}
 
 	// When NPT is disabled, *T? and *T are equivalent.
-	if check != nil && !check.nilablePointersOn() {
+	if check != nil && !check.nilablePointersOnAt(x.Pos()) {
 		if vo, ok := Vu.(*Optional); ok {
 			if Identical(vo.elem, T) || Identical(vo.elem, Tu) {
 				return true, 0
@@ -437,7 +437,7 @@ func (x *operand) assignableTo(check *Checker, T Type, cause *string) (bool, Cod
 	}
 
 	// *T? is not assignable to *T without narrowing when NPT is on.
-	if check != nil && check.nilablePointersOn() {
+	if check != nil && check.nilablePointersOnAt(x.Pos()) {
 		if _, ok := Vu.(*Optional); ok {
 			if elem, ok := nilablePointerElem(V); ok && Identical(elem, T) {
 				return false, IncompatibleAssign

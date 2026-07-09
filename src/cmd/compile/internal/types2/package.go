@@ -18,6 +18,7 @@ type Package struct {
 	fake      bool   // scope lookup errors are silently dropped if package is fake (internal use only)
 	cgo       bool   // uses of this package will be rewritten into uses of declarations from _cgo_gotypes.go
 	goVersion string // minimum Go version required for package (by Config.GoVersion, typically from go.mod)
+	nilablePointers string // from go.mod nilable_pointers directive
 
 	overloadFuncs map[string][]*Func // package-level operator/overload functions
 	overloadMeths map[methodKey][]*Func
@@ -63,6 +64,13 @@ func (pkg *Package) SetName(name string) { pkg.name = name }
 // Individual source files may specify a different minimum Go version,
 // as reported in the [go/ast.File.GoVersion] field.
 func (pkg *Package) GoVersion() string { return pkg.goVersion }
+
+// NilablePointers returns the nilable_pointers mode from go.mod (disable, warn, enable).
+// The empty string means disable.
+func (pkg *Package) NilablePointers() string { return pkg.nilablePointers }
+
+// SetNilablePointers sets the nilable_pointers mode from go.mod.
+func (pkg *Package) SetNilablePointers(mode string) { pkg.nilablePointers = mode }
 
 // Scope returns the (complete or incomplete) package scope
 // holding the objects declared at package level (TypeNames,
