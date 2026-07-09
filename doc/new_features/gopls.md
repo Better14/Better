@@ -55,6 +55,7 @@ These are implemented in **`go/parser`**, **`go/ast`**, and **`go/types`**. gopl
 | Enums `enum E { … }` | `ast.EnumDecl`, `types.Enum` | [enums.md](enums.md) |
 | Struct/interface shorthand | `ast.StructDecl`, `ast.InterfaceDecl` | [syntax.md](syntax.md) |
 | Nilable types `T?`, `?.`, `??` | `ast.NilableTypeExpr`, `ast.NullCondExpr`, `token.NULLCOALESCE` | [nilable_types.md](nilable_types.md) |
+| Nilable pointers `*T?`, `*T` | `ast.NilablePointersRegion`, `types.Package.NilablePointers` | [nilable_pointer_types.md](nilable_pointer_types.md) |
 | Extension methods | `types.Func.IsExtension`, extension call lowering | [extension_methods.md](extension_methods.md) |
 | Operator overloading | indexed overload resolution in `go/types` | [operator_overloading.md](operator_overloading.md) |
 

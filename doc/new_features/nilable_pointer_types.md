@@ -35,13 +35,21 @@ Not every NPT diagnostic is equally certain. Under `enable`:
 
 `go mod tidy` and module graph tools should read this directive so builds are reproducible and importers know which nullability rules apply.
 
-File- or package-level overrides are supported for migration:
+File- or package-level overrides are supported for migration using region directives:
 
 ```go
+//go:nilable_pointers enable
+// ... code with NPT on ...
+//go:nilable_pointers end   // revert to go.mod default
+
 //go:nilable_pointers disable
+// ... code with legacy *T may be nil ...
+//go:nilable_pointers end
 ```
 
-Precedence: **file > package > go.mod**.
+If no `//go:nilable_pointers end` follows an opening directive, the mode applies to the rest of the file.
+
+Precedence: **region directive > go.mod** (project default).
 
 ## Overview
 
