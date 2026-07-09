@@ -856,6 +856,36 @@ func (check *Checker) binary(x *operand, e syntax.Expr, lhs, rhs syntax.Expr, op
 		return
 	}
 
+	if op == syntax.AndAnd || op == syntax.OrOr {
+		if nv, ns, nn, gok := check.parseNilableGuard(lhs); gok {
+			narrowRhs := (op == syntax.AndAnd && nn) || (op == syntax.OrOr && !nn)
+			if narrowRhs {
+				var lx operand
+				check.expr(nil, &lx, lhs)
+				if !lx.isValid() {
+					x.invalidate()
+					return
+				}
+				check.withNilableNarrow(nv, ns, func() {
+					var y operand
+					check.expr(nil, &y, rhs)
+					if !y.isValid() {
+						x.invalidate()
+						return
+					}
+					if !check.op(binaryOpPredicates, &lx, op) {
+						x.invalidate()
+						return
+					}
+					x.mode_ = value
+					x.expr = e
+					x.typ_ = Typ[Bool]
+				})
+				return
+			}
+		}
+	}
+
 	var y operand
 
 	check.expr(nil, x, lhs)

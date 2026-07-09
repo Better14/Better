@@ -365,6 +365,12 @@ func tcConv(n *ir.ConvExpr) ir.Node {
 	if nilableBasicWrap(t, n.Type()) {
 		return tcNilableBasicWrap(n)
 	}
+	if nilablePointerWrap(t, n.Type()) {
+		if t.IsPtr() {
+			return OptionalWrapFromPtr(n.Pos(), n.Type(), n.X)
+		}
+		return OptionalWrapValue(n.Pos(), n.Type(), n.X)
+	}
 	op, why := convertOp(n.X.Op() == ir.OLITERAL, t, n.Type())
 	if op == ir.OXXX {
 		// Due to //go:nointerface, we may be stricter than types2 here (#63333).
@@ -429,6 +435,15 @@ func nilableBasicWrap(src, dst *types.Type) bool {
 		return false
 	}
 	return src.IsScalar() || src.IsString()
+}
+
+// nilablePointerWrap reports whether src should be wrapped into dst when
+// dst is a lowered T? struct and src is assignable to the value field.
+func nilablePointerWrap(src, dst *types.Type) bool {
+	if src == nil || dst == nil || !IsOptionalStruct(dst) {
+		return false
+	}
+	return types.Identical(src, dst.Field(1).Type)
 }
 
 // tcNilableBasicWrap rewrites implicit conversion of a basic value to T?.

@@ -134,6 +134,15 @@ func (check *Checker) stmtList(ctxt stmtContext, list []syntax.Stmt) {
 		if ok && i+1 == len(list) {
 			inner |= fallthroughOk
 		}
+		if ifs, ok := s.(*syntax.IfStmt); ok {
+			if narrowVars, narrowSels, guardOk := check.nilableGuardEarlyReturnNarrow(ifs); guardOk && i+1 < len(list) {
+				check.stmt(inner, s)
+				check.withNilableNarrow(narrowVars, narrowSels, func() {
+					check.stmtList(inner, list[i+1:])
+				})
+				return
+			}
+		}
 		check.stmt(inner, s)
 	}
 }
@@ -603,11 +612,10 @@ func (check *Checker) stmt(ctxt stmtContext, s syntax.Stmt) {
 		if x.isValid() && !allBoolean(x.typ()) {
 			check.error(s.Cond, InvalidCond, "non-boolean condition in if statement")
 		}
-		if v, nonNil, ok := check.parseNilableGuard(s.Cond); ok {
-			if elem := nilableElem(v.typ); elem != nil {
-				narrow := map[*Var]Type{v: elem}
+		if narrowVars, narrowSels, nonNil, ok := check.parseNilableGuard(s.Cond); ok {
+			if len(narrowVars) > 0 || len(narrowSels) > 0 {
 				if nonNil {
-					check.withNilableNarrow(narrow, func() { check.stmt(inner, s.Then) })
+					check.withNilableNarrow(narrowVars, narrowSels, func() { check.stmt(inner, s.Then) })
 				} else {
 					check.stmt(inner, s.Then)
 				}
@@ -617,7 +625,7 @@ func (check *Checker) stmt(ctxt stmtContext, s syntax.Stmt) {
 					if nonNil {
 						check.stmt(inner, s.Else)
 					} else {
-						check.withNilableNarrow(narrow, func() { check.stmt(inner, s.Else) })
+						check.withNilableNarrow(narrowVars, narrowSels, func() { check.stmt(inner, s.Else) })
 					}
 				default:
 					check.error(s.Else, InvalidSyntaxTree, "invalid else branch in if statement")

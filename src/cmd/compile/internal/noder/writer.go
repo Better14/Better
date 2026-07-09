@@ -2046,8 +2046,10 @@ func (w *writer) expr(expr syntax.Expr) {
 		// selection, indexing, etc.
 		if typ := tv.Type; !tv.IsBuiltin() && !isTuple(typ) && !isUntyped(typ) {
 			if _, ok := types2.CoreType(typ).(*types2.Signature); !ok {
-				w.Code(exprReshape)
-				w.typ(typ)
+				if _, narrowed := optionalNarrowedUse(obj, idealType(tv)); !narrowed {
+					w.Code(exprReshape)
+					w.typ(typ)
+				}
 			}
 			// fallthrough
 		}
@@ -2064,6 +2066,17 @@ func (w *writer) expr(expr syntax.Expr) {
 		}
 
 		if isGlobal(obj) {
+			if tv, ok := w.p.maybeTypeAndValue(expr); ok {
+				if elem, narrowed := optionalNarrowedUse(obj, idealType(tv)); narrowed {
+					w.Code(exprOptionalUnwrap)
+					w.Bool(false) // narrowed: non-nil branch, no panic check
+					w.pos(expr)
+					w.typ(elem)
+					w.Code(exprGlobal)
+					w.obj(obj, nil)
+					return
+				}
+			}
 			w.Code(exprGlobal)
 			w.obj(obj, nil)
 			return
@@ -2090,11 +2103,11 @@ func (w *writer) expr(expr syntax.Expr) {
 		assert(!obj.IsField())
 
 		if tv, ok := w.p.maybeTypeAndValue(expr); ok {
-			if o, ok := types2.AsOptional(obj.Type()); ok && types2.Identical(tv.Type, o.Elem()) {
+			if elem, narrowed := optionalNarrowedUse(obj, idealType(tv)); narrowed {
 				w.Code(exprOptionalUnwrap)
 				w.Bool(false) // narrowed: non-nil branch, no panic check
 				w.pos(expr)
-				w.typ(o.Elem())
+				w.typ(elem)
 				w.Code(exprLocal)
 				w.useLocal(expr.Pos(), obj)
 				return
@@ -2161,7 +2174,7 @@ func (w *writer) expr(expr syntax.Expr) {
 				break
 			}
 			w.Code(exprFieldVal)
-			w.expr(expr.X)
+			w.exprOptionalUnwrapIfNeeded(expr.X)
 			w.pos(expr)
 			w.selector(sel.Obj())
 
@@ -2854,7 +2867,7 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 
 	// Omit implicit no-op conversions.
 	identical := dst == nil || types2.Identical(src, dst)
-	if o, ok := types2.AsOptional(dst); ok && implicit {
+	if elem, ok := types2.OptionalDestElem(dst); ok && implicit {
 		if isNil(w.p, expr) {
 			w.Code(exprOptionalWrap)
 			w.Bool(true)
@@ -2862,19 +2875,35 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 			w.typ(dst)
 			return
 		}
-		if p, ok := types2.CoreType(src).(*types2.Pointer); ok && types2.Identical(p.Elem(), o.Elem()) {
-			w.Code(exprOptionalWrapFromPtr)
+		if types2.Identical(src, elem) {
+			if _, isPtr := types2.CoreType(elem).(*types2.Pointer); isPtr {
+				w.Code(exprOptionalWrapFromPtr)
+				w.pos(expr)
+				w.typ(dst)
+				w.expr(expr)
+				return
+			}
+			w.Code(exprOptionalWrap)
+			w.Bool(false)
 			w.pos(expr)
 			w.typ(dst)
 			w.expr(expr)
 			return
 		}
-		if types2.AssignableTo(src, o.Elem()) {
+		if p, ok := types2.CoreType(src).(*types2.Pointer); ok && types2.Identical(p.Elem(), elem) {
 			w.Code(exprOptionalWrap)
 			w.Bool(false)
 			w.pos(expr)
 			w.typ(dst)
-			w.implicitConvExpr(o.Elem(), expr)
+			w.implicitConvExpr(elem, expr)
+			return
+		}
+		if types2.AssignableTo(src, elem) {
+			w.Code(exprOptionalWrap)
+			w.Bool(false)
+			w.pos(expr)
+			w.typ(dst)
+			w.implicitConvExpr(elem, expr)
 			return
 		}
 	}
@@ -3706,6 +3735,45 @@ func isDefinedType(obj types2.Object) bool {
 		return !obj.IsAlias()
 	}
 	return false
+}
+
+// exprOptionalUnwrapIfNeeded emits an optional unwrap when expr is a narrowed nilable variable.
+func (w *writer) exprOptionalUnwrapIfNeeded(expr syntax.Expr) {
+	obj, _ := lookupObj(w.p, expr)
+	if obj == nil {
+		w.expr(expr)
+		return
+	}
+	if tv, ok := w.p.maybeTypeAndValue(expr); ok {
+		if elem, narrowed := optionalNarrowedUse(obj, idealType(tv)); narrowed {
+			w.Code(exprOptionalUnwrap)
+			w.Bool(false)
+			w.pos(expr)
+			w.typ(elem)
+			if isGlobal(obj) {
+				w.Code(exprGlobal)
+				w.obj(obj, nil)
+			} else {
+				w.Code(exprLocal)
+				w.useLocal(expr.Pos(), obj.(*types2.Var))
+			}
+			return
+		}
+	}
+	w.expr(expr)
+}
+
+// optionalNarrowedUse reports whether obj is a nilable variable used with narrowed elem type.
+func optionalNarrowedUse(obj types2.Object, narrowType types2.Type) (elem types2.Type, ok bool) {
+	v, ok := obj.(*types2.Var)
+	if !ok {
+		return nil, false
+	}
+	o, ok := types2.AsOptional(v.Type())
+	if !ok || !types2.Identical(narrowType, o.Elem()) {
+		return nil, false
+	}
+	return o.Elem(), true
 }
 
 // isGlobal reports whether obj was declared at package scope.

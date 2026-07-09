@@ -1,6 +1,6 @@
 # Nilable Pointer Types
 
-**Implemented** (opt-in via `nilable_pointers` in `go.mod` and `//go:nilable_pointers` in source).
+**Implemented** (opt-in via `nilable_pointers enable` in `go.mod` and `//go:nilable_pointers enable` in source).
 
 This document specifies *nilable pointer types* (NPT): a compile-time null-safety layer for Go pointer types. Runtime behavior is unchanged; the feature is entirely static analysis plus diagnostics.
 

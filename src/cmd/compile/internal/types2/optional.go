@@ -27,8 +27,29 @@ func (o *Optional) String() string   { return TypeString(o, nil) }
 
 // AsOptional reports whether t is a *Optional and returns it.
 func AsOptional(t Type) (*Optional, bool) {
-	o, _ := t.(*Optional)
-	return o, o != nil
+	if t == nil {
+		return nil, false
+	}
+	t = Unalias(t)
+	if o, ok := t.(*Optional); ok {
+		return o, true
+	}
+	if o, ok := t.Underlying().(*Optional); ok {
+		return o, true
+	}
+	return nil, false
+}
+
+// OptionalDestElem returns the element type of an optional destination T?
+// (either *Optional or a lowered optional struct).
+func OptionalDestElem(t Type) (elem Type, ok bool) {
+	if t == nil {
+		return nil, false
+	}
+	if o, ok := AsOptional(t); ok {
+		return o.Elem(), true
+	}
+	return optionalStructElem(t)
 }
 
 // OptionalType returns the struct type used to lower T? to Option[T].
@@ -296,55 +317,118 @@ func nilableElem(t Type) Type {
 	return nil
 }
 
-// withNilableNarrow runs f with extra nilable variable narrowing in effect.
-func (check *Checker) withNilableNarrow(narrow map[*Var]Type, f func()) {
-	if len(narrow) == 0 {
+// withNilableNarrow runs f with extra nilable narrowing in effect.
+func (check *Checker) withNilableNarrow(narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, f func()) {
+	if len(narrowVars) == 0 && len(narrowSels) == 0 {
 		f()
 		return
 	}
-	old := check.nilableNarrow
-	merged := make(map[*Var]Type, len(old)+len(narrow))
-	for v, t := range old {
-		merged[v] = t
+	oldV := check.nilableNarrow
+	oldS := check.nilableNarrowSel
+	if len(narrowVars) > 0 {
+		merged := make(map[*Var]Type, len(oldV)+len(narrowVars))
+		for v, t := range oldV {
+			merged[v] = t
+		}
+		for v, t := range narrowVars {
+			merged[v] = t
+		}
+		check.nilableNarrow = merged
 	}
-	for v, t := range narrow {
-		merged[v] = t
+	if len(narrowSels) > 0 {
+		merged := make(map[nilableSelKey]Type, len(oldS)+len(narrowSels))
+		for k, t := range oldS {
+			merged[k] = t
+		}
+		for k, t := range narrowSels {
+			merged[k] = t
+		}
+		check.nilableNarrowSel = merged
 	}
-	check.nilableNarrow = merged
 	f()
-	check.nilableNarrow = old
+	check.nilableNarrow = oldV
+	check.nilableNarrowSel = oldS
 }
 
-// parseNilableGuard recognizes v != nil, nil != v, and v == nil for nilable v.
-func (check *Checker) parseNilableGuard(cond syntax.Expr) (v *Var, nonNil bool, ok bool) {
+// parseNilableGuard recognizes x != nil, nil != x, and x == nil for nilable x.
+// It also handles `x != nil && …` and `x == nil || …`.
+func (check *Checker) parseNilableGuard(cond syntax.Expr) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, nonNil bool, ok bool) {
+	if op, ok := syntax.Unparen(cond).(*syntax.Operation); ok {
+		switch op.Op {
+		case syntax.AndAnd:
+			if nv, ns, nn, gok := check.parseNilableGuard(op.X); gok && nn {
+				return nv, ns, true, true
+			}
+		case syntax.OrOr:
+			if nv, ns, nn, gok := check.parseNilableGuard(op.X); gok && !nn {
+				return nv, ns, true, true
+			}
+		}
+	}
 	op, ok := syntax.Unparen(cond).(*syntax.Operation)
 	if !ok {
-		return nil, false, false
+		return nil, nil, false, false
 	}
 	switch op.Op {
 	case syntax.Neq:
-		return check.nilableGuardIdent(op.X, op.Y, true)
+		return check.nilableGuardExpr(op.X, op.Y, true)
 	case syntax.Eql:
-		return check.nilableGuardIdent(op.X, op.Y, false)
+		return check.nilableGuardExpr(op.X, op.Y, false)
 	default:
-		return nil, false, false
+		return nil, nil, false, false
 	}
 }
 
-func (check *Checker) nilableGuardIdent(x, y syntax.Expr, nonNil bool) (*Var, bool, bool) {
+func (check *Checker) nilableGuardExpr(x, y syntax.Expr, nonNil bool) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, nonNilOut bool, ok bool) {
 	if check.isNil(x) {
 		x, y = y, x
 	} else if !check.isNil(y) {
-		return nil, false, false
+		return nil, nil, false, false
 	}
-	name, ok := syntax.Unparen(x).(*syntax.Name)
+	x = syntax.Unparen(x)
+	switch e := x.(type) {
+	case *syntax.Name:
+		obj := check.lookup(e.Value)
+		if v, ok := obj.(*Var); ok {
+			if elem := nilableElem(v.typ); elem != nil {
+				return map[*Var]Type{v: elem}, nil, nonNil, true
+			}
+		}
+	case *syntax.SelectorExpr:
+		var xop operand
+		check.expr(nil, &xop, e)
+		if elem := nilableElem(xop.typ()); elem != nil {
+			if key, ok := check.nilableSelKeyFrom(e); ok {
+				return nil, map[nilableSelKey]Type{key: elem}, nonNil, true
+			}
+		}
+	}
+	return nil, nil, false, false
+}
+
+func (check *Checker) nilableSelKeyFrom(e *syntax.SelectorExpr) (nilableSelKey, bool) {
+	name, ok := syntax.Unparen(e.X).(*syntax.Name)
 	if !ok {
-		return nil, false, false
+		return nilableSelKey{}, false
 	}
 	obj := check.lookup(name.Value)
-	v, ok := obj.(*Var)
-	if !ok || nilableElem(v.typ) == nil {
-		return nil, false, false
+	if obj == nil {
+		return nilableSelKey{}, false
 	}
-	return v, nonNil, true
+	return nilableSelKey{obj: obj, sel: e.Sel.Value}, true
+}
+
+// nilableGuardEarlyReturnNarrow reports narrowing for `if x == nil { <terminating> }` with no else.
+func (check *Checker) nilableGuardEarlyReturnNarrow(s *syntax.IfStmt) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, ok bool) {
+	if s.Init != nil || s.Else != nil {
+		return nil, nil, false
+	}
+	narrowVars, narrowSels, nonNil, guardOk := check.parseNilableGuard(s.Cond)
+	if !guardOk || nonNil || (len(narrowVars) == 0 && len(narrowSels) == 0) {
+		return nil, nil, false
+	}
+	if !check.isTerminating(s.Then, "") {
+		return nil, nil, false
+	}
+	return narrowVars, narrowSels, true
 }

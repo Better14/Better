@@ -15,6 +15,12 @@ import (
 
 type nilablePointersMode int
 
+// nilableSelKey identifies a field selector v.f for nilable narrowing.
+type nilableSelKey struct {
+	obj Object
+	sel string
+}
+
 const (
 	nptDisable nilablePointersMode = iota
 	nptWarn

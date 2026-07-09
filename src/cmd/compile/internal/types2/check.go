@@ -44,7 +44,8 @@ type environment struct {
 	isPanic       map[*syntax.CallExpr]bool // set of panic call expressions (used for termination check)
 	hasLabel         bool                      // set if a function makes use of labels (only ~1% of functions); unused outside functions
 	hasCallOrRecv    bool                      // set if an expression contains a function call or channel receive operation
-	nilableNarrow   map[*Var]Type             // variables narrowed from T? (or *T?) to T (or *T) within the current control-flow region
+	nilableNarrow    map[*Var]Type             // variables narrowed from T? (or *T?) to T (or *T) within the current control-flow region
+	nilableNarrowSel map[nilableSelKey]Type   // field selectors narrowed likewise
 }
 
 // lookupScope looks up name in the current environment and if an object

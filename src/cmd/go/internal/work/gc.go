@@ -79,7 +79,7 @@ func (gcToolchain) gc(b *Builder, a *Action, archive string, importcfg, embedcfg
 	}
 	defaultGcFlags = append(defaultGcFlags, "-lang=go"+gover.Lang(vers))
 	if npt := load.NilablePointersFromMod(p.Module); npt != "" {
-		defaultGcFlags = append(defaultGcFlags, "-nilable_pointers="+npt)
+		defaultGcFlags = append(defaultGcFlags, "-nilablepointers="+npt)
 	}
 	if p.Standard {
 		defaultGcFlags = append(defaultGcFlags, "-std")

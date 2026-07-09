@@ -92,3 +92,116 @@ func f() {
 		t.Fatal("expected error with go.mod enable default")
 	}
 }
+
+func TestNilablePointerEarlyReturnNarrowing(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f(a *int?) int {
+	if a == nil {
+		return 0
+	}
+	var b *int = a
+	return *b
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilablePointerPackageEarlyReturn(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+var dbConn *int?
+
+func Conn() *int {
+	if dbConn == nil {
+		panic("uninit")
+	}
+	return dbConn
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+func TestNilablePointerCrossPackageNarrowing(t *testing.T) {
+	const srcM = `package m
+//go:nilable_pointers enable
+func Get() *int? { return nil }`
+	const srcP = `package p
+import "m"
+//go:nilable_pointers enable
+func f() {
+	auth := m.Get()
+	if auth != nil {
+		var x *int = auth
+		_ = x
+	}
+}`
+	fset := token.NewFileSet()
+	m, err := parser.ParseFile(fset, "m.go", srcM, parser.ParseComments)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := parser.ParseFile(fset, "p.go", srcP, parser.ParseComments)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mpkg := types.NewPackage("m", "m")
+	mpkg.SetNilablePointers("enable")
+	if err := types.NewChecker(&types.Config{}, fset, mpkg, nil).Files([]*ast.File{m}); err != nil {
+		t.Fatalf("m: %v", err)
+	}
+	pkg := types.NewPackage("p", "p")
+	pkg.SetNilablePointers("enable")
+	if err := types.NewChecker(&types.Config{Importer: fakeImporter{mpkg}}, fset, pkg, nil).Files([]*ast.File{p}); err != nil {
+		t.Fatalf("p: %v", err)
+	}
+}
+
+type fakeImporter struct{ pkg *types.Package }
+
+func (f fakeImporter) Import(path string) (*types.Package, error) { return f.pkg, nil }
+
+func TestNilablePointerArgWrap(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func take(p *string?) {}
+func f() {
+	s := "id"
+	take(&s)
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilablePointerAndOrNarrowing(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f(a *int?) bool {
+	return a != nil && *a > 0
+}
+func g(a *int?) bool {
+	return a == nil || *a == 0
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilablePointerSelectorNarrowing(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+type row struct {
+	Body *string?
+}
+func f(r row) string {
+	if r.Body != nil {
+		return *r.Body
+	}
+	return ""
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}

@@ -842,6 +842,36 @@ func (check *Checker) binary(x *operand, e ast.Expr, lhs, rhs ast.Expr, op token
 		return
 	}
 
+	if op == token.LAND || op == token.LOR {
+		if nv, ns, nn, gok := check.parseNilableGuard(lhs); gok {
+			narrowRhs := (op == token.LAND && nn) || (op == token.LOR && !nn)
+			if narrowRhs {
+				var lx operand
+				check.expr(nil, &lx, lhs)
+				if !lx.isValid() {
+					x.invalidate()
+					return
+				}
+				check.withNilableNarrow(nv, ns, func() {
+					var y operand
+					check.expr(nil, &y, rhs)
+					if !y.isValid() {
+						x.invalidate()
+						return
+					}
+					if !check.op(binaryOpPredicates, &lx, op) {
+						x.invalidate()
+						return
+					}
+					x.mode_ = value
+					x.expr = e
+					x.typ_ = Typ[Bool]
+				})
+				return
+			}
+		}
+	}
+
 	var y operand
 
 	check.expr(nil, x, lhs)

@@ -90,3 +90,17 @@ func OptionalWrapValue(pos src.XPos, typ *types.Type, val ir.Node) ir.Node {
 	val = DefaultLit(val, typ.Field(1).Type)
 	return OptionalStructLit(pos, typ, TypedTrue(pos), val)
 }
+
+// OptionalWrapFromPtr returns a T? from *T, mapping nil pointers to nil T?.
+func OptionalWrapFromPtr(pos src.XPos, typ *types.Type, ptr ir.Node) ir.Node {
+	ptr = Expr(ptr)
+	elem := typ.Field(1).Type
+	nilOpt := OptionalWrapNil(pos, typ)
+	star := Expr(ir.NewStarExpr(pos, ptr))
+	star.SetType(elem)
+	valOpt := OptionalWrapValue(pos, typ, star)
+	niln := ir.NewNilExpr(pos, ptr.Type())
+	cmp := ir.NewBinaryExpr(pos, ir.OEQ, ptr, niln)
+	cmp.SetType(types.Types[types.TBOOL])
+	return Expr(ir.NewIfExpr(pos, typ, cmp, nilOpt, valOpt))
+}

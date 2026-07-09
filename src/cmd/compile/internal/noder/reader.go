@@ -2752,6 +2752,13 @@ func (r *reader) expr() (res ir.Node) {
 			return x
 		}
 
+		if typecheck.IsOptionalStruct(x.Type()) && !typecheck.IsOptionalStruct(typ) {
+			elem := x.Type().Field(1).Type
+			if types.Identical(elem, typ) {
+				return typecheck.OptionalValue(x.Pos(), x)
+			}
+		}
+
 		base.AssertfAt(x.Type().HasShape() || typ.HasShape(), x.Pos(), "%L and %v are not shape types", x, typ)
 		base.AssertfAt(types.Identical(x.Type(), typ), x.Pos(), "%L is not shape-identical to %v", x, typ)
 
@@ -3306,10 +3313,23 @@ func (r *reader) multiExpr() []ir.Node {
 
 			res := ir.Node(tmp)
 			if r.Bool() {
-				n := ir.NewConvExpr(pos, ir.OCONV, r.typ(), res)
-				n.TypeWord, n.SrcRType = r.convRTTI(pos)
-				n.SetImplicit(true)
-				res = typecheck.Expr(n)
+				dstTyp := r.typ()
+				typeWord, srcRType := r.convRTTI(pos)
+				if typecheck.IsOptionalStruct(dstTyp) {
+					elemTyp := dstTyp.Field(1).Type
+					if res.Type() != elemTyp {
+						n := ir.NewConvExpr(pos, ir.OCONV, elemTyp, res)
+						n.TypeWord, n.SrcRType = typeWord, srcRType
+						n.SetImplicit(true)
+						res = typecheck.Expr(n)
+					}
+					res = typecheck.OptionalWrapValue(pos, dstTyp, res)
+				} else {
+					n := ir.NewConvExpr(pos, ir.OCONV, dstTyp, res)
+					n.TypeWord, n.SrcRType = typeWord, srcRType
+					n.SetImplicit(true)
+					res = typecheck.Expr(n)
+				}
 			}
 			results[i] = res
 		}

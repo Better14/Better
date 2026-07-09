@@ -1399,6 +1399,11 @@ func (check *Checker) selector(x *operand, e *ast.SelectorExpr, wantType bool) {
 			x.mode_ = value
 		}
 		x.typ_ = obj.typ
+		if key, ok := check.nilableSelKeyFrom(e); ok {
+			if narrow, ok := check.nilableNarrowSel[key]; ok {
+				x.typ_ = narrow
+			}
+		}
 
 	case *Func:
 		check.objDecl(obj) // ensure fully set-up signature

@@ -29,7 +29,7 @@ func (check *Checker) isTerminating(s ast.Stmt, label string) bool {
 
 	case *ast.ExprStmt:
 		// calling the predeclared (possibly parenthesized) panic() function is terminating
-		if call, ok := ast.Unparen(s.X).(*ast.CallExpr); ok && check.isPanic[call] {
+		if call, ok := ast.Unparen(s.X).(*ast.CallExpr); ok && (check.isPanic[call] || isPanicCall(call)) {
 			return true
 		}
 
@@ -74,6 +74,12 @@ func (check *Checker) isTerminating(s ast.Stmt, label string) bool {
 	}
 
 	return false
+}
+
+// isPanicCall reports whether call is a call to the predeclared panic function.
+func isPanicCall(call *ast.CallExpr) bool {
+	fun, ok := ast.Unparen(call.Fun).(*ast.Ident)
+	return ok && fun.Name == "panic"
 }
 
 func (check *Checker) isTerminatingList(list []ast.Stmt, label string) bool {
