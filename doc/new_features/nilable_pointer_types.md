@@ -1,6 +1,6 @@
 # Nilable Pointer Types
 
-**Proposed.** Not implemented yet.
+**Implemented** (opt-in via `nilable_pointers` in `go.mod` or `//go:nilable_pointers` per file).
 
 This document specifies *nilable pointer types* (NPT): a compile-time null-safety layer for Go pointer types. Runtime behavior is unchanged; the feature is entirely static analysis plus diagnostics.
 
@@ -141,6 +141,19 @@ if maybe != nil {
 	Process(maybe)    // ok in then-branch: maybe is *User
 }
 ```
+
+## Null-check narrowing
+
+When `a` has type `*T?` and the checker sees `a != nil` (or `nil != a`), the type of `a` is **narrowed** to `*T` in the then-branch — the same enrichment used for value-type `T?`:
+
+```go
+var a *MyStruct? = lookup()
+if a != nil {
+	useRequired(a) // a is *MyStruct here
+}
+```
+
+This works for local variables in `if`, `for`, and `switch` conditions. Assigning `*T?` to `*T` without such a guard remains an error when NPT is enabled.
 
 ## Null-state analysis
 

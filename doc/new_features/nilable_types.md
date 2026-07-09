@@ -20,7 +20,7 @@ Nilable types are useful for primitives and structs that cannot otherwise hold `
 | `int?` | `int` or `nil` |
 | `[]int?` | `([]int)?` — the **slice itself** may be `nil` (nilable slice) |
 | `[](int?)` | `[]` of `int?` — each element is `int` or `nil` |
-| `*int?` | `(*int)?` — nilable pointer to `int` (not the same as `*int`, which is already nil-able) |
+| `*int?` | `(*int)?` — nilable pointer to `int` when [nilable pointers](nilable_pointer_types.md) are enabled; same as `*int` when disabled |
 
 So `[]int?` means **slice or null** (the whole slice is optional), not “slice of int-or-null elements”. For per-element optionals, use parentheses:
 

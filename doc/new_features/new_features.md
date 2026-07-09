@@ -6,7 +6,7 @@ This directory documents language and library extensions planned or implemented 
 
 - [Result types (`T!`)](result_types.md) — `(T, error)` shorthand and `!.value` / `!.field` error propagation
 - [Nilable types (`T?`)](nilable_types.md) — optional values, `?.`, and `??`
-- [Nilable pointer types (`*T` / `*T?`)](nilable_pointer_types.md) — non-nilable vs nilable pointers (proposed)
+- [Nilable pointer types (`*T` / `*T?`)](nilable_pointer_types.md) — non-nilable vs nilable pointers (opt-in)
 - [Enums](enums.md) — algebraic enums, variants, and exhaustive switching
 - [Operator overloading](operator_overloading.md) — user-defined operators via operator methods
 
