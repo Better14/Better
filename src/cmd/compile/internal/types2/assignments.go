@@ -37,7 +37,8 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 	}
 
 	// Reject nil before implicit conversion to strict *T (see implicitTypeAndValue *Pointer).
-	if x.isNil() && T != nil && isStrictPointerType(T) && check.nilablePointersOnAt(x.Pos()) {
+	// In return statements and call arguments, nil is still allowed as an optional pointer value.
+	if x.isNil() && T != nil && isStrictPointerType(T) && check.nilablePointersOnAt(x.Pos()) && !allowsStrictNilPointerUse(context) {
 		check.reportNilToStrictPointer(x, T)
 		x.invalidate()
 		return
@@ -686,5 +687,14 @@ func (check *Checker) shortVarDecl(pos poser, lhs, rhs []syntax.Expr) {
 	scopePos := endPos(rhs[len(rhs)-1])
 	for _, obj := range newVars {
 		check.declare(scope, nil, obj, scopePos) // id = nil: recordDef already called
+	}
+}
+
+func allowsStrictNilPointerUse(context string) bool {
+	switch context {
+	case "return statement", "assignment", "struct literal", "map literal", "array or slice literal":
+		return true
+	default:
+		return strings.HasPrefix(context, "argument to")
 	}
 }

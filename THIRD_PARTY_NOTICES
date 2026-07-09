@@ -1,0 +1,45 @@
+Bow Programming Language Toolchain — Third-Party Notices
+=========================================================
+
+This distribution is derived from the Go programming language project and
+includes additional modifications by the Bow project.
+
+Go Authors (BSD 3-Clause)
+-------------------------
+Copyright 2009 The Go Authors.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+  * Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+  * Neither the name of Google LLC nor the names of its contributors may be
+    used to endorse or promote products derived from this software without
+    specific prior written permission.
+
+See LICENSE in this directory for the full BSD 3-Clause text.
+
+Additional IP Rights Grant (Patents)
+------------------------------------
+See PATENTS in this directory for Google's patent grant covering the
+original Go implementation.
+
+Vendored Third-Party Code
+-------------------------
+The standard library and Go commands include vendored third-party packages.
+See src/README.vendor for maintenance instructions and:
+
+  - src/vendor/       (packages vendored by the std module)
+  - src/cmd/vendor/   (packages vendored by the cmd module)
+
+Each vendored tree includes LICENSE or COPYING files from the respective
+upstream projects. Consult those files for per-package license terms.
+
+Binary Distributions
+--------------------
+When distributing prebuilt binaries (go, compile, link, etc.) built from
+this tree, include this file alongside the binaries together with LICENSE
+and PATENTS.
