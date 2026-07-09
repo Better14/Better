@@ -38,7 +38,7 @@ type FatArch struct {
 
 // ErrNotFat is returned from [NewFatFile] or [OpenFat] when the file is not a
 // universal binary but may be a thin binary, based on its magic number.
-var ErrNotFat = newFormatError(0, "not a fat Mach-O file", nil)
+var ErrNotFat = &FormatError{0, "not a fat Mach-O file", nil}
 
 // NewFatFile creates a new [FatFile] for accessing all the Mach-O images in a
 // universal binary. The Mach-O binary is expected to start at position 0 in
@@ -51,7 +51,7 @@ func NewFatFile(r io.ReaderAt) (*FatFile, error) {
 	// Start with the magic number.
 	err := binary.Read(sr, binary.BigEndian, &ff.Magic)
 	if err != nil {
-		return nil, newFormatError(0, "error reading magic number", nil)
+		return nil, &FormatError{0, "error reading magic number", nil}
 	} else if ff.Magic != MagicFat {
 		// See if this is a Mach-O file via its magic number. The magic
 		// must be converted to little endian first though.
@@ -61,7 +61,7 @@ func NewFatFile(r io.ReaderAt) (*FatFile, error) {
 		if leMagic == Magic32 || leMagic == Magic64 {
 			return nil, ErrNotFat
 		} else {
-			return nil, newFormatError(0, "invalid magic number", nil)
+			return nil, &FormatError{0, "invalid magic number", nil}
 		}
 	}
 	offset := int64(4)
@@ -70,12 +70,12 @@ func NewFatFile(r io.ReaderAt) (*FatFile, error) {
 	var narch uint32
 	err = binary.Read(sr, binary.BigEndian, &narch)
 	if err != nil {
-		return nil, newFormatError(offset, "invalid fat_header", nil)
+		return nil, &FormatError{offset, "invalid fat_header", nil}
 	}
 	offset += 4
 
 	if narch < 1 {
-		return nil, newFormatError(offset, "file contains no images", nil)
+		return nil, &FormatError{offset, "file contains no images", nil}
 	}
 
 	// Combine the Cpu and SubCpu (both uint32) into a uint64 to make sure
@@ -88,14 +88,14 @@ func NewFatFile(r io.ReaderAt) (*FatFile, error) {
 	// Mach-O images further in the file.
 	c := saferio.SliceCap[FatArch](uint64(narch))
 	if c < 0 {
-		return nil, newFormatError(offset, "too many images", nil)
+		return nil, &FormatError{offset, "too many images", nil}
 	}
 	ff.Arches = make([]FatArch, 0, c)
 	for i := uint32(0); i < narch; i++ {
 		var fa FatArch
 		err = binary.Read(sr, binary.BigEndian, &fa.FatArchHeader)
 		if err != nil {
-			return nil, newFormatError(offset, "invalid fat_arch header", nil)
+			return nil, &FormatError{offset, "invalid fat_arch header", nil}
 		}
 		offset += fatArchHeaderSize
 
@@ -108,7 +108,7 @@ func NewFatFile(r io.ReaderAt) (*FatFile, error) {
 		// Make sure the architecture for this image is not duplicate.
 		seenArch := (uint64(fa.Cpu) << 32) | uint64(fa.SubCpu)
 		if o, k := seenArches[seenArch]; o || k {
-			return nil, newFormatError(offset, fmt.Sprintf("duplicate architecture cpu=%v, subcpu=%#x", fa.Cpu, fa.SubCpu), nil)
+			return nil, &FormatError{offset, fmt.Sprintf("duplicate architecture cpu=%v, subcpu=%#x", fa.Cpu, fa.SubCpu), nil}
 		}
 		seenArches[seenArch] = true
 
@@ -117,7 +117,7 @@ func NewFatFile(r io.ReaderAt) (*FatFile, error) {
 			machoType = fa.Type
 		} else {
 			if fa.Type != machoType {
-				return nil, newFormatError(offset, fmt.Sprintf("Mach-O type for architecture #%d (type=%#x) does not match first (type=%#x)", i, fa.Type, machoType), nil)
+				return nil, &FormatError{offset, fmt.Sprintf("Mach-O type for architecture #%d (type=%#x) does not match first (type=%#x)", i, fa.Type, machoType), nil}
 			}
 		}
 

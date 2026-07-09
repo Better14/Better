@@ -100,7 +100,6 @@ func appendTextValue(s *handleState, v Value) error {
 	case KindTime:
 		s.appendTime(v.time())
 	case KindAny:
-<<<<<<< HEAD
 		if ta, ok := v.any.(encoding.TextAppender); ok {
 			var buf []byte
 			buf, err := ta.AppendText(buf)
@@ -110,14 +109,10 @@ func appendTextValue(s *handleState, v Value) error {
 			// TODO: append directly to buffer when possible
 			s.appendString(string(buf))
 			return nil
-		} else if tm, ok := v.any.(encoding.TextMarshaler); ok {
-=======
-		if err, ok := v.any.(error); ok {
+		} else if err, ok := v.any.(error); ok {
 			s.appendString(err.Error())
 			return nil
-		}
-		if tm, ok := v.any.(encoding.TextMarshaler); ok {
->>>>>>> a10864260b (Fix remaining stdlib tests for structured errors and nil typing.)
+		} else if tm, ok := v.any.(encoding.TextMarshaler); ok {
 			data, err := tm.MarshalText()
 			if err != nil {
 				return err

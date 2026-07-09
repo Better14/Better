@@ -121,10 +121,10 @@ func ParseAddr(s string) (Addr, error) {
 		case '%':
 			// Assume that this was trying to be an IPv6 address with
 			// a zone specifier, but the address is missing.
-			return Addr{}, newParseAddrError(s, "missing IPv6 address", "")
+			return Addr{}, parseAddrError{in: s, msg: "missing IPv6 address"}
 		}
 	}
-	return Addr{}, newParseAddrError(s, "unable to parse IP", "")
+	return Addr{}, parseAddrError{in: s, msg: "unable to parse IP"}
 }
 
 // MustParseAddr calls [ParseAddr](s) and panics on error.
@@ -138,28 +138,17 @@ func MustParseAddr(s string) Addr {
 }
 
 type parseAddrError struct {
-	errors.Info
 	in  string // the string given to ParseAddr
 	msg string // an explanation of the parse failure
 	at  string // optionally, the unparsed portion of in at which the error occurred.
 }
 
-func parseAddrErrorMessage(in, msg, at string) string {
-	q := strconv.Quote
-	if at != "" {
-		return "ParseAddr(" + q(in) + "): " + msg + " (at " + q(at) + ")"
-	}
-	return "ParseAddr(" + q(in) + "): " + msg
-}
-
-func newParseAddrError(in, msg, at string) error {
-	e := parseAddrError{in: in, msg: msg, at: at}
-	errors.InitCustom(&e.Info, "%s", parseAddrErrorMessage(in, msg, at))
-	return e
-}
-
 func (err parseAddrError) Error() string {
-	return parseAddrErrorMessage(err.in, err.msg, err.at)
+	q := strconv.Quote
+	if err.at != "" {
+		return "ParseAddr(" + q(err.in) + "): " + err.msg + " (at " + q(err.at) + ")"
+	}
+	return "ParseAddr(" + q(err.in) + "): " + err.msg
 }
 
 func parseIPv4Fields(in string, off, end int, fields []uint8) error {
@@ -169,34 +158,34 @@ func parseIPv4Fields(in string, off, end int, fields []uint8) error {
 	for i := 0; i < len(s); i++ {
 		if s[i] >= '0' && s[i] <= '9' {
 			if digLen == 1 && val == 0 {
-				return newParseAddrError(in, "IPv4 field has octet with leading zero", "")
+				return parseAddrError{in: in, msg: "IPv4 field has octet with leading zero"}
 			}
 			val = val*10 + int(s[i]) - '0'
 			digLen++
 			if val > 255 {
-				return newParseAddrError(in, "IPv4 field has value >255", "")
+				return parseAddrError{in: in, msg: "IPv4 field has value >255"}
 			}
 		} else if s[i] == '.' {
 			// .1.2.3
 			// 1.2.3.
 			// 1..2.3
 			if i == 0 || i == len(s)-1 || s[i-1] == '.' {
-				return newParseAddrError(in, "IPv4 field must have at least one digit", s[i:])
+				return parseAddrError{in: in, msg: "IPv4 field must have at least one digit", at: s[i:]}
 			}
 			// 1.2.3.4.5
 			if pos == 3 {
-				return newParseAddrError(in, "IPv4 address too long", "")
+				return parseAddrError{in: in, msg: "IPv4 address too long"}
 			}
 			fields[pos] = uint8(val)
 			pos++
 			val = 0
 			digLen = 0
 		} else {
-			return newParseAddrError(in, "unexpected character", s[i:])
+			return parseAddrError{in: in, msg: "unexpected character", at: s[i:]}
 		}
 	}
 	if pos < 3 {
-		return newParseAddrError(in, "IPv4 address too short", "")
+		return parseAddrError{in: in, msg: "IPv4 address too short"}
 	}
 	fields[3] = uint8(val)
 	return nil
@@ -226,7 +215,7 @@ func parseIPv6(in string) (Addr, error) {
 		s, zone = s[:i], s[i+1:]
 		if zone == "" {
 			// Not allowed to have an empty zone if explicitly specified.
-			return Addr{}, newParseAddrError(in, "zone must be a non-empty string", "")
+			return Addr{}, parseAddrError{in: in, msg: "zone must be a non-empty string"}
 		}
 	}
 
@@ -263,27 +252,27 @@ func parseIPv6(in string) (Addr, error) {
 			}
 			if off > 3 {
 				//more than 4 digits in group, fail.
-				return Addr{}, newParseAddrError(in, "each group must have 4 or less digits", s)
+				return Addr{}, parseAddrError{in: in, msg: "each group must have 4 or less digits", at: s}
 			}
 			if acc > math.MaxUint16 {
 				// Overflow, fail.
-				return Addr{}, newParseAddrError(in, "IPv6 field has value >=2^16", s)
+				return Addr{}, parseAddrError{in: in, msg: "IPv6 field has value >=2^16", at: s}
 			}
 		}
 		if off == 0 {
 			// No digits found, fail.
-			return Addr{}, newParseAddrError(in, "each colon-separated field must have at least one digit", s)
+			return Addr{}, parseAddrError{in: in, msg: "each colon-separated field must have at least one digit", at: s}
 		}
 
 		// If followed by dot, might be in trailing IPv4.
 		if off < len(s) && s[off] == '.' {
 			if ellipsis < 0 && i != 12 {
 				// Not the right place.
-				return Addr{}, newParseAddrError(in, "embedded IPv4 address must replace the final 2 fields of the address", s)
+				return Addr{}, parseAddrError{in: in, msg: "embedded IPv4 address must replace the final 2 fields of the address", at: s}
 			}
 			if i+4 > 16 {
 				// Not enough room.
-				return Addr{}, newParseAddrError(in, "too many hex fields to fit an embedded IPv4 at the end of the address", s)
+				return Addr{}, parseAddrError{in: in, msg: "too many hex fields to fit an embedded IPv4 at the end of the address", at: s}
 			}
 
 			end := len(in)
@@ -312,16 +301,16 @@ func parseIPv6(in string) (Addr, error) {
 
 		// Otherwise must be followed by colon and more.
 		if s[0] != ':' {
-			return Addr{}, newParseAddrError(in, "unexpected character, want colon", s)
+			return Addr{}, parseAddrError{in: in, msg: "unexpected character, want colon", at: s}
 		} else if len(s) == 1 {
-			return Addr{}, newParseAddrError(in, "colon must be followed by more characters", s)
+			return Addr{}, parseAddrError{in: in, msg: "colon must be followed by more characters", at: s}
 		}
 		s = s[1:]
 
 		// Look for ellipsis.
 		if s[0] == ':' {
 			if ellipsis >= 0 { // already have one
-				return Addr{}, newParseAddrError(in, "multiple :: in address", s)
+				return Addr{}, parseAddrError{in: in, msg: "multiple :: in address", at: s}
 			}
 			ellipsis = i
 			s = s[1:]
@@ -333,13 +322,13 @@ func parseIPv6(in string) (Addr, error) {
 
 	// Must have used entire string.
 	if len(s) != 0 {
-		return Addr{}, newParseAddrError(in, "trailing garbage after address", s)
+		return Addr{}, parseAddrError{in: in, msg: "trailing garbage after address", at: s}
 	}
 
 	// If didn't parse enough, expand ellipsis.
 	if i < 16 {
 		if ellipsis < 0 {
-			return Addr{}, newParseAddrError(in, "address string too short", "")
+			return Addr{}, parseAddrError{in: in, msg: "address string too short"}
 		}
 		n := 16 - i
 		for j := i - 1; j >= ellipsis; j-- {
@@ -348,7 +337,7 @@ func parseIPv6(in string) (Addr, error) {
 		clear(ip[ellipsis : ellipsis+n])
 	} else if ellipsis >= 0 {
 		// Ellipsis must represent at least one 0 group.
-		return Addr{}, newParseAddrError(in, "the :: must expand to at least one field of zeros", "")
+		return Addr{}, parseAddrError{in: in, msg: "the :: must expand to at least one field of zeros"}
 	}
 	return AddrFrom16(ip).WithZone(zone), nil
 }
@@ -1351,23 +1340,12 @@ func (p Prefix) Compare(p2 Prefix) int {
 }
 
 type parsePrefixError struct {
-	errors.Info
 	in  string // the string given to ParsePrefix
 	msg string // an explanation of the parse failure
 }
 
-func parsePrefixErrorMessage(in, msg string) string {
-	return "netip.ParsePrefix(" + strconv.Quote(in) + "): " + msg
-}
-
-func newParsePrefixError(in, msg string) error {
-	e := parsePrefixError{in: in, msg: msg}
-	errors.InitCustom(&e.Info, "%s", parsePrefixErrorMessage(in, msg))
-	return e
-}
-
 func (err parsePrefixError) Error() string {
-	return parsePrefixErrorMessage(err.in, err.msg)
+	return "netip.ParsePrefix(" + strconv.Quote(err.in) + "): " + err.msg
 }
 
 // ParsePrefix parses s as an IP address prefix.
@@ -1380,34 +1358,34 @@ func (err parsePrefixError) Error() string {
 func ParsePrefix(s string) (Prefix, error) {
 	i := bytealg.LastIndexByteString(s, '/')
 	if i < 0 {
-		return Prefix{}, newParsePrefixError(s, "no '/'")
+		return Prefix{}, parsePrefixError{in: s, msg: "no '/'"}
 	}
 	ip, err := ParseAddr(s[:i])
 	if err != nil {
-		return Prefix{}, newParsePrefixError(s, err.Error())
+		return Prefix{}, parsePrefixError{in: s, msg: err.Error()}
 	}
 	// IPv6 zones are not allowed: https://go.dev/issue/51899
 	if ip.Is6() && ip.z != z6noz {
-		return Prefix{}, newParsePrefixError(s, "IPv6 zones cannot be present in a prefix")
+		return Prefix{}, parsePrefixError{in: s, msg: "IPv6 zones cannot be present in a prefix"}
 	}
 
 	bitsStr := s[i+1:]
 
 	// strconv.Atoi accepts a leading sign and leading zeroes, but we don't want that.
 	if len(bitsStr) > 1 && (bitsStr[0] < '1' || bitsStr[0] > '9') {
-		return Prefix{}, newParsePrefixError(s, "bad bits after slash: " + strconv.Quote(bitsStr))
+		return Prefix{}, parsePrefixError{in: s, msg: "bad bits after slash: " + strconv.Quote(bitsStr)}
 	}
 
 	bits, err := strconv.Atoi(bitsStr)
 	if err != nil {
-		return Prefix{}, newParsePrefixError(s, "bad bits after slash: " + strconv.Quote(bitsStr))
+		return Prefix{}, parsePrefixError{in: s, msg: "bad bits after slash: " + strconv.Quote(bitsStr)}
 	}
 	maxBits := 32
 	if ip.Is6() {
 		maxBits = 128
 	}
 	if bits < 0 || bits > maxBits {
-		return Prefix{}, newParsePrefixError(s, "prefix length out of range")
+		return Prefix{}, parsePrefixError{in: s, msg: "prefix length out of range"}
 	}
 	return PrefixFrom(ip, bits), nil
 }

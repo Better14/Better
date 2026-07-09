@@ -419,16 +419,10 @@ func (*Var) isDependency() {} // a variable may be a dependency of an initializa
 // An abstract method may belong to many interfaces due to embedding.
 type Func struct {
 	object
-<<<<<<< HEAD
 	hasPtrRecv_  bool  // only valid for methods that don't have a type yet; use hasPtrRecv() to read
 	isExtension_ bool  // extension method: receiver type is external, predeclared, or composite
 	nointerface  bool
 	origin       *Func // if non-nil, the Func from which this one was instantiated
-=======
-	hasPtrRecv_  bool   // only valid for methods that don't have a type yet; use hasPtrRecv() to read
-	isExtension_ bool   // extension method: receiver type is external, predeclared, or composite
-	origin       *Func  // if non-nil, the Func from which this one was instantiated
->>>>>>> 1de1ce6954 (Fix checker parity, vet satisfy panics, and test failures.)
 	linkSuffix   string // non-empty for overloaded symbols; used by the compiler backend
 }
 
