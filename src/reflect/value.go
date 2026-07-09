@@ -176,7 +176,6 @@ func unpackEface(i any) Value {
 // a [Value] that does not support it. Such cases are documented
 // in the description of each method.
 type ValueError struct {
-	errors.Base
 	Method string
 	Kind   Kind
 }
@@ -188,14 +187,12 @@ func valueErrorMessage(method string, kind Kind) string {
 	return "reflect: call of " + method + " on " + kind.String() + " Value"
 }
 
-func newValueError(method string, kind Kind) *ValueError {
-	e := &ValueError{Method: method, Kind: kind}
-	errors.InitCustom(&e.Base, "%s", valueErrorMessage(method, kind))
-	return e
-}
-
 func (e *ValueError) Error() string {
 	return valueErrorMessage(e.Method, e.Kind)
+}
+
+func newValueError(method string, kind Kind) *ValueError {
+	return &ValueError{Method: method, Kind: kind}
 }
 
 // valueMethodName returns the name of the exported calling method on Value.

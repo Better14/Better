@@ -424,6 +424,13 @@ func (o *orderState) stmtList(l ir.Nodes) {
 	}
 }
 
+// spillInlineBody moves an inlined call's body into o.out and clears ic.Body
+// so escape analysis does not see duplicate inline end labels.
+func (o *orderState) spillInlineBody(ic *ir.InlinedCallExpr) {
+	o.stmtList(ic.Body)
+	ic.Body = nil
+}
+
 // orderMakeSliceCopy matches the pattern:
 //
 //	m = OMAKESLICE([]T, x); OCOPY(m, s)
@@ -746,7 +753,7 @@ func (o *orderState) stmt(n ir.Node) {
 		call := n.Rhs[0]
 		o.init(call)
 		if ic, ok := call.(*ir.InlinedCallExpr); ok {
-			o.stmtList(ic.Body)
+			o.spillInlineBody(ic)
 
 			n.SetOp(ir.OAS2)
 			n.Rhs = ic.ReturnVars
@@ -821,7 +828,7 @@ func (o *orderState) stmt(n ir.Node) {
 
 	case ir.OINLCALL:
 		n := n.(*ir.InlinedCallExpr)
-		o.stmtList(n.Body)
+		o.spillInlineBody(n)
 
 		// discard results; double-check for no side effects
 		for _, result := range n.ReturnVars {
@@ -1244,7 +1251,7 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 		t1 := o.newTemp(t1typ, t1typ.HasPointers())
 		pos := n.Pos()
 		if ic, ok := n.X.(*ir.InlinedCallExpr); ok {
-			o.stmtList(ic.Body)
+			o.spillInlineBody(ic)
 			as := ir.NewAssignListStmt(pos, ir.OAS2, []ir.Node{t0, t1}, ic.ReturnVars)
 			as.SetTypecheck(1)
 			o.exprList(as.Rhs)
@@ -1303,7 +1310,7 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 			temps[i] = o.newTemp(ftyp, ftyp.HasPointers())
 		}
 		if ic, ok := n.X.(*ir.InlinedCallExpr); ok {
-			o.stmtList(ic.Body)
+			o.spillInlineBody(ic)
 			as := ir.NewAssignListStmt(pos, ir.OAS2, temps, ic.ReturnVars)
 			as.SetTypecheck(1)
 			o.exprList(as.Rhs)
@@ -1735,7 +1742,7 @@ func (o *orderState) expr1(n, lhs ir.Node) ir.Node {
 
 	case ir.OINLCALL:
 		n := n.(*ir.InlinedCallExpr)
-		o.stmtList(n.Body)
+		o.spillInlineBody(n)
 		return n.SingleResult()
 
 	case ir.OAPPEND:

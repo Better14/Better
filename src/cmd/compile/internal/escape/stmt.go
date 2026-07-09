@@ -53,7 +53,11 @@ func (e *escape) stmt(n ir.Node) {
 		if n.Label.IsBlank() {
 			break
 		}
-		switch e.labels[n.Label] {
+		state, ok := e.labels[n.Label]
+		if !ok {
+			break
+		}
+		switch state {
 		case nonlooping:
 			if base.Flag.LowerM > 2 {
 				fmt.Printf("%v:%v non-looping label\n", base.FmtPos(base.Pos), n)

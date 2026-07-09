@@ -221,34 +221,40 @@ func (b *batch) walkFunc(fn *ir.Func) {
 	e := b.with(fn)
 	fn.SetEsc(escFuncStarted)
 
-	// Identify labels that mark the head of an unstructured loop.
-	ir.Visit(fn, func(n ir.Node) {
-		switch n.Op() {
-		case ir.OLABEL:
-			n := n.(*ir.LabelStmt)
-			if n.Label.IsBlank() {
-				break
-			}
-			if e.labels == nil {
-				e.labels = make(map[*types.Sym]labelState)
-			}
-			e.labels[n.Label] = nonlooping
-
-		case ir.OGOTO:
-			// If we visited the label before the goto,
-			// then this is a looping label.
-			n := n.(*ir.BranchStmt)
-			if e.labels[n.Label] == nonlooping {
-				e.labels[n.Label] = looping
-			}
-		}
-	})
+	for _, n := range fn.Body {
+		e.collectLabels(n)
+	}
 
 	e.block(fn.Body)
 
 	if len(e.labels) != 0 {
 		base.FatalfAt(fn.Pos(), "leftover labels after walkFunc")
 	}
+}
+
+func (e *escape) collectLabels(n ir.Node) bool {
+	if n == nil {
+		return false
+	}
+	switch n.Op() {
+	case ir.OLABEL:
+		n := n.(*ir.LabelStmt)
+		if !n.Label.IsBlank() {
+			if e.labels == nil {
+				e.labels = make(map[*types.Sym]labelState)
+			}
+			e.labels[n.Label] = nonlooping
+		}
+	case ir.OGOTO:
+		n := n.(*ir.BranchStmt)
+		if e.labels[n.Label] == nonlooping {
+			e.labels[n.Label] = looping
+		}
+	}
+	if _, ok := n.(*ir.InlinedCallExpr); ok {
+		return false
+	}
+	return ir.DoChildren(n, e.collectLabels)
 }
 
 func (b *batch) flowClosure(k hole, clo *ir.ClosureExpr) {

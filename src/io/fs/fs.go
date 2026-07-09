@@ -24,7 +24,6 @@
 package fs
 
 import (
-	"errors"
 	"internal/oserror"
 	"time"
 	"unicode/utf8"
@@ -263,7 +262,6 @@ func (m FileMode) Type() FileMode {
 
 // PathError records an error and the operation and file path that caused it.
 type PathError struct {
-	errors.Base
 	Op   string
 	Path string
 	Err  error
@@ -278,9 +276,7 @@ func pathErrorMessage(op, path string, err error) string {
 
 // NewPathError returns a PathError with a stack trace captured at the call site.
 func NewPathError(op, path string, err error) *PathError {
-	pe := &PathError{Op: op, Path: path, Err: err}
-	errors.InitCustom(&pe.Base, "%s", pathErrorMessage(op, path, err))
-	return pe
+	return &PathError{Op: op, Path: path, Err: err}
 }
 
 func (e *PathError) Error() string { return pathErrorMessage(e.Op, e.Path, e.Err) }
