@@ -65,7 +65,7 @@ func (pkg *Package) SetName(name string) { pkg.name = name }
 // as reported in the [go/ast.File.GoVersion] field.
 func (pkg *Package) GoVersion() string { return pkg.goVersion }
 
-// NilablePointers returns the nilable_pointers mode from go.mod (disable, warn, enable).
+// NilablePointers returns the nilable_pointers mode from go.mod (disable, warnings, enable).
 // The empty string means disable.
 func (pkg *Package) NilablePointers() string { return pkg.nilablePointers }
 

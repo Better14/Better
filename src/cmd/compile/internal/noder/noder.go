@@ -109,7 +109,7 @@ type noder struct {
 
 type nilablePointersDirective struct {
 	pos  syntax.Pos
-	mode string // enable, disable, warn, end
+	mode string // enable, disable, warnings, end
 }
 
 func buildNilablePointersRegions(dirs []nilablePointersDirective) []syntax.NilablePointersRegion {
@@ -123,7 +123,7 @@ func buildNilablePointersRegions(dirs []nilablePointersDirective) []syntax.Nilab
 				regions = append(regions, *open)
 				open = nil
 			}
-		case "enable", "disable", "warn":
+		case "enable", "disable", "warnings":
 			if open != nil {
 				open.End = d.pos
 				regions = append(regions, *open)
@@ -315,14 +315,14 @@ func (p *noder) pragma(pos syntax.Pos, blankLine bool, text string, old syntax.P
 	case strings.HasPrefix(text, "go:nilable_pointers "):
 		f := strings.Fields(text)
 		if len(f) != 2 {
-			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warn|enable|end"})
+			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warnings|enable|end"})
 			break
 		}
 		switch f[1] {
-		case "disable", "warn", "enable", "end":
+		case "disable", "warnings", "enable", "end":
 			p.nilablePointersDirectives = append(p.nilablePointersDirectives, nilablePointersDirective{pos: pos, mode: f[1]})
 		default:
-			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warn|enable|end"})
+			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warnings|enable|end"})
 		}
 
 	case strings.HasPrefix(text, "go:linkname "), strings.HasPrefix(text, "go:linknamestd "):

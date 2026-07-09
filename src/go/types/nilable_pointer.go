@@ -25,7 +25,7 @@ func parseNilablePointersMode(s string) nilablePointersMode {
 	switch s {
 	case "enable":
 		return nptEnable
-	case "warn":
+	case "warnings":
 		return nptWarn
 	default:
 		return nptDisable
@@ -114,7 +114,7 @@ func (check *Checker) fileAt(pos token.Pos) *ast.File {
 
 type nilablePointersDirective struct {
 	pos  token.Pos
-	mode string // enable, disable, warn, end
+	mode string // enable, disable, warnings, end
 }
 
 func collectNilablePointersDirectives(file *ast.File) []nilablePointersDirective {
@@ -133,7 +133,7 @@ func collectNilablePointersDirectives(file *ast.File) []nilablePointersDirective
 				continue
 			}
 			switch f[1] {
-			case "enable", "disable", "warn", "end":
+			case "enable", "disable", "warnings", "end":
 				dirs = append(dirs, nilablePointersDirective{pos: c.Pos(), mode: f[1]})
 			}
 		}
@@ -155,7 +155,7 @@ func buildNilablePointersRegions(dirs []nilablePointersDirective) []ast.NilableP
 				regions = append(regions, *open)
 				open = nil
 			}
-		case "enable", "disable", "warn":
+		case "enable", "disable", "warnings":
 			if open != nil {
 				open.End = d.pos
 				regions = append(regions, *open)

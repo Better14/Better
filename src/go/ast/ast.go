@@ -1267,7 +1267,7 @@ type File struct {
 type NilablePointersRegion struct {
 	Start token.Pos // position of the opening directive
 	End   token.Pos // position of //go:nilable_pointers end, or invalid for EOF
-	Mode  string    // disable, warn, or enable
+	Mode  string    // disable, warnings, or enable
 }
 
 // Pos returns the position of the package declaration.

@@ -22,7 +22,7 @@ func parseNilablePointersMode(s string) nilablePointersMode {
 	switch s {
 	case "enable":
 		return nptEnable
-	case "warn":
+	case "warnings":
 		return nptWarn
 	default:
 		return nptDisable

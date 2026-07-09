@@ -51,7 +51,7 @@ type File struct {
 type NilablePointersRegion struct {
 	Start Pos    // position of the opening directive
 	End   Pos    // position of //go:nilable_pointers end, or unknown for EOF
-	Mode  string // disable, warn, or enable
+	Mode  string // disable, warnings, or enable
 }
 
 func (f *File) String() string {

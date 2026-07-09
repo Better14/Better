@@ -34,7 +34,7 @@ func parseNilablePointersLine(content string) string {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "nilable_pointers ") {
 			f := strings.Fields(line)
-			if len(f) == 2 && (f[1] == "enable" || f[1] == "disable" || f[1] == "warn") {
+			if len(f) == 2 && (f[1] == "enable" || f[1] == "disable" || f[1] == "warnings") {
 				return f[1]
 			}
 		}

@@ -72,7 +72,7 @@ type Toolchain struct {
 
 // A NilablePointers is the nilable_pointers statement.
 type NilablePointers struct {
-	Mode   string // disable, warn, or enable
+	Mode   string // disable, warnings, or enable
 	Syntax *Line
 }
 
@@ -434,10 +434,10 @@ func (f *File) add(errs *ErrorList, block *LineBlock, line *Line, verb string, a
 			return
 		}
 		switch args[0] {
-		case "disable", "warn", "enable":
+		case "disable", "warnings", "enable":
 			f.NilablePointers = &NilablePointers{Syntax: line, Mode: args[0]}
 		default:
-			errorf("invalid nilable_pointers value %q: must be disable, warn, or enable", args[0])
+			errorf("invalid nilable_pointers value %q: must be disable, warnings, or enable", args[0])
 		}
 
 	case "module":

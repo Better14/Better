@@ -31,13 +31,13 @@ nilable_pointers enable
 | ----- | ------- |
 | *(omitted)* | Same as `disable` — legacy behavior for existing modules |
 | `disable` | `*T` may be `nil`; `*T?` is not a distinct type (collapses to `*T`) |
-| `warn` | NPT on; violations are **warnings** (build succeeds) — migration mode |
+| `warnings` | NPT on; violations are **warnings** (build succeeds) — migration mode |
 | `enable` | NPT on; **definite** violations are compile errors; **flow-analysis** violations are warnings (see [Diagnostics](#diagnostics)) |
 
 Example migration path (similar to [C# nullable migration](https://learn.microsoft.com/en-us/dotnet/csharp/advanced-topics/update-applications/nullable-migration-strategies)):
 
 ```go
-nilable_pointers warn    // step 1: see issues, keep building
+nilable_pointers warnings  // step 1: see issues, keep building
 nilable_pointers enable  // step 2: fail on definite nil-to-*T violations
 ```
 
@@ -59,12 +59,12 @@ func migrated() {
 | --------- | ------ |
 | `//go:nilable_pointers enable` | Turn NPT on (`*T` non-nilable, `*T?` nilable) from this line until `end` or EOF |
 | `//go:nilable_pointers disable` | Turn NPT off (legacy `*T` rules) from this line until `end` or EOF |
-| `//go:nilable_pointers warn` | Same rules as `enable`, but definite violations are warnings |
+| `//go:nilable_pointers warnings` | Same rules as `enable`, but definite violations are warnings |
 | `//go:nilable_pointers end` | Close the current region; revert to the **go.mod** default |
 
 **Region rules:**
 
-- An opening directive (`enable`, `disable`, or `warn`) starts a region at that comment's position.
+- An opening directive (`enable`, `disable`, or `warnings`) starts a region at that comment's position.
 - `//go:nilable_pointers end` closes the open region; code after `end` uses the go.mod default.
 - If there is no matching `end`, the region runs to the **end of the file**.
 - A new opening directive without `end` on the previous region implicitly closes the previous region at the new directive.
@@ -110,7 +110,7 @@ Not every NPT diagnostic is equally certain. Under `enable`:
 - **Compile errors** — violations the compiler knows are wrong without control-flow inference, such as assigning or returning `nil` for a non-nilable `*T`.
 - **Warnings** — violations that depend on null-state analysis across branches, calls, or initialization (e.g. dereferencing a `*T?` without a check, passing `*T?` where `*T` is required). These may include false positives or require refactors the analyzer cannot prove are safe.
 
-**Eventual goal:** as null-state analysis matures, more diagnostics move from warnings to compile errors under `enable`, until `enable` treats all NPT violations as compile errors. Until then, `warn` remains the migration mode where everything is a warning.
+**Eventual goal:** as null-state analysis matures, more diagnostics move from warnings to compile errors under `enable`, until `enable` treats all NPT violations as compile errors. Until then, `warnings` remains the migration mode where everything is a warning.
 
 ### Tooling
 
@@ -122,18 +122,18 @@ Not every NPT diagnostic is equally certain. Under `enable`:
 
 ## Overview
 
-Today every pointer can be `nil`, and the compiler does not distinguish “this must point to something” from “this might be absent.” When `nilable_pointers` is `warn` or `enable`, NPT lets callers and implementers state that intent in the type system and get warnings or errors when code violates it.
+Today every pointer can be `nil`, and the compiler does not distinguish “this must point to something” from “this might be absent.” When `nilable_pointers` is `warnings` or `enable`, NPT lets callers and implementers state that intent in the type system and get warnings or errors when code violates it.
 
-| Today (`disable`) | With NPT on (`warn` / `enable`) |
+| Today (`disable`) | With NPT on (`warnings` / `enable`) |
 | ----------------- | ------------------------------- |
 | `var a *MyStruct` — may be `nil`; no annotation | `var a *MyStruct` — **must not** be `nil` |
 | (same syntax) | `var a *MyStruct?` — **may** be `nil` |
 
 When the context is **disabled** (default), pointer types behave exactly as in current Go: every `*T` may be `nil`, and `*T?` is not a distinct type (or is rejected as redundant).
 
-When the context is **enabled** (`warn` or `enable`), pointer annotations apply:
+When the context is **enabled** (`warnings` or `enable`), pointer annotations apply:
 
-- `*T` — non-nilable pointer; assigning or passing `nil` where `*T` is expected is a compile error under `enable` (a warning under `warn`).
+- `*T` — non-nilable pointer; assigning or passing `nil` where `*T` is expected is a compile error under `enable` (a warning under `warnings`).
 - `*T?` — nilable pointer; holding `nil` is allowed; dereferencing without a nil check is a warning under `enable` (see [Diagnostics](#diagnostics)).
 
 The `?` suffix attaches to the pointer type as a whole (`*MyStruct?`), consistent with `int?` for value types. It is not the same as `*int?` (pointer to nilable `int`), which remains “pointer to `int?`” when both features are in use.
@@ -161,10 +161,10 @@ The `?` suffix attaches to the pointer type as a whole (`*MyStruct?`), consisten
 ### Declarations
 
 ```go
-// NPT enabled in this module (nilable_pointers enable or warn)
+// NPT enabled in this module (nilable_pointers enable or warnings)
 
 var required *MyStruct = &MyStruct{} // ok
-var required *MyStruct = nil         // compile error with enable; warning with warn
+var required *MyStruct = nil         // compile error with enable; warning with warnings
 
 var optional *MyStruct? = nil        // ok
 var optional *MyStruct? = &MyStruct{} // ok
@@ -190,7 +190,7 @@ func Find(id int) *User? {
 }
 
 func MustFind(id int) *User {
-	// caller expects non-nil; returning nil is a compile error with enable, warning with warn
+	// caller expects non-nil; returning nil is a compile error with enable, warning with warnings
 }
 ```
 
@@ -277,7 +277,7 @@ For non-nilable `*T`, `?.` is unnecessary (dereference is always allowed by anno
 | `*T?` | `*T` | no, unless proven not-null (branch, unwrap) |
 | `*T` | `*T` | yes |
 | `nil` | `*T?` | yes |
-| `nil` | `*T` | compile error with `enable`; warning with `warn` |
+| `nil` | `*T` | compile error with `enable`; warning with `warnings` |
 
 Unwrapping `*T?` to `*T`:
 
@@ -318,9 +318,9 @@ Parameter and return annotations are not always enough. A helper may accept `*T?
 
 ## Diagnostics
 
-When NPT is on (`nilable_pointers` is `warn` or `enable`):
+When NPT is on (`nilable_pointers` is `warnings` or `enable`):
 
-| Situation | Category | `warn` | `enable` (v1) | `enable` (goal) |
+| Situation | Category | `warnings` | `enable` (v1) | `enable` (goal) |
 | --------- | -------- | ------ | ------------- | --------------- |
 | Assign `nil` to `*T` | definite | warning | compile error | compile error |
 | Return `nil` from function declared `*T` | definite | warning | compile error | compile error |
@@ -331,7 +331,7 @@ When NPT is on (`nilable_pointers` is `warn` or `enable`):
 
 **Definite** violations do not depend on control-flow inference — the source itself assigns or returns `nil` for a non-nilable type. **Flow** violations depend on null-state analysis; they are warnings under `enable` in v1 because the analyzer may be incomplete or produce debatable results.
 
-Over time, flow diagnostics should be promoted to compile errors under `enable` as analysis improves. `warn` stays available for modules that are not ready for any build failures.
+Over time, flow diagnostics should be promoted to compile errors under `enable` as analysis improves. `warnings` stays available for modules that are not ready for any build failures.
 
 **Runtime:** unchanged. A non-nilable `*T` that holds `nil` at run time still panics on dereference (or behaves as today); NPT does not insert checks.
 
@@ -361,7 +361,7 @@ Mitigation options for a future revision: `required` field markers, constructors
 ## Migration
 
 1. Omit `nilable_pointers` or set `nilable_pointers disable` in existing `go.mod` files (default is disable).
-2. Enable per module with warnings first: `nilable_pointers warn` (see [Configuration](#configuration)).
+2. Enable per module with warnings first: `nilable_pointers warnings` (see [Configuration](#configuration)).
 3. Fix warnings module-by-module; use `//go:nilable_pointers disable` … `end` on generated or legacy files.
 4. Tighten to `nilable_pointers enable` when definite violations (nil assignment/return) are clean; flow warnings may remain.
 5. As analysis improves, `enable` will promote more flow diagnostics to compile errors without changing the directive name.
