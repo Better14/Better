@@ -170,6 +170,10 @@ func TestNewFormat(t *testing.T) {
 	if got := errors.New("100% complete").Error(); got != "100% complete" {
 		t.Fatalf("literal percent = %q, want 100%% complete", got)
 	}
+	err = errors.New("rate: %.2f", 3.14)
+	if got := err.Error(); got != "rate: 3.14" {
+		t.Fatalf("float format = %q, want rate: 3.14", got)
+	}
 }
 
 func TestNewCustomFormat(t *testing.T) {

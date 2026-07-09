@@ -4,5 +4,7 @@
 
 package fmt
 
+import "internal/printf"
+
 var IsSpace = isSpace
-var Parsenum = parsenum
+var Parsenum = printf.Parsenum

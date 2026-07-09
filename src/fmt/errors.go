@@ -6,6 +6,7 @@ package fmt
 
 import (
 	"errors"
+	"internal/printf"
 	"internal/stringslite"
 	"slices"
 )
@@ -48,24 +49,25 @@ func errorf(format string, a ...any) error {
 	if len(a) == 0 && stringslite.IndexByte(format, '%') == -1 {
 		return nil
 	}
-	p := newPrinter()
-	p.wrapErrs = true
-	p.doPrintf(format, a)
-	s := string(p.buf)
+	p := printf.New()
+	p.SetWrapErrs(true)
+	p.Printf(format, a...)
+	s := p.String()
+	wrappedErrs := p.WrappedErrs()
 	var err error
-	switch len(p.wrappedErrs) {
+	switch len(wrappedErrs) {
 	case 0:
 		err = errors.New(s)
 	case 1:
-		wrapped, _ := a[p.wrappedErrs[0]].(error)
+		wrapped, _ := a[wrappedErrs[0]].(error)
 		err = errors.NewWrapped(s, wrapped)
 	default:
-		if p.reordered {
-			slices.Sort(p.wrappedErrs)
+		if p.Reordered() {
+			slices.Sort(wrappedErrs)
 		}
 		var errs []error
-		for i, argNum := range p.wrappedErrs {
-			if i > 0 && p.wrappedErrs[i-1] == argNum {
+		for i, argNum := range wrappedErrs {
+			if i > 0 && wrappedErrs[i-1] == argNum {
 				continue
 			}
 			if e, ok := a[argNum].(error); ok {
@@ -74,7 +76,7 @@ func errorf(format string, a ...any) error {
 		}
 		err = &wrapErrors{s, errs}
 	}
-	p.free()
+	p.Free()
 	return err
 }
 
