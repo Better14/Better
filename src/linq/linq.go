@@ -190,14 +190,19 @@ func SequenceEqual[T comparable](seq iter.Seq[T], other iter.Seq[T]) bool {
 	return sequenceEqualSeq(seq, other)
 }
 
-// ToList materializes the sequence.
-func ToList[T any](seq iter.Seq[T]) []T {
+// ToSlice materializes the sequence.
+func ToSlice[T any](seq iter.Seq[T]) []T {
 	return toListSeq(seq)
 }
 
-// ToArray materializes the sequence to a slice.
+// ToList materializes the sequence. Deprecated: use [ToSlice].
+func ToList[T any](seq iter.Seq[T]) []T {
+	return ToSlice(seq)
+}
+
+// ToArray materializes the sequence to a slice. Deprecated: use [ToSlice].
 func ToArray[T any](seq iter.Seq[T]) []T {
-	return toListSeq(seq)
+	return ToSlice(seq)
 }
 
 // ToHashSet materializes comparable elements into a set.

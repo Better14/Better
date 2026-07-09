@@ -180,12 +180,16 @@ func (seq iter.Seq[T]) SequenceEqual[T comparable](other iter.Seq[T]) bool {
 	return SequenceEqual(seq, other)
 }
 
+func (seq iter.Seq[T]) ToSlice() []T {
+	return ToSlice(seq)
+}
+
 func (seq iter.Seq[T]) ToList() []T {
-	return ToList(seq)
+	return ToSlice(seq)
 }
 
 func (seq iter.Seq[T]) ToArray() []T {
-	return ToArray(seq)
+	return ToSlice(seq)
 }
 
 func (seq iter.Seq[T]) ToHashSet[T comparable]() HashSet[T] {

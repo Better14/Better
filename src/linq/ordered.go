@@ -64,9 +64,14 @@ func (o Ordered[T]) Seq() iter.Seq[T] {
 	return slices.Values(o.items)
 }
 
-// ToList materializes the ordered sequence.
-func (o Ordered[T]) ToList() []T {
+// ToSlice materializes the ordered sequence.
+func (o Ordered[T]) ToSlice() []T {
 	return slices.Clone(o.items)
+}
+
+// ToList materializes the ordered sequence. Deprecated: use [Ordered.ToSlice].
+func (o Ordered[T]) ToList() []T {
+	return o.ToSlice()
 }
 
 func (o Ordered[T]) Zip[U, R any](other iter.Seq[U], fn func(T, U) R) iter.Seq[R] {

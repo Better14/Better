@@ -13,9 +13,9 @@ func sliceLen[T any](s []T) (int, bool) {
 	return len(s), true
 }
 
-func TestChainWhereSelectToList(t *testing.T) {
+func TestChainWhereSelectToSlice(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5}
-	out := toListSeq(selectBySeq(whereSeq(From(nums), func(n int) bool { return n < 5 }), func(n int) int { return n + 1 }))
+	out := ToSlice(selectBySeq(whereSeq(From(nums), func(n int) bool { return n < 5 }), func(n int) int { return n + 1 }))
 	want := []int{2, 3, 4, 5}
 	if !slices.Equal(out, want) {
 		t.Fatalf("got %v, want %v", out, want)
@@ -91,7 +91,7 @@ func TestOrderThenBy(t *testing.T) {
 		age  int
 	}
 	people := []person{{"bob", 30}, {"alice", 25}, {"alice", 20}}
-	out := orderBySeq(From(people), func(p person) string { return p.name }).ThenBy(func(p person) int { return p.age }).ToList()
+	out := orderBySeq(From(people), func(p person) string { return p.name }).ThenBy(func(p person) int { return p.age }).ToSlice()
 	if out[0].age != 20 || out[2].name != "bob" {
 		t.Fatalf("Order/ThenBy: %v", out)
 	}

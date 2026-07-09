@@ -2,7 +2,7 @@
 
 Go includes built-in LINQ-style query operations that mirror C# naming and semantics. With `import "linq"`, chains run on `iter.Seq[T]` via **extension methods**. When the first receiver in a chain is `[]T`, the compiler calls optimized private slice implementations inside the `linq` package.
 
-- Same method names as C# (`Where`, `Select`, `OrderBy`, `GroupBy`, `First`, `ToList`, etc.)
+- Same method names as C# (`Where`, `Select`, `OrderBy`, `GroupBy`, `First`, `ToSlice`, etc.); `ToList` is an alias for `ToSlice`
 - Lazy evaluation where applicable (deferred iteration until materialization)
 - Minimal allocations; iterators and pipelines avoid unnecessary intermediate slices
 - Public API is unified on `iter.Seq[T]`; call LINQ methods directly on slices and other supported collections — no `linq.From` wrapper needed
@@ -18,7 +18,7 @@ first := doubled.First()
 
 ### Chained one-liners
 
-Pipelines compose left-to-right; each stage is lazy until a terminal operator (`First`, `ToList`, `Sum`, etc.) runs.
+Pipelines compose left-to-right; each stage is lazy until a terminal operator (`First`, `ToSlice`, `Sum`, etc.) runs.
 
 ```go
 nums := []int{1, 2, 3, 4, 5, 6, 7, 8}
@@ -27,13 +27,13 @@ nums := []int{1, 2, 3, 4, 5, 6, 7, 8}
 firstEvenDouble := nums.Where(n => n%2 == 0).Select(n => n * 2).First()
 
 // filter → order → take
-topThree := nums.Where(n => n > 2).OrderByDescending(n => n).Take(3).ToList()
+topThree := nums.Where(n => n > 2).OrderByDescending(n => n).Take(3).ToSlice()
 
 // map → aggregate
 sumOfSquares := nums.Select(n => n * n).Sum()
 
 // skip → take → map
-page := nums.Skip(10).Take(20).Select(n => fmt.Sprintf("%d", n)).ToList()
+page := nums.Skip(10).Take(20).Select(n => fmt.Sprintf("%d", n)).ToSlice()
 
 // any / all over a chain
 hasLargeEven := nums.Where(n => n%2 == 0).Any(n => n > 100)
@@ -47,10 +47,10 @@ line := names.Where(s => len(s) > 0).Select(s => strings.ToUpper(s)).Aggregate((
 byMod := nums.GroupBy(n => n % 3).Select(g => struct {
 	Key   int
 	Count int
-}{g.Key, g.Count()}).ToList()
+}{g.Key, g.Count()}).ToSlice()
 
 // distinct after transform
-unique := nums.Select(n => n / 2).Distinct().OrderBy(n => n).ToList()
+unique := nums.Select(n => n / 2).Distinct().OrderBy(n => n).ToSlice()
 
 // first match or default
 found := users.Where(u => u.Active).Select(u => u.Email).FirstOrDefault()
@@ -62,7 +62,7 @@ Predicate and projection arguments are typically single-expression lambdas using
 import "linq"
 
 nums := []int{1, 2, 3, 4, 5}
-out := nums.Where(n => n < 5).Select(n => n + 1).ToList()
+out := nums.Where(n => n < 5).Select(n => n + 1).ToSlice()
 ```
 
 Slice receivers on the first call in a chain use compiler specialization to call unexported `*Slice` fast paths (for example `whereSlice`) instead of wrapping with `slices.Values`.
