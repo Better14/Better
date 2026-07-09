@@ -283,8 +283,11 @@ func (check *Checker) nullCoalesce(x *operand, e ast.Expr, lhs, rhs ast.Expr) {
 	}
 }
 
-// nilableElem returns the element type if t is T?, or nil.
+// nilableElem returns the element type if t is T? or *T?, or nil.
 func nilableElem(t Type) Type {
+	if elem, ok := nilablePointerElem(t); ok {
+		return elem
+	}
 	if o, ok := t.Underlying().(*Optional); ok {
 		return o.elem
 	}

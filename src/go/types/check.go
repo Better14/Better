@@ -46,7 +46,7 @@ type environment struct {
 	isPanic       map[*ast.CallExpr]bool // set of panic call expressions (used for termination check)
 	hasLabel      bool                   // set if a function makes use of labels (only ~1% of functions); unused outside functions
 	hasCallOrRecv bool                   // set if an expression contains a function call or channel receive operation
-	nilableNarrow map[*Var]Type         // variables narrowed from T? to T within the current control-flow region
+	nilableNarrow map[*Var]Type         // variables narrowed from T? (or *T?) to T (or *T) within the current control-flow region
 
 	// go/types only
 	exprPos token.Pos // if valid, identifiers are looked up as if at position pos (used by CheckExpr, Eval)
@@ -177,6 +177,8 @@ type Checker struct {
 	callExpectedType     Type                                 // if set, infer missing type args from this expected expression type
 	inferResultType      Type                                 // function result type for callExpectedType inference
 
+	nilablePointers nilablePointersMode // effective nilable pointer mode for current file
+
 	firstErr   error                 // first error encountered
 	methods    map[*TypeName][]*Func // maps package scope type names to associated non-blank (non-interface) methods
 	untyped    map[ast.Expr]exprInfo // map of expressions without final type
@@ -275,15 +277,16 @@ func NewChecker(conf *Config, fset *token.FileSet, pkg *Package, info *Info) *Ch
 	// (previously, pkg.goVersion was mutated here: go.dev/issue/61212)
 
 	return &Checker{
-		conf:         conf,
-		ctxt:         conf.Context,
-		fset:         fset,
-		pkg:          pkg,
-		Info:         info,
-		objMap:       make(map[Object]*declInfo),
-		impMap:       make(map[importKey]*Package),
-		usedVars:     make(map[*Var]bool),
-		usedPkgNames: make(map[*PkgName]bool),
+		conf:            conf,
+		ctxt:            conf.Context,
+		fset:            fset,
+		pkg:             pkg,
+		Info:            info,
+		objMap:          make(map[Object]*declInfo),
+		impMap:          make(map[importKey]*Package),
+		usedVars:        make(map[*Var]bool),
+		usedPkgNames:    make(map[*PkgName]bool),
+		nilablePointers: parseNilablePointersMode(conf.NilablePointers),
 	}
 }
 
@@ -380,6 +383,9 @@ func (check *Checker) initFiles(files []*ast.File) {
 			}
 		}
 		versions[file] = v
+		if file.NilablePointers == "" {
+			file.NilablePointers = nilablePointersDirective(file)
+		}
 	}
 }
 

@@ -56,6 +56,9 @@ func LoadPackage(filenames []string) {
 				defer f.Close()
 
 				p.file, _ = syntax.Parse(fbase, f, p.error, p.pragma, syntax.CheckBranches) // errors are tracked via p.error
+				if p.file != nil && p.fileNilablePointers != "" {
+					p.file.NilablePointers = p.fileNilablePointers
+				}
 			}()
 		}
 	}()
@@ -97,10 +100,11 @@ func trimFilename(b *syntax.PosBase) string {
 
 // noder transforms package syntax's AST into a Node tree.
 type noder struct {
-	file       *syntax.File
-	linknames  []linkname
-	pragcgobuf [][]string
-	err        chan syntax.Error
+	file                *syntax.File
+	linknames           []linkname
+	pragcgobuf          [][]string
+	fileNilablePointers string
+	err                 chan syntax.Error
 }
 
 // linkname records a //go:linkname or //go:linknamestd directive.
@@ -168,11 +172,12 @@ var allowedStdPragmas = map[string]bool{
 
 // *pragmas is the value stored in a syntax.pragmas during parsing.
 type pragmas struct {
-	Flag       ir.PragmaFlag // collected bits
-	Pos        []pragmaPos   // position of each individual flag
-	Embeds     []pragmaEmbed
-	WasmImport *WasmImport
-	WasmExport *WasmExport
+	Flag              ir.PragmaFlag // collected bits
+	Pos               []pragmaPos   // position of each individual flag
+	Embeds            []pragmaEmbed
+	WasmImport        *WasmImport
+	WasmExport        *WasmExport
+	NilablePointers   string // disable, warn, or enable
 }
 
 func (p *pragmas) Nointerface() bool {
@@ -276,6 +281,20 @@ func (p *noder) pragma(pos syntax.Pos, blankLine bool, text string, old syntax.P
 				Pos:  pos,
 				Name: f[1],
 			}
+		}
+
+	case strings.HasPrefix(text, "go:nilable_pointers "):
+		f := strings.Fields(text)
+		if len(f) != 2 {
+			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warn|enable"})
+			break
+		}
+		switch f[1] {
+		case "disable", "warn", "enable":
+			pragma.NilablePointers = f[1]
+			p.fileNilablePointers = f[1]
+		default:
+			p.error(syntax.Error{Pos: pos, Msg: "usage: //go:nilable_pointers disable|warn|enable"})
 		}
 
 	case strings.HasPrefix(text, "go:linkname "), strings.HasPrefix(text, "go:linknamestd "):

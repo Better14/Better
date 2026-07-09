@@ -271,6 +271,7 @@ func (check *Checker) collectObjects() {
 	}
 	for fileNo, file := range check.files {
 		check.version = asGoVersion(check.versions[file.Pos().FileBase()])
+		check.nilablePointers = check.fileNilablePointersMode(file)
 
 		// The package identifier denotes the current package,
 		// but there is no corresponding package object.

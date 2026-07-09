@@ -44,7 +44,7 @@ type environment struct {
 	isPanic       map[*syntax.CallExpr]bool // set of panic call expressions (used for termination check)
 	hasLabel         bool                      // set if a function makes use of labels (only ~1% of functions); unused outside functions
 	hasCallOrRecv    bool                      // set if an expression contains a function call or channel receive operation
-	nilableNarrow   map[*Var]Type             // variables narrowed from T? to T within the current control-flow region
+	nilableNarrow   map[*Var]Type             // variables narrowed from T? (or *T?) to T (or *T) within the current control-flow region
 }
 
 // lookupScope looks up name in the current environment and if an object
@@ -171,6 +171,8 @@ type Checker struct {
 	inExtensionProbe     bool                                 // guard against recursive extension call probing
 	pendingRecvMethod    string                               // method name while checking a method signature
 
+	nilablePointers nilablePointersMode // effective nilable pointer mode for current file
+
 	firstErr   error                    // first error encountered
 	methods    map[*TypeName][]*Func    // maps package scope type names to associated non-blank (non-interface) methods
 	untyped    map[syntax.Expr]exprInfo // map of expressions without final type
@@ -269,14 +271,15 @@ func NewChecker(conf *Config, pkg *Package, info *Info) *Checker {
 	// (previously, pkg.goVersion was mutated here: go.dev/issue/61212)
 
 	return &Checker{
-		conf:         conf,
-		ctxt:         conf.Context,
-		pkg:          pkg,
-		Info:         info,
-		objMap:       make(map[Object]*declInfo),
-		impMap:       make(map[importKey]*Package),
-		usedVars:     make(map[*Var]bool),
-		usedPkgNames: make(map[*PkgName]bool),
+		conf:            conf,
+		ctxt:            conf.Context,
+		pkg:             pkg,
+		Info:            info,
+		objMap:          make(map[Object]*declInfo),
+		impMap:          make(map[importKey]*Package),
+		usedVars:        make(map[*Var]bool),
+		usedPkgNames:    make(map[*PkgName]bool),
+		nilablePointers: parseNilablePointersMode(conf.NilablePointers),
 	}
 }
 

@@ -408,6 +408,9 @@ func (check *Checker) typInternal(e0 ast.Expr, def *TypeName) (T Type) {
 			check.errorf(e, InvalidSyntaxTree, "invalid nilable type %s?; cannot apply ? to an already-nilable type", elem)
 			return Typ[Invalid]
 		}
+		if _, ok := elem.Underlying().(*Pointer); ok && !check.nilablePointersOn() {
+			return elem // *T? == *T when nilable pointers are disabled
+		}
 		return NewOptional(elem)
 
 	default:

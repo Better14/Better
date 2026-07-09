@@ -1260,6 +1260,7 @@ type File struct {
 	Unresolved         []*Ident        // unresolved identifiers in this file. Deprecated: see Object
 	Comments           []*CommentGroup // comments in the file, in lexical order
 	GoVersion          string          // minimum Go version required by //go:build or // +build directives
+	NilablePointers    string          // from //go:nilable_pointers disable|warn|enable
 }
 
 // Pos returns the position of the package declaration.

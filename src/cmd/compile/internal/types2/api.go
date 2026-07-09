@@ -175,6 +175,11 @@ type Config struct {
 	// of an error message. ErrorURL must be a format string containing
 	// exactly one "%s" format, e.g. "[go.dev/e/%s]".
 	ErrorURL string
+
+	// NilablePointers controls nilable pointer types (*T vs *T?).
+	// Valid values are "disable" (default), "warn", and "enable".
+	// Per-file //go:nilable_pointers directives override this setting.
+	NilablePointers string
 }
 
 // Info holds result type information for a type-checked package.

@@ -36,6 +36,13 @@ func (check *Checker) assignment(x *operand, T Type, context string) {
 		return
 	}
 
+	// Reject nil before implicit conversion to strict *T (see implicitTypeAndValue *Pointer).
+	if x.isNil() && T != nil && isStrictPointerType(T) && check.nilablePointersOn() {
+		check.reportNilToStrictPointer(x, T)
+		x.invalidate()
+		return
+	}
+
 	if isUntyped(x.typ()) {
 		target := T
 		if T != nil && !x.isNil() {

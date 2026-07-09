@@ -43,6 +43,7 @@ type File struct {
 	DeclList  []Decl
 	EOF       Pos
 	GoVersion string
+	NilablePointers string // from //go:nilable_pointers disable|warn|enable
 	node
 }
 
