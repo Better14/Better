@@ -292,6 +292,22 @@ func (mms *MainModuleSet) Godebugs(ld *Loader) []*modfile.Godebug {
 	return nil
 }
 
+// NilablePointers returns the nilable_pointers mode from the main module's go.mod.
+// The empty string means disable (legacy behavior).
+func (mms *MainModuleSet) NilablePointers(ld *Loader) string {
+	if ld.inWorkspaceMode() {
+		return "" // workspace-level nilable_pointers not supported yet
+	}
+	if mms != nil && len(mms.versions) == 1 {
+		f := mms.ModFile(mms.mustGetSingleMainModule(ld))
+		if f == nil || f.NilablePointers == nil {
+			return ""
+		}
+		return f.NilablePointers.Mode
+	}
+	return ""
+}
+
 func (mms *MainModuleSet) WorkFileReplaceMap() map[module.Version]module.Version {
 	return mms.workFileReplaceMap
 }

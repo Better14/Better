@@ -38,8 +38,9 @@ import (
 type File struct {
 	Module    *Module
 	Go        *Go
-	Toolchain *Toolchain
-	Godebug   []*Godebug
+	Toolchain       *Toolchain
+	NilablePointers *NilablePointers
+	Godebug         []*Godebug
 	Require   []*Require
 	Exclude   []*Exclude
 	Replace   []*Replace
@@ -66,6 +67,12 @@ type Go struct {
 // A Toolchain is the toolchain statement.
 type Toolchain struct {
 	Name   string // "go1.21rc1"
+	Syntax *Line
+}
+
+// A NilablePointers is the nilable_pointers statement.
+type NilablePointers struct {
+	Mode   string // disable, warn, or enable
 	Syntax *Line
 }
 
@@ -416,6 +423,22 @@ func (f *File) add(errs *ErrorList, block *LineBlock, line *Line, verb string, a
 		}
 		f.Toolchain = &Toolchain{Syntax: line}
 		f.Toolchain.Name = args[0]
+
+	case "nilable_pointers":
+		if f.NilablePointers != nil {
+			errorf("repeated nilable_pointers statement")
+			return
+		}
+		if len(args) != 1 {
+			errorf("nilable_pointers directive expects exactly one argument")
+			return
+		}
+		switch args[0] {
+		case "disable", "warn", "enable":
+			f.NilablePointers = &NilablePointers{Syntax: line, Mode: args[0]}
+		default:
+			errorf("invalid nilable_pointers value %q: must be disable, warn, or enable", args[0])
+		}
 
 	case "module":
 		if f.Module != nil {

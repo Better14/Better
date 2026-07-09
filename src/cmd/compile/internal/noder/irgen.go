@@ -100,7 +100,11 @@ recheck:
 		base.ErrorfAt(m.makeXPos(terr.Pos), terr.Code, "%s", msg)
 	}
 
-	pkg, err := conf.Check(base.Ctxt.Pkgpath, files, info)
+	pkg := types2.NewPackage(base.Ctxt.Pkgpath, "")
+	if base.Flag.NilablePointers != "" {
+		pkg.SetNilablePointers(base.Flag.NilablePointers)
+	}
+	err := types2.NewChecker(&conf, pkg, info).Files(files)
 	base.ExitIfErrors()
 	if err != nil {
 		base.FatalfAt(src.NoXPos, "conf.Check error: %v", err)
