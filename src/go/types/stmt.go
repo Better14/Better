@@ -130,6 +130,27 @@ func (check *Checker) stmtList(ctxt stmtContext, list []ast.Stmt) {
 				})
 				return
 			}
+			if narrowVars, narrowSels, guardOk := check.nilableGuardDefaultAssignNarrow(ifs); guardOk && i+1 < len(list) {
+				check.stmt(inner, s)
+				check.withNilableNarrow(narrowVars, narrowSels, func() {
+					check.stmtList(inner, list[i+1:])
+				})
+				return
+			}
+			if narrowVars, narrowSels, guardOk := check.nilableGuardEarlyContinueNarrow(ifs); guardOk && i+1 < len(list) {
+				check.stmt(inner, s)
+				check.withNilableNarrow(narrowVars, narrowSels, func() {
+					check.stmtList(inner, list[i+1:])
+				})
+				return
+			}
+			if narrowVars, narrowSels, guardOk := check.nilableGuardOrNilFirstNarrow(ifs); guardOk && i+1 < len(list) {
+				check.stmt(inner, s)
+				check.withNilableNarrow(narrowVars, narrowSels, func() {
+					check.stmtList(inner, list[i+1:])
+				})
+				return
+			}
 		}
 		check.stmt(inner, s)
 	}

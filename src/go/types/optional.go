@@ -433,3 +433,171 @@ func (check *Checker) nilableGuardEarlyReturnNarrow(s *ast.IfStmt) (narrowVars m
 	}
 	return narrowVars, narrowSels, true
 }
+
+// nilableGuardDefaultAssignNarrow reports narrowing for `if x == nil { x = <non-nil> }` with no else.
+// Statements after the if can treat x as non-nilable (strict *T or T).
+func (check *Checker) nilableGuardDefaultAssignNarrow(s *ast.IfStmt) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, ok bool) {
+	if s.Init != nil || s.Else != nil {
+		return nil, nil, false
+	}
+	narrowVars, narrowSels, nonNil, guardOk := check.parseNilableGuard(s.Cond)
+	if !guardOk || nonNil || (len(narrowVars) == 0 && len(narrowSels) == 0) {
+		return nil, nil, false
+	}
+	if !check.nilDefaultAssignInBlock(s.Body, narrowVars, narrowSels) {
+		return nil, nil, false
+	}
+	return narrowVars, narrowSels, true
+}
+
+// isSkipping reports whether s always exits the current control path
+// (return, continue, break, goto, fallthrough, or panic).
+func (check *Checker) isSkipping(s ast.Stmt, label string) bool {
+	switch s := s.(type) {
+	default:
+		return false
+	case *ast.ExprStmt:
+		if call, ok := ast.Unparen(s.X).(*ast.CallExpr); ok && (check.isPanic[call] || isPanicCall(call)) {
+			return true
+		}
+	case *ast.ReturnStmt:
+		return true
+	case *ast.BranchStmt:
+		switch s.Tok {
+		case token.CONTINUE, token.BREAK, token.GOTO, token.FALLTHROUGH:
+			return true
+		}
+	case *ast.LabeledStmt:
+		return check.isSkipping(s.Stmt, s.Label.Name)
+	case *ast.BlockStmt:
+		return check.isSkippingList(s.List, label)
+	case *ast.IfStmt:
+		if s.Else != nil {
+			return false
+		}
+		return check.isSkipping(s.Body, label)
+	}
+	return false
+}
+
+func (check *Checker) isSkippingList(list []ast.Stmt, label string) bool {
+	for i := len(list) - 1; i >= 0; i-- {
+		if _, ok := list[i].(*ast.EmptyStmt); !ok {
+			return check.isSkipping(list[i], label)
+		}
+	}
+	return false
+}
+
+// nilableGuardEarlyContinueNarrow reports narrowing after `if x == nil { <skip> }` with no else.
+func (check *Checker) nilableGuardEarlyContinueNarrow(s *ast.IfStmt) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, ok bool) {
+	if s.Init != nil || s.Else != nil {
+		return nil, nil, false
+	}
+	narrowVars, narrowSels, nonNil, guardOk := check.parseNilableGuard(s.Cond)
+	if !guardOk || nonNil || (len(narrowVars) == 0 && len(narrowSels) == 0) {
+		return nil, nil, false
+	}
+	if !check.isSkipping(s.Body, "") {
+		return nil, nil, false
+	}
+	return narrowVars, narrowSels, true
+}
+
+// nilableGuardOrNilFirstNarrow reports narrowing after `if x == nil || … { <skip> }` with no else.
+func (check *Checker) nilableGuardOrNilFirstNarrow(s *ast.IfStmt) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, ok bool) {
+	if s.Init != nil || s.Else != nil {
+		return nil, nil, false
+	}
+	op, ok := ast.Unparen(s.Cond).(*ast.BinaryExpr)
+	if !ok || op.Op != token.LOR {
+		return nil, nil, false
+	}
+	narrowVars, narrowSels, nonNil, guardOk := check.parseNilableGuard(op.X)
+	if !guardOk || nonNil || (len(narrowVars) == 0 && len(narrowSels) == 0) {
+		return nil, nil, false
+	}
+	if !check.isSkipping(s.Body, "") && !check.isTerminating(s.Body, "") {
+		return nil, nil, false
+	}
+	return narrowVars, narrowSels, true
+}
+
+func (check *Checker) nilDefaultAssignInBlock(body *ast.BlockStmt, narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type) bool {
+	if body == nil || len(body.List) == 0 {
+		return false
+	}
+	assigned := make(map[*Var]bool, len(narrowVars))
+	assignedSel := make(map[nilableSelKey]bool, len(narrowSels))
+	for _, st := range body.List {
+		check.collectNilDefaultAssigns(st, assigned, assignedSel)
+	}
+	for v := range narrowVars {
+		if !assigned[v] {
+			return false
+		}
+	}
+	for k := range narrowSels {
+		if !assignedSel[k] {
+			return false
+		}
+	}
+	return true
+}
+
+func (check *Checker) collectNilDefaultAssigns(stmt ast.Stmt, assigned map[*Var]bool, assignedSel map[nilableSelKey]bool) {
+	switch s := stmt.(type) {
+	case *ast.AssignStmt:
+		if s.Tok != token.ASSIGN && s.Tok != token.DEFINE {
+			return
+		}
+		for i, lhs := range s.Lhs {
+			rhs := rhsAt(s.Rhs, i)
+			if rhs == nil || check.isNil(rhs) || !check.isNonNilPointerLike(rhs) {
+				continue
+			}
+			switch e := ast.Unparen(lhs).(type) {
+			case *ast.Ident:
+				obj := check.lookup(e.Name)
+				if v, ok := obj.(*Var); ok {
+					assigned[v] = true
+				}
+			case *ast.SelectorExpr:
+				if key, ok := check.nilableSelKeyFrom(e); ok {
+					assignedSel[key] = true
+				}
+			}
+		}
+	case *ast.BlockStmt:
+		for _, st := range s.List {
+			check.collectNilDefaultAssigns(st, assigned, assignedSel)
+		}
+	}
+}
+
+func rhsAt(rhs []ast.Expr, i int) ast.Expr {
+	if len(rhs) == 1 {
+		return rhs[0]
+	}
+	if i < len(rhs) {
+		return rhs[i]
+	}
+	return nil
+}
+
+func (check *Checker) isNonNilPointerLike(e ast.Expr) bool {
+	e = ast.Unparen(e)
+	if check.isNil(e) {
+		return false
+	}
+	switch e.(type) {
+	case *ast.UnaryExpr, *ast.CompositeLit, *ast.CallExpr:
+		return true
+	case *ast.Ident:
+		return true
+	case *ast.SelectorExpr:
+		return true
+	default:
+		return false
+	}
+}

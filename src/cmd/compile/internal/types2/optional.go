@@ -432,3 +432,134 @@ func (check *Checker) nilableGuardEarlyReturnNarrow(s *syntax.IfStmt) (narrowVar
 	}
 	return narrowVars, narrowSels, true
 }
+
+// nilableGuardDefaultAssignNarrow reports narrowing for `if x == nil { x = <non-nil> }` with no else.
+func (check *Checker) nilableGuardDefaultAssignNarrow(s *syntax.IfStmt) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, ok bool) {
+	if s.Init != nil || s.Else != nil {
+		return nil, nil, false
+	}
+	narrowVars, narrowSels, nonNil, guardOk := check.parseNilableGuard(s.Cond)
+	if !guardOk || nonNil || (len(narrowVars) == 0 && len(narrowSels) == 0) {
+		return nil, nil, false
+	}
+	if !check.nilDefaultAssignInBlock(s.Then, narrowVars, narrowSels) {
+		return nil, nil, false
+	}
+	return narrowVars, narrowSels, true
+}
+
+// nilableGuardEarlyContinueNarrow reports narrowing after `if x == nil { <skip> }` with no else.
+func (check *Checker) nilableGuardEarlyContinueNarrow(s *syntax.IfStmt) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, ok bool) {
+	if s.Init != nil || s.Else != nil {
+		return nil, nil, false
+	}
+	narrowVars, narrowSels, nonNil, guardOk := check.parseNilableGuard(s.Cond)
+	if !guardOk || nonNil || (len(narrowVars) == 0 && len(narrowSels) == 0) {
+		return nil, nil, false
+	}
+	if !check.isSkipping(s.Then, "") {
+		return nil, nil, false
+	}
+	return narrowVars, narrowSels, true
+}
+
+// nilableGuardOrNilFirstNarrow reports narrowing after `if x == nil || … { <skip> }` with no else.
+func (check *Checker) nilableGuardOrNilFirstNarrow(s *syntax.IfStmt) (narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type, ok bool) {
+	if s.Init != nil || s.Else != nil {
+		return nil, nil, false
+	}
+	op, ok := syntax.Unparen(s.Cond).(*syntax.Operation)
+	if !ok || op.Op != syntax.OrOr {
+		return nil, nil, false
+	}
+	narrowVars, narrowSels, nonNil, guardOk := check.parseNilableGuard(op.X)
+	if !guardOk || nonNil || (len(narrowVars) == 0 && len(narrowSels) == 0) {
+		return nil, nil, false
+	}
+	if !check.isSkipping(s.Then, "") && !check.isTerminating(s.Then, "") {
+		return nil, nil, false
+	}
+	return narrowVars, narrowSels, true
+}
+
+func (check *Checker) nilDefaultAssignInBlock(body syntax.Stmt, narrowVars map[*Var]Type, narrowSels map[nilableSelKey]Type) bool {
+	block, ok := body.(*syntax.BlockStmt)
+	if !ok || len(block.List) == 0 {
+		return false
+	}
+	assigned := make(map[*Var]bool, len(narrowVars))
+	assignedSel := make(map[nilableSelKey]bool, len(narrowSels))
+	for _, st := range block.List {
+		check.collectNilDefaultAssigns(st, assigned, assignedSel)
+	}
+	for v := range narrowVars {
+		if !assigned[v] {
+			return false
+		}
+	}
+	for k := range narrowSels {
+		if !assignedSel[k] {
+			return false
+		}
+	}
+	return true
+}
+
+func (check *Checker) collectNilDefaultAssigns(stmt syntax.Stmt, assigned map[*Var]bool, assignedSel map[nilableSelKey]bool) {
+	switch s := stmt.(type) {
+	case *syntax.AssignStmt:
+		if s.Rhs == nil || (s.Op != 0 && s.Op != syntax.Def) {
+			return
+		}
+		lhs := syntax.UnpackListExpr(s.Lhs)
+		rhs := syntax.UnpackListExpr(s.Rhs)
+		for i, l := range lhs {
+			r := rhsAt(rhs, i)
+			if r == nil || check.isNil(r) || !check.isNonNilPointerLike(r) {
+				continue
+			}
+			switch e := syntax.Unparen(l).(type) {
+			case *syntax.Name:
+				obj := check.lookup(e.Value)
+				if v, ok := obj.(*Var); ok {
+					assigned[v] = true
+				}
+			case *syntax.SelectorExpr:
+				if key, ok := check.nilableSelKeyFrom(e); ok {
+					assignedSel[key] = true
+				}
+			}
+		}
+	case *syntax.BlockStmt:
+		for _, st := range s.List {
+			check.collectNilDefaultAssigns(st, assigned, assignedSel)
+		}
+	}
+}
+
+func rhsAt(rhs []syntax.Expr, i int) syntax.Expr {
+	if len(rhs) == 1 {
+		return rhs[0]
+	}
+	if i < len(rhs) {
+		return rhs[i]
+	}
+	return nil
+}
+
+func (check *Checker) isNonNilPointerLike(e syntax.Expr) bool {
+	e = syntax.Unparen(e)
+	if check.isNil(e) {
+		return false
+	}
+	switch e.(type) {
+	case *syntax.Operation, *syntax.CompositeLit, *syntax.CallExpr:
+		return true
+	case *syntax.Name:
+		return true
+	case *syntax.SelectorExpr:
+		return true
+	default:
+		return false
+	}
+}

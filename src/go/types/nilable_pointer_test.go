@@ -108,6 +108,47 @@ func f(a *int?) int {
 	}
 }
 
+func TestNilablePointerDefaultAssignNarrowing(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+type Info struct {
+	API string
+}
+
+func Get() *Info? {
+	return nil
+}
+
+func Use() {
+	req := Get()
+	if req == nil {
+		req = &Info{API: "SYSTEM"}
+	}
+	_ = req.API
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilablePointerOrNilFirstNarrowing(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+type E struct { Children map[string]struct{} }
+func find() *E? { return nil }
+func f() *E? {
+	root := find()
+	if root == nil || len(root.Children) == 0 {
+		return root
+	}
+	x := *root
+	return &x
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
 func TestNilablePointerPackageEarlyReturn(t *testing.T) {
 	const src = `package p
 //go:nilable_pointers enable

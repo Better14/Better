@@ -188,3 +188,39 @@ func hasBreakCommList(list []*syntax.CommClause, label string, implicit bool) bo
 	}
 	return false
 }
+
+// isSkipping reports whether s always exits the current control path.
+func (check *Checker) isSkipping(s syntax.Stmt, label string) bool {
+	switch s := s.(type) {
+	case *syntax.ExprStmt:
+		if call, ok := syntax.Unparen(s.X).(*syntax.CallExpr); ok && (check.isPanic[call] || isPanicCall(call)) {
+			return true
+		}
+	case *syntax.ReturnStmt:
+		return true
+	case *syntax.BranchStmt:
+		switch s.Tok {
+		case syntax.Continue, syntax.Break, syntax.Goto, syntax.Fallthrough:
+			return true
+		}
+	case *syntax.LabeledStmt:
+		return check.isSkipping(s.Stmt, s.Label.Value)
+	case *syntax.BlockStmt:
+		return check.isSkippingList(s.List, label)
+	case *syntax.IfStmt:
+		if s.Else != nil {
+			return false
+		}
+		return check.isSkipping(s.Then, label)
+	}
+	return false
+}
+
+func (check *Checker) isSkippingList(list []syntax.Stmt, label string) bool {
+	for i := len(list) - 1; i >= 0; i-- {
+		if _, ok := list[i].(*syntax.EmptyStmt); !ok {
+			return check.isSkipping(list[i], label)
+		}
+	}
+	return false
+}
