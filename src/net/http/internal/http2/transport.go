@@ -1922,7 +1922,7 @@ func (cc *ClientConn) readLoop() {
 	cc.readerErr = rl.run()
 	if ce, ok := cc.readerErr.(ConnectionError); ok {
 		cc.wmu.Lock()
-		cc.fr.WriteGoAway(0, ErrCode(ce), nil)
+		cc.fr.WriteGoAway(0, ce.Code, nil)
 		cc.wmu.Unlock()
 	}
 }
@@ -2030,7 +2030,7 @@ func (cc *ClientConn) countReadFrameError(err error) {
 		return
 	}
 	if ce, ok := err.(ConnectionError); ok {
-		errCode := ErrCode(ce)
+		errCode := ce.Code
 		f(fmt.Sprintf("read_frame_conn_error_%s", errCode.stringToken()))
 		return
 	}
@@ -2086,7 +2086,7 @@ func (rl *clientConnReadLoop) run() error {
 		if !gotSettings {
 			if _, ok := f.(*SettingsFrame); !ok {
 				cc.logf("protocol error: received %T before a SETTINGS frame", f)
-				return ConnectionError(ErrCodeProtocol)
+				return NewConnectionError(ErrCodeProtocol)
 			}
 			gotSettings = true
 		}
@@ -2323,18 +2323,18 @@ func (rl *clientConnReadLoop) handleResponse(cs *clientStream, f *MetaHeadersFra
 func (rl *clientConnReadLoop) processTrailers(cs *clientStream, f *MetaHeadersFrame) error {
 	if cs.pastTrailers {
 		// Too many HEADERS frames for this stream.
-		return ConnectionError(ErrCodeProtocol)
+		return NewConnectionError(ErrCodeProtocol)
 	}
 	cs.pastTrailers = true
 	if !f.StreamEnded() {
 		// We expect that any headers for trailers also
 		// has END_STREAM.
-		return ConnectionError(ErrCodeProtocol)
+		return NewConnectionError(ErrCodeProtocol)
 	}
 	if len(f.PseudoFields()) > 0 {
 		// No pseudo header fields are defined for trailers.
 		// TODO: ConnectionError might be overly harsh? Check.
-		return ConnectionError(ErrCodeProtocol)
+		return NewConnectionError(ErrCodeProtocol)
 	}
 
 	trailer := make(Header)
@@ -2457,7 +2457,7 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 		if f.StreamID >= neverSent {
 			// We never asked for this.
 			cc.logf("http2: Transport received unsolicited DATA frame; closing connection")
-			return ConnectionError(ErrCodeProtocol)
+			return NewConnectionError(ErrCodeProtocol)
 		}
 		// We probably did ask for this, but canceled. Just ignore it.
 		// TODO: be stricter here? only silently ignore things which
@@ -2471,7 +2471,7 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 			connAdd := cc.inflow.add(int(f.Length))
 			cc.mu.Unlock()
 			if !ok {
-				return ConnectionError(ErrCodeFlowControl)
+				return NewConnectionError(ErrCodeFlowControl)
 			}
 			if connAdd > 0 {
 				cc.wmu.Lock()
@@ -2511,7 +2511,7 @@ func (rl *clientConnReadLoop) processData(f *DataFrame) error {
 		cc.mu.Lock()
 		if !takeInflows(&cc.inflow, &cs.inflow, f.Length) {
 			cc.mu.Unlock()
-			return ConnectionError(ErrCodeFlowControl)
+			return NewConnectionError(ErrCodeFlowControl)
 		}
 		// Return any padded flow control now, since we won't
 		// refund it later on body reads.
@@ -2700,7 +2700,7 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 			cc.wantSettingsAck = false
 			return nil
 		}
-		return ConnectionError(ErrCodeProtocol)
+		return NewConnectionError(ErrCodeProtocol)
 	}
 
 	var seenMaxConcurrentStreams bool
@@ -2723,7 +2723,7 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 			delta := int32(s.Val) - int32(cc.initialWindowSize)
 			for _, cs := range cc.streams {
 				if !cs.flow.add(delta) {
-					return ConnectionError(ErrCodeFlowControl)
+					return NewConnectionError(ErrCodeFlowControl)
 				}
 			}
 			cc.cond.Broadcast()
@@ -2792,7 +2792,7 @@ func (rl *clientConnReadLoop) processWindowUpdate(f *WindowUpdateFrame) error {
 			return nil
 		}
 
-		return ConnectionError(ErrCodeFlowControl)
+		return NewConnectionError(ErrCodeFlowControl)
 	}
 	cc.cond.Broadcast()
 	return nil
@@ -2899,7 +2899,7 @@ func (rl *clientConnReadLoop) processPushPromise(f *PushPromiseFrame) error {
 	// has set this setting and has received acknowledgement MUST
 	// treat the receipt of a PUSH_PROMISE frame as a connection
 	// error (Section 5.4.1) of type PROTOCOL_ERROR."
-	return ConnectionError(ErrCodeProtocol)
+	return NewConnectionError(ErrCodeProtocol)
 }
 
 // writeStreamReset sends a RST_STREAM frame.

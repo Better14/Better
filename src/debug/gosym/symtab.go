@@ -746,7 +746,7 @@ func (e UnknownFileError) Error() string { return "unknown file: " + string(e) }
 // counter, either because the line is beyond the bounds of the file
 // or because there is no code on the given line.
 type UnknownLineError struct {
-	errors.Error
+	errors.Base
 	File string
 	Line int
 }
@@ -757,7 +757,7 @@ func unknownLineErrorMessage(file string, line int) string {
 
 func newUnknownLineError(file string, line int) *UnknownLineError {
 	e := &UnknownLineError{File: file, Line: line}
-	errors.InitCustom(&e.Error, "%s", unknownLineErrorMessage(file, line))
+	errors.InitCustom(&e.Base, "%s", unknownLineErrorMessage(file, line))
 	return e
 }
 

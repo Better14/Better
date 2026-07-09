@@ -1495,6 +1495,7 @@ func (check *Checker) selector(x *operand, e *syntax.SelectorExpr, wantType bool
 
 	// everything went well
 	x.expr = e
+	check.record(x)
 	return
 
 Error:
