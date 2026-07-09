@@ -1,28 +1,107 @@
 # Nilable Pointer Types
 
-**Implemented** (opt-in via `nilable_pointers` in `go.mod` or `//go:nilable_pointers` per file).
+**Implemented** (opt-in via `nilable_pointers` in `go.mod` and `//go:nilable_pointers` in source).
 
 This document specifies *nilable pointer types* (NPT): a compile-time null-safety layer for Go pointer types. Runtime behavior is unchanged; the feature is entirely static analysis plus diagnostics.
 
 NPT is separate from but complementary to [nilable value types (`T?`)](nilable_types.md).
 
-## Setting
+## Configuration
 
-NPT is controlled by a `nilable_pointers` directive in `go.mod`:
+NPT has two configuration mechanisms:
+
+1. **`nilable_pointers` in `go.mod`** — project-wide default for the main module.
+2. **`//go:nilable_pointers` in `.go` files** — optional region overrides within a file.
+
+There is no `types.Config` field or other API knob; the mode comes from the module and source directives only. `go build`, `go test`, and gopls (when built against this fork) read the `go.mod` value and apply file regions during type checking.
+
+### Project default: `nilable_pointers` in `go.mod`
+
+Add a top-level directive to the main module's `go.mod` (alongside `module`, `go`, and `require`):
 
 ```go
 module example.com/myapp
 
 go 1.27
 
-nilable_pointers enable   // or: disable | warn
+nilable_pointers enable
 ```
 
 | Value | Meaning |
 | ----- | ------- |
-| `disable` | Legacy behavior; `*T` may be `nil`; `*T?` not used (default for existing modules) |
-| `warn` | NPT on; all violations are warnings |
+| *(omitted)* | Same as `disable` — legacy behavior for existing modules |
+| `disable` | `*T` may be `nil`; `*T?` is not a distinct type (collapses to `*T`) |
+| `warn` | NPT on; violations are **warnings** (build succeeds) — migration mode |
 | `enable` | NPT on; **definite** violations are compile errors; **flow-analysis** violations are warnings (see [Diagnostics](#diagnostics)) |
+
+Example migration path (similar to [C# nullable migration](https://learn.microsoft.com/en-us/dotnet/csharp/advanced-topics/update-applications/nullable-migration-strategies)):
+
+```go
+nilable_pointers warn    // step 1: see issues, keep building
+nilable_pointers enable  // step 2: fail on definite nil-to-*T violations
+```
+
+The compiler receives the mode via `-nilable_pointers=…` when `go build` / `go test` compile packages in the main module. Dependency modules keep their own `go.mod` setting; importers are not affected unless they enable NPT locally.
+
+### File overrides: `//go:nilable_pointers`
+
+Use a line comment to opt a **region** of a file into or out of NPT. The directive must appear on its own line (or with other `//go:` pragmas the parser accepts in that position):
+
+```go
+//go:nilable_pointers enable
+func migrated() {
+	var p *int = nil // error or warning per mode
+}
+//go:nilable_pointers end
+```
+
+| Directive | Effect |
+| --------- | ------ |
+| `//go:nilable_pointers enable` | Turn NPT on (`*T` non-nilable, `*T?` nilable) from this line until `end` or EOF |
+| `//go:nilable_pointers disable` | Turn NPT off (legacy `*T` rules) from this line until `end` or EOF |
+| `//go:nilable_pointers warn` | Same rules as `enable`, but definite violations are warnings |
+| `//go:nilable_pointers end` | Close the current region; revert to the **go.mod** default |
+
+**Region rules:**
+
+- An opening directive (`enable`, `disable`, or `warn`) starts a region at that comment's position.
+- `//go:nilable_pointers end` closes the open region; code after `end` uses the go.mod default.
+- If there is no matching `end`, the region runs to the **end of the file**.
+- A new opening directive without `end` on the previous region implicitly closes the previous region at the new directive.
+
+**Precedence:** `//go:nilable_pointers` region **overrides** `nilable_pointers` in `go.mod` for code inside that region.
+
+**Full-file example** (go.mod has `nilable_pointers disable`):
+
+```go
+package api
+
+// Legacy helper — still uses pre-NPT rules for this function only.
+//go:nilable_pointers disable
+func legacy(p *int) {
+	if p != nil {
+		_ = *p
+	}
+}
+//go:nilable_pointers end
+
+//go:nilable_pointers enable
+func strict(p *int?) {
+	if p != nil {
+		var q *int = p // narrowed to *int in then-branch
+		_ = q
+	}
+}
+//go:nilable_pointers end
+
+// Rest of file uses go.mod default (disable).
+func neutral(a *int?) {
+	var b *int = a // ok when NPT off: *T? and *T equivalent
+	_ = b
+}
+```
+
+**Generated or third-party code:** wrap legacy files in `//go:nilable_pointers disable` … `end`, or leave them in a module that keeps `nilable_pointers disable`.
 
 ### Severity under `enable`
 
@@ -33,23 +112,13 @@ Not every NPT diagnostic is equally certain. Under `enable`:
 
 **Eventual goal:** as null-state analysis matures, more diagnostics move from warnings to compile errors under `enable`, until `enable` treats all NPT violations as compile errors. Until then, `warn` remains the migration mode where everything is a warning.
 
-`go mod tidy` and module graph tools should read this directive so builds are reproducible and importers know which nullability rules apply.
+### Tooling
 
-File- or package-level overrides are supported for migration using region directives:
-
-```go
-//go:nilable_pointers enable
-// ... code with NPT on ...
-//go:nilable_pointers end   // revert to go.mod default
-
-//go:nilable_pointers disable
-// ... code with legacy *T may be nil ...
-//go:nilable_pointers end
-```
-
-If no `//go:nilable_pointers end` follows an opening directive, the mode applies to the rest of the file.
-
-Precedence: **region directive > go.mod** (project default).
+| Tool | Reads `go.mod` | Reads `//go:nilable_pointers` |
+| ---- | -------------- | ----------------------------- |
+| `go build`, `go test` | yes (`-nilable_pointers` passed to compile) | yes (regions on `syntax.File` / `ast.File`) |
+| gopls | yes (`types.Package.SetNilablePointers`) | yes (`ast.File.NilablePointersRegions`) |
+| `go mod tidy` | parses directive (unknown lines rejected in strict parse) | — |
 
 ## Overview
 
@@ -291,12 +360,12 @@ Mitigation options for a future revision: `required` field markers, constructors
 
 ## Migration
 
-1. Add `nilable_pointers disable` explicitly to existing `go.mod` files (or omit; default is disable).
-2. Enable per module with warnings first: `nilable_pointers warn`.
-3. Fix warnings module-by-module; use `//go:nilable_pointers disable` on generated or legacy files.
+1. Omit `nilable_pointers` or set `nilable_pointers disable` in existing `go.mod` files (default is disable).
+2. Enable per module with warnings first: `nilable_pointers warn` (see [Configuration](#configuration)).
+3. Fix warnings module-by-module; use `//go:nilable_pointers disable` … `end` on generated or legacy files.
 4. Tighten to `nilable_pointers enable` when definite violations (nil assignment/return) are clean; flow warnings may remain.
 5. As analysis improves, `enable` will promote more flow diagnostics to compile errors without changing the directive name.
-6. New modules created from a template default to `enable`.
+6. New modules may default to `enable` in templates when ready.
 
 Libraries consumed with NPT off keep today’s behavior. When both consumer and provider use NPT, exported APIs should annotate nilable vs non-nilable pointer parameters and results in docs and signatures.
 
@@ -319,4 +388,4 @@ Libraries consumed with NPT off keep today’s behavior. When both consumer and 
 | `p?.Field` | valid on any pointer | idiomatic for `*T?` |
 | `p ?? fallback` | valid | unwrap `*T?` to `*T` with default |
 
-NPT is compile-time only, opt-in via [`nilable_pointers` in `go.mod`](#setting), with optional file-level overrides for gradual migration.
+NPT is compile-time only, opt-in via [`nilable_pointers` in `go.mod`](#project-default-nilable_pointers-in-gomod) and [`//go:nilable_pointers` regions](#file-overrides-gonilable_pointers).

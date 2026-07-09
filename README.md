@@ -292,13 +292,18 @@ interface Reader {
 
 Full spec: [doc/new_features/syntax.md](doc/new_features/syntax.md)
 
-### 13. Nilable pointer types (proposed)
+### 13. Nilable pointer types
 
-Compile-time null safety for pointers via `go.mod`.
+Compile-time null safety for pointers. Configure the project in `go.mod` and override regions in source.
 
 ```go
 // go.mod
-nilable_pointers enable   // *T vs *T?
+nilable_pointers enable   // project default: *T vs *T?
+
+// file.go
+//go:nilable_pointers disable
+func legacy(p *int) { … }
+//go:nilable_pointers end
 ```
 
 Full spec: [doc/new_features/nilable_pointer_types.md](doc/new_features/nilable_pointer_types.md)

@@ -267,4 +267,4 @@ if count == nil {
 - Do not confuse `?.` (null-conditional) or `??` (null-coalescing) with `!.` (error propagation on `T!`).
 - `T?` does not support `!.value` error propagation; that syntax applies only to `T!` / `(T, error)`.
 - Nilable defaults in function parameters (e.g. `x int? = nil`) follow the same compile-time constant rules as other [default arguments](default_arguments.md) when/if defaults are added for nilable parameters.
-- For pointer nullability (`*T` vs `*T?`), see [Nilable pointer types](nilable_pointer_types.md) (proposed; separate from value-type `T?`).
+- For pointer nullability (`*T` vs `*T?`), see [Nilable pointer types](nilable_pointer_types.md) — configured via `nilable_pointers` in `go.mod` and `//go:nilable_pointers` regions (separate from value-type `T?`).

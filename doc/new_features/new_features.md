@@ -6,7 +6,7 @@ This directory documents language and library extensions planned or implemented 
 
 - [Result types (`T!`)](result_types.md) — `(T, error)` shorthand and `!.value` / `!.field` error propagation
 - [Nilable types (`T?`)](nilable_types.md) — optional values, `?.`, and `??`
-- [Nilable pointer types (`*T` / `*T?`)](nilable_pointer_types.md) — non-nilable vs nilable pointers (opt-in)
+- [Nilable pointer types (`*T` / `*T?`)](nilable_pointer_types.md) — non-nilable vs nilable pointers; `nilable_pointers` in go.mod and `//go:nilable_pointers` regions
 - [Enums](enums.md) — algebraic enums, variants, and exhaustive switching
 - [Operator overloading](operator_overloading.md) — user-defined operators via operator methods
 
@@ -44,7 +44,9 @@ This directory documents language and library extensions planned or implemented 
 | ------ | -------- |
 | `int!`, `expr!.value` | [result_types.md](result_types.md) |
 | `int?`, `expr?.field`, `expr ?? fallback` | [nilable_types.md](nilable_types.md) |
-| `*T`, `*T?` (with `nilable_pointers` in go.mod) | [nilable_pointer_types.md](nilable_pointer_types.md) |
+| `*T`, `*T?` | [nilable_pointer_types.md](nilable_pointer_types.md) |
+| `nilable_pointers enable` in go.mod | [nilable_pointer_types.md](nilable_pointer_types.md#project-default-nilable_pointers-in-gomod) |
+| `//go:nilable_pointers enable` / `end` | [nilable_pointer_types.md](nilable_pointer_types.md#file-overrides-gonilable_pointers) |
 | `enum E { … }` | [enums.md](enums.md) |
 | `func f(a int, b int = 1)` | [default_arguments.md](default_arguments.md) |
 | `(x, y) => x + y` | [lambda_syntax.md](lambda_syntax.md) |
