@@ -16,7 +16,7 @@ This directory documents language and library extensions planned or implemented 
 - [If and switch expressions](expressions.md)
 - [Lambda syntax (`=>`)](lambda_syntax.md)
 - [Default function arguments](default_arguments.md)
-- [Proposed syntax changes (not implemented)](syntax.md)
+- [Struct and interface shorthand (`struct T { … }`, `interface I { … }`)](syntax.md)
 
 ## Generics and methods
 
@@ -54,4 +54,4 @@ This directory documents language and library extensions planned or implemented 
 | `errors.New`, `err.Wrap`, `*errors.Error` | [errors.md](errors.md) |
 | `t.FormatCustom("yyyy-MM-dd hh:mm:ss tt")`, `time.ParseCustom(…)` | [library_changes.md](library_changes.md) |
 | `func (p Person) Hello()` (foreign receiver) | [extension_methods.md](extension_methods.md) |
-| Proposed `struct T { … }`, `interface I { … }` (not implemented) | [syntax.md](syntax.md) |
+| `struct T { … }`, `interface I { … }` | [syntax.md](syntax.md) |

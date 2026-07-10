@@ -1,4 +1,4 @@
-# Struct and interface declarations (proposed)
+# Struct and interface declarations
 
 **Implemented.** Community feedback still welcome.
 
@@ -46,16 +46,16 @@ interface MyInterface {
 
 Embedded interfaces, method sets, and constraint syntax inside the body are unchanged.
 
-## Compatibility (proposed)
+## Compatibility
 
-If adopted, the existing `type` form would remain valid and continue to work:
+The existing `type` form remains valid and continues to work:
 
 ```go
 type MyStruct struct { /* … */ }
 type MyInterface interface { /* … */ }
 ```
 
-Both forms would declare the same named types and be interchangeable at the language level. New code could use either style; mixed use in one package would be allowed.
+Both forms declare the same named types and are interchangeable at the language level. New code may use either style; mixed use in one package is allowed.
 
 ## gofix
 
@@ -102,4 +102,4 @@ Packages under `GOROOT/src` (the Go toolchain and standard library tree) are nev
 
 ## Feedback
 
-This proposal is open for discussion. If you have thoughts on readability, tooling impact, migration, or whether the shorthand is worth the extra keyword forms, please share feedback before implementation proceeds.
+This feature is implemented in the compiler, type checker, and gopls. If you have thoughts on readability, tooling impact, or migration from the `type` form, please share feedback.
