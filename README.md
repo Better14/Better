@@ -438,10 +438,8 @@ To contribute upstream, read [https://go.dev/doc/contribute](https://go.dev/doc/
 
 Bow adds new syntax and stdlib features. To move an existing codebase over:
 
-1. **Automate common rewrites** with [modernize](https://github.com/Bow5/modernize) — a small source rewriter that updates common error-handling patterns to Bow’s `T!` result types and `!` error propagation.
-2. **Clone reference material** alongside your project:
-   - [Bow](https://github.com/Bow5/Bow) (this repository)
-   - [SyntaxExample](https://github.com/Bow5/SyntaxExample) (example programs using the new syntax)
-3. **Use an AI assistant** (Cursor, Claude, etc.): point it at `doc/new_features/` in Bow and at `SyntaxExample/`, then ask it to rewrite your code to use the new features (result types, LINQ, enums, extension methods, and the rest documented there).
+1. **Install Bow** and set `GOROOT` and `PATH` — see [Build from source](#build-from-source-bootstrap) above or [doc/new_docs/installation.md](doc/new_docs/installation.md).
 
-Build and run `modernize` with **Bow** as `GOROOT`; see the [modernize README](https://github.com/Bow5/modernize) for usage.
+2. **Clone and build [modernize](https://github.com/Bow5/modernize)** with Bow as `GOROOT`, then run it on your module. Modernize applies mechanical rewrites for nilable pointers, `T!` / `!` error handling, structured errors, and struct/interface shorthand. See the [modernize README](https://github.com/Bow5/modernize) for usage.
+
+3. **Use an AI assistant** (Cursor, Claude, etc.). Clone [SyntaxExample](https://github.com/Bow5/SyntaxExample). Point AI at [`doc/new_features/`](doc/new_features/new_features.md) and SyntaxExample for features modernize does not cover — LINQ, enums, extension methods, and the rest documented there.
