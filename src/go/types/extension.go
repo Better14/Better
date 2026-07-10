@@ -856,8 +856,40 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 		Ellipsis: call.Ellipsis,
 	}
 	kind := check.callExpr(x, lowered, nil)
-	x.expr = call
+	if x.isValid() {
+		check.record(x) // x.expr is lowered
+		typ, mode, val := x.typ(), x.mode(), x.val
+		x.expr = call
+		x.typ_ = typ
+		x.mode_ = mode
+		x.val = val
+		check.record(x)
+		check.recordExtensionCallFun(call.Fun, &recv, m.fn, inst)
+	} else {
+		x.expr = call
+	}
 	return kind, true
+}
+
+// recordExtensionCallFun records the method-value type of call.Fun for extension calls.
+// The compiler noder reads Types[call.Fun] when emitting calls; tryExtensionCall bypasses
+// the ordinary selector expr path that would populate it.
+func (check *Checker) recordExtensionCallFun(fun ast.Expr, recv *operand, fn *Func, inst *indexedExpr) {
+	if fun == nil || recv == nil || !recv.isValid() || fn == nil {
+		return
+	}
+	check.objDecl(fn)
+	sig := fn.Signature()
+	if sig == nil {
+		return
+	}
+	if smap := check.extensionSubstFromRecv(recv.typ(), sig); len(smap) > 0 {
+		sig = check.subst(fun.Pos(), sig, smap, nil, check.context()).(*Signature)
+	}
+	mv := *sig
+	mv.recvold = mv.recv
+	mv.recv = nil
+	check.recordTypeAndValue(fun, value, &mv, nil)
 }
 
 // adaptSliceArgToSeq wraps a slice or array argument with slices.Values when

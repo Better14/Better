@@ -792,12 +792,12 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 		}
 		argList[paramIdx] = arg
 	}
-	lowered := &syntax.CallExpr{
-		Fun:     loweredFun,
-		ArgList: argList,
+	call.Fun = loweredFun
+	call.ArgList = argList
+	kind := check.callExpr(x, call, nil)
+	if x.isValid() {
+		check.record(x)
 	}
-	kind := check.callExpr(x, lowered, nil)
-	x.expr = call
 	return kind, true
 }
 
