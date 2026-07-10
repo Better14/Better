@@ -38,8 +38,8 @@ func use(s []int) {
 	var doubleIdent *ast.Ident
 	ast.Inspect(f, func(n ast.Node) bool {
 		if call, ok := n.(*ast.CallExpr); ok {
-			if id, ok := call.Fun.(*ast.Ident); ok && id.Name == "Double" {
-				doubleIdent = id
+			if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Double" {
+				doubleIdent = sel.Sel
 			}
 		}
 		return true

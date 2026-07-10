@@ -809,14 +809,15 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 	}
 
 	pkgIdent := m.pkgName
+	var loweredFun ast.Expr
 	if pkgIdent == nil {
-		call.Fun = astNewIdent(call.Pos(), funcName)
+		loweredFun = astNewIdent(call.Pos(), funcName)
 	} else {
-		call.Fun = &ast.SelectorExpr{
+		loweredFun = &ast.SelectorExpr{
 			X:   astNewIdent(call.Pos(), pkgIdent.name),
 			Sel: astNewIdent(call.Pos(), funcName),
 		}
-		check.recordUse(call.Fun.(*ast.SelectorExpr).X.(*ast.Ident), pkgIdent)
+		check.recordUse(loweredFun.(*ast.SelectorExpr).X.(*ast.Ident), pkgIdent)
 		check.usedPkgNames[pkgIdent] = true
 		if check.UsedImportNames != nil {
 			if name := pkgIdent.name; name != "" && name != "." && name != "_" {
@@ -827,9 +828,9 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 	if inst != nil {
 		switch e := inst.orig.(type) {
 		case *ast.IndexExpr:
-			call.Fun = &ast.IndexExpr{X: call.Fun, Lbrack: e.Lbrack, Index: e.Index, Rbrack: e.Rbrack}
+			loweredFun = &ast.IndexExpr{X: loweredFun, Lbrack: e.Lbrack, Index: e.Index, Rbrack: e.Rbrack}
 		case *ast.IndexListExpr:
-			call.Fun = &ast.IndexListExpr{X: call.Fun, Lbrack: e.Lbrack, Indices: e.Indices, Rbrack: e.Rbrack}
+			loweredFun = &ast.IndexListExpr{X: loweredFun, Lbrack: e.Lbrack, Indices: e.Indices, Rbrack: e.Rbrack}
 		}
 	}
 
@@ -847,9 +848,16 @@ func (check *Checker) tryExtensionCall(x *operand, call *ast.CallExpr, sel *ast.
 		}
 		argList[paramIdx] = arg
 	}
-	call.Args = argList
-
-	return check.callExpr(x, call, nil), true
+	lowered := &ast.CallExpr{
+		Fun:      loweredFun,
+		Args:     argList,
+		Lparen:   call.Lparen,
+		Rparen:   call.Rparen,
+		Ellipsis: call.Ellipsis,
+	}
+	kind := check.callExpr(x, lowered, nil)
+	x.expr = call
+	return kind, true
 }
 
 // adaptSliceArgToSeq wraps a slice or array argument with slices.Values when

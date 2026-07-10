@@ -762,19 +762,20 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 	}
 
 	pkgIdent := m.pkgName
+	var loweredFun syntax.Expr
 	if pkgIdent == nil {
 		// same package: use an unqualified function name
-		call.Fun = syntax.NewName(call.Pos(), funcName)
+		loweredFun = syntax.NewName(call.Pos(), funcName)
 	} else {
-		call.Fun = &syntax.SelectorExpr{
+		loweredFun = &syntax.SelectorExpr{
 			X:   syntax.NewName(call.Pos(), pkgIdent.name),
 			Sel: syntax.NewName(call.Pos(), funcName),
 		}
-		check.recordUse(call.Fun.(*syntax.SelectorExpr).X.(*syntax.Name), pkgIdent)
+		check.recordUse(loweredFun.(*syntax.SelectorExpr).X.(*syntax.Name), pkgIdent)
 		check.usedPkgNames[pkgIdent] = true
 	}
 	if inst != nil {
-		call.Fun = &syntax.IndexExpr{X: call.Fun, Index: inst.Index}
+		loweredFun = &syntax.IndexExpr{X: loweredFun, Index: inst.Index}
 	}
 
 	argList := make([]syntax.Expr, 1+len(call.ArgList))
@@ -791,9 +792,13 @@ func (check *Checker) tryExtensionCall(x *operand, call *syntax.CallExpr, sel *s
 		}
 		argList[paramIdx] = arg
 	}
-	call.ArgList = argList
-
-	return check.callExpr(x, call, nil), true
+	lowered := &syntax.CallExpr{
+		Fun:     loweredFun,
+		ArgList: argList,
+	}
+	kind := check.callExpr(x, lowered, nil)
+	x.expr = call
+	return kind, true
 }
 
 // adaptSliceArgToSeq wraps a slice or array argument with slices.Values when
