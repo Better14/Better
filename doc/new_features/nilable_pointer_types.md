@@ -149,6 +149,7 @@ The `?` suffix attaches to the pointer type as a whole (`*MyStruct?`), consisten
 - Function parameters and results
 - Local variables and assignments
 - Method receivers (`func (p *MyStruct) …` vs `func (p *MyStruct?) …`)
+- See also [No nil receivers](nil_receivers.md) — direct `ptr.Method()` panics at call site; use `ptr?.Method()` when nil is expected
 
 **Out of scope for v1 (may follow later):**
 

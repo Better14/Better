@@ -39,8 +39,9 @@ type File struct {
 	Module    *Module
 	Go        *Go
 	Toolchain       *Toolchain
-	NilablePointers *NilablePointers
-	Godebug         []*Godebug
+	NilablePointers  *NilablePointers
+	NilReceiverPanic *NilReceiverPanic
+	Godebug          []*Godebug
 	Require   []*Require
 	Exclude   []*Exclude
 	Replace   []*Replace
@@ -73,6 +74,12 @@ type Toolchain struct {
 // A NilablePointers is the nilable_pointers statement.
 type NilablePointers struct {
 	Mode   string // disable, warnings, or enable
+	Syntax *Line
+}
+
+// A NilReceiverPanic is the nil_receiver_panic statement.
+type NilReceiverPanic struct {
+	Mode   string // disable or enable
 	Syntax *Line
 }
 
@@ -438,6 +445,22 @@ func (f *File) add(errs *ErrorList, block *LineBlock, line *Line, verb string, a
 			f.NilablePointers = &NilablePointers{Syntax: line, Mode: args[0]}
 		default:
 			errorf("invalid nilable_pointers value %q: must be disable, warnings, or enable", args[0])
+		}
+
+	case "nil_receiver_panic":
+		if f.NilReceiverPanic != nil {
+			errorf("repeated nil_receiver_panic statement")
+			return
+		}
+		if len(args) != 1 {
+			errorf("nil_receiver_panic directive expects exactly one argument")
+			return
+		}
+		switch args[0] {
+		case "disable", "enable":
+			f.NilReceiverPanic = &NilReceiverPanic{Syntax: line, Mode: args[0]}
+		default:
+			errorf("invalid nil_receiver_panic value %q: must be disable or enable", args[0])
 		}
 
 	case "module":

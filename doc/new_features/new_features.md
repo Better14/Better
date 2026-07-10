@@ -7,6 +7,7 @@ This directory documents language and library extensions planned or implemented 
 - [Result types (`T!`)](result_types.md) — `(T, error)` shorthand and `!.value` / `!.field` error propagation
 - [Nilable types (`T?`)](nilable_types.md) — optional values, `?.`, and `??`
 - [Nilable pointer types (`*T` / `*T?`)](nilable_pointer_types.md) — non-nilable vs nilable pointers; `nilable_pointers` in go.mod and `//go:nilable_pointers` regions
+- [No nil receivers](nil_receivers.md) — pointer method calls panic at the call site; use `?.` for optional chains
 - [Enums](enums.md) — algebraic enums, variants, and exhaustive switching
 - [Operator overloading](operator_overloading.md) — user-defined operators via operator methods
 
@@ -17,6 +18,7 @@ This directory documents language and library extensions planned or implemented 
 - [Lambda syntax (`=>`)](lambda_syntax.md)
 - [Default function arguments](default_arguments.md)
 - [Struct and interface shorthand (`struct T { … }`, `interface I { … }`)](syntax.md)
+- [Panics and stack traces](panics.md) — stderr traceback on unrecovered panic; structured error panics
 
 ## Generics and methods
 
@@ -38,6 +40,10 @@ This directory documents language and library extensions planned or implemented 
 
 - [gopls (IDE support)](gopls.md) — what the language server supports vs the compiler-only path
 
+## Review backlog
+
+- [Weird upstream Go behaviors](weird_behaviors.md) — surprising semantics we may want to change or lint (nil interfaces, maps, defer, etc.)
+
 ## Quick reference
 
 | Syntax | Document |
@@ -55,3 +61,5 @@ This directory documents language and library extensions planned or implemented 
 | `t.FormatCustom("yyyy-MM-dd hh:mm:ss tt")`, `time.ParseCustom(…)` | [library_changes.md](library_changes.md) |
 | `func (p Person) Hello()` (foreign receiver) | [extension_methods.md](extension_methods.md) |
 | `struct T { … }`, `interface I { … }` | [syntax.md](syntax.md) |
+| `nil_receiver_panic enable` in go.mod | [nil_receivers.md](nil_receivers.md) |
+| `obj?.method()`, `inner()?.Method()` | [nil_receivers.md](nil_receivers.md), [nilable_types.md](nilable_types.md) |

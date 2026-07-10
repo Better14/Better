@@ -52,6 +52,16 @@ func TestPanicWithDirectlyPrintableCustomTypes(t *testing.T) {
 	}
 }
 
+func TestPanicStructuredError(t *testing.T) {
+	output := runTestProg(t, "testprog", "panicStructuredError")
+	if !strings.Contains(output, "panic: boom") {
+		t.Fatalf("missing panic message in output:\n%s", output)
+	}
+	if !strings.Contains(output, "goroutine") {
+		t.Fatalf("missing stack trace in output:\n%s", output)
+	}
+}
+
 func TestPanicRecoverSpeed(t *testing.T) {
 	// For issue 77062.
 	t.Skip("This test is too flaky at the moment. But it does normally pass. Suggestions for making it less flaky are welcome.")

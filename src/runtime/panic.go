@@ -720,10 +720,10 @@ func preprintpanics(p *_panic) {
 			continue
 		}
 		switch v := p.arg.(type) {
-		case error:
-			p.arg = v.Error()
 		case stringer:
 			p.arg = v.String()
+		case error:
+			p.arg = v.Error()
 		}
 		p = p.link
 	}

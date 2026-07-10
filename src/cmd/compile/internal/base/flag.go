@@ -108,6 +108,7 @@ type CmdFlags struct {
 	JSON               string       "help:\"version,file for JSON compiler/optimizer detail output\""
 	Lang               string       "help:\"Go language version source code expects\""
 	NilablePointers    string       "help:\"nilable pointer types mode from go.mod (disable, warnings, enable)\""
+	NilReceiverPanic   string       "help:\"nil receiver method call mode from go.mod (disable, enable)\""
 	LinkObj            string       "help:\"write linker-specific object to `file`\""
 	LinkShared         *bool        "help:\"generate code that will be linked against Go shared libraries\"" // &Ctxt.Flag_linkshared, set below
 	Live               CountFlag    "help:\"debug liveness analysis\""

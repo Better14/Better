@@ -673,6 +673,11 @@ func walkCall1(n *ir.CallExpr, init *ir.Nodes) {
 		}
 	}
 
+	if nilReceiverPanicEnabled() && methodCallNeedsNilReceiverCheck(n) {
+		check := typecheck.Expr(ir.NewUnaryExpr(n.Pos(), ir.OCHECKNIL, n.Args[0]))
+		init.Append(typecheck.Stmt(check))
+	}
+
 	funSym := n.Fun.Sym()
 	if base.Debug.Libfuzzer != 0 && funSym != nil {
 		if hook, found := hooks[funSym.Pkg.Path+"."+funSym.Name]; found {
@@ -1188,4 +1193,20 @@ func usefield(n *ir.SelectorExpr) {
 		ir.CurFunc.FieldTrack = make(map[*obj.LSym]struct{})
 	}
 	ir.CurFunc.FieldTrack[sym] = struct{}{}
+}
+
+func nilReceiverPanicEnabled() bool {
+	return base.Flag.NilReceiverPanic == "enable"
+}
+
+func methodCallNeedsNilReceiverCheck(call *ir.CallExpr) bool {
+	if call.Op() != ir.OCALLFUNC || call.Fun.Op() != ir.OMETHEXPR {
+		return false
+	}
+	sig := call.Fun.Type()
+	if sig.NumParams() == 0 {
+		return false
+	}
+	recv := sig.Param(0).Type
+	return recv.IsPtr() && !recv.IsInterface()
 }
