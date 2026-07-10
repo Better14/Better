@@ -2336,6 +2336,14 @@ func (rl *clientConnReadLoop) processTrailers(cs *clientStream, f *MetaHeadersFr
 		// TODO: ConnectionError might be overly harsh? Check.
 		return NewConnectionError(ErrCodeProtocol)
 	}
+	if f.Truncated {
+		rl.endStreamError(cs, StreamError{
+			StreamID: f.StreamID,
+			Code:     ErrCodeProtocol,
+			Cause:    errResponseHeaderListSize,
+		})
+		return nil
+	}
 
 	trailer := make(Header)
 	for _, hf := range f.RegularFields() {

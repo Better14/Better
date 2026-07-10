@@ -12,6 +12,7 @@ import (
 	"internal/godebug"
 	"io"
 	"maps"
+	"math"
 	"net/http/httptrace"
 	"net/http/internal"
 	"net/http/internal/ascii"
@@ -144,6 +145,13 @@ func newTransferWriter(r any) (t *transferWriter, err error) {
 	// Sanitize Trailer
 	if !chunked(t.TransferEncoding) {
 		t.Trailer = nil
+	}
+
+	// Validate Trailer names and values. The names are later written
+	// unmodified on the "Trailer:" line of the header, so invalid bytes
+	// (in particular CR and LF) would permit header injection. (Issue 78775.)
+	if err := validateHeaders(t.Trailer); err != "" {
+		return nil, fmt.Errorf("net/http: invalid trailer %s", err)
 	}
 
 	return t, nil
@@ -488,7 +496,7 @@ func suppressedHeaders(status int) []string {
 }
 
 // msg is *Request or *Response.
-func readTransfer(msg any, r *bufio.Reader) (err error) {
+func readTransfer(msg any, r *bufio.Reader, maxTrailerHeaders int64) (err error) {
 	t := &transferReader{RequestMethod: "GET"}
 
 	// Unify input
@@ -565,7 +573,7 @@ func readTransfer(msg any, r *bufio.Reader) (err error) {
 		if isResponse && (noResponseBodyExpected(t.RequestMethod) || !bodyAllowedForStatus(t.StatusCode)) {
 			t.Body = NoBody
 		} else {
-			t.Body = &body{src: internal.NewChunkedReader(r), hdr: msg, r: r, closing: t.Close}
+			t.Body = &body{src: internal.NewChunkedReader(r), hdr: msg, r: r, closing: t.Close, maxTrailerHeaders: maxTrailerHeaders}
 		}
 	case realLength == 0:
 		t.Body = NoBody
@@ -816,11 +824,12 @@ func fixTrailer(header Header, chunked bool) (Header, error) {
 // Close ensures that the body has been fully read
 // and then reads the trailer if necessary.
 type body struct {
-	src          io.Reader
-	hdr          any           // non-nil (Response or Request) value means read trailer
-	r            *bufio.Reader // underlying wire-format reader for the trailer
-	closing      bool          // is the connection to be closed after reading body?
-	doEarlyClose bool          // whether Close should stop early
+	src               io.Reader
+	hdr               any           // non-nil (Response or Request) value means read trailer
+	r                 *bufio.Reader // underlying wire-format reader for the trailer
+	closing           bool          // is the connection to be closed after reading body?
+	doEarlyClose      bool          // whether Close should stop early
+	maxTrailerHeaders int64         // how many trailer header values are allowed
 
 	mu         sync.Mutex // guards following, and calls to Read and Close
 	sawEOF     bool
@@ -941,7 +950,7 @@ func (b *body) readTrailer() error {
 		return errors.New("http: suspiciously long trailer after chunked body")
 	}
 
-	hdr, err := textproto.NewReader(b.r).ReadMIMEHeader()
+	hdr, err := readMIMEHeader(textproto.NewReader(b.r), math.MaxInt64, b.maxTrailerHeaders)
 	if err != nil {
 		if err == io.EOF {
 			return errTrailerEOF

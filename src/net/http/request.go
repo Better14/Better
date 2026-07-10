@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"math"
 	"mime"
 	"mime/multipart"
 	"net/http/httptrace"
@@ -286,6 +287,10 @@ type Request struct {
 	// After the HTTP request is sent the map values can be updated while
 	// the request body is read. Once the body returns EOF, the caller must
 	// not mutate Trailer.
+	//
+	// Writing a request whose Trailer contains a key with invalid bytes
+	// (such as CR or LF), or such a value present when Write begins,
+	// returns an error.
 	//
 	// Few HTTP clients, servers, or proxies support HTTP trailers.
 	Trailer Header
@@ -1091,6 +1096,11 @@ func ReadRequest(b *bufio.Reader) (*Request, error) {
 	return req, nil
 }
 
+// readMIMEHeader is defined in package [net/textproto].
+//
+//go:linkname readMIMEHeader net/textproto.readMIMEHeader
+func readMIMEHeader(r *textproto.Reader, maxMemory, maxHeaders int64) (textproto.MIMEHeader, error)
+
 // readRequest should be an internal detail,
 // but widely used packages access it using linkname.
 // Notable members of the hall of shame include:
@@ -1103,6 +1113,10 @@ func ReadRequest(b *bufio.Reader) (*Request, error) {
 //
 //go:linkname readRequest
 func readRequest(b *bufio.Reader) (req *Request, err error) {
+	return readRequestLimit(b, math.MaxInt64)
+}
+
+func readRequestLimit(b *bufio.Reader, maxHeaders int64) (req *Request, err error) {
 	tp := newTextprotoReader(b)
 	defer putTextprotoReader(tp)
 
@@ -1156,8 +1170,12 @@ func readRequest(b *bufio.Reader) (req *Request, err error) {
 	}
 
 	// Subsequent lines: Key: value.
-	mimeHeader, err := tp.ReadMIMEHeader()
+	mimeHeader, err := readMIMEHeader(tp, math.MaxInt64, maxHeaders)
 	if err != nil {
+		// TODO: Add a distinguishable error to net/textproto.
+		if err.Error() == "message too large" {
+			return nil, errTooLarge
+		}
 		return nil, err
 	}
 	req.Header = Header(mimeHeader)
@@ -1181,7 +1199,7 @@ func readRequest(b *bufio.Reader) (req *Request, err error) {
 
 	req.Close = shouldClose(req.ProtoMajor, req.ProtoMinor, req.Header, false)
 
-	err = readTransfer(req, b)
+	err = readTransfer(req, b, maxHeaders)
 	if err != nil {
 		return nil, err
 	}

@@ -854,7 +854,13 @@ func (dir dirFS) ReadLink(name string) (string, error) {
 	if err != nil {
 		return "", fs.NewPathError("readlink", name, err)
 	}
-	return Readlink(fullname)
+	f, err := Readlink(fullname)
+	if err != nil {
+		// See comment in dirFS.Open.
+		err.(*PathError).Path = name
+		return "", err
+	}
+	return f, nil
 }
 
 // join returns the path for name in dir.
