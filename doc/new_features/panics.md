@@ -82,7 +82,7 @@ Ordinary **`panic(...)`** and compiler nil checks always go through **`gopanic`*
 - **`log.Fatal` / `log.Panic`** — log and exit; structured errors use `String()` for full detail.
 - **`testing` package** — test panics are caught by the test harness; stderr trace appears when running `go test -v` or on failure.
 
-For production services, unrecovered panics should be rare; prefer `T!` / `!` and explicit error returns. Use `panic` for invariant violations and “impossible” branches after `nil_receiver_panic` and strict pointers.
+For production services, unrecovered panics should be rare; prefer `T!` / `!` and explicit error returns. Use `panic` for invariant violations and “impossible” branches after strict pointers and no-nil-receiver semantics.
 
 ## Related docs
 

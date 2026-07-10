@@ -8,7 +8,7 @@ Defensive nil-receiver branches are easy to get wrong, hide real bugs, and encou
 
 ## Behavior
 
-With **`nil_receiver_panic enable`** in `go.mod` (the default for new Bow modules):
+In Bow, pointer-receiver method calls always panic at the call site when the receiver is nil:
 
 ```go
 var c *Connection
@@ -27,16 +27,7 @@ c.Subroute("api") // panics here — Subroute's body never runs with c == nil
 
 Before lowering `x.M(…)` to `T.M(x, …)`, the compiler inserts a nil check on the pointer receiver (`OCHECKNIL`). The panic uses the runtime `gopanic` path and includes a stack trace (see [Panics and stack traces](panics.md)).
 
-### `go.mod`
-
-```go
-module example
-
-go 1.24
-
-nil_receiver_panic enable   // default for Bow: panic at call site
-// nil_receiver_panic disable  // upstream Go semantics (method runs on nil receiver)
-```
+This is always on in Bow — there is no `go.mod` toggle.
 
 ## Migration patterns
 
@@ -101,7 +92,7 @@ return c.Subroute(path)
 
 ## Relationship to nilable pointers
 
-- **`nil_receiver_panic`** — runtime: nil pointer method call panics at call site.
+- **No nil receivers** — pointer method calls panic at the call site.
 - **`*T` / `*T?`** — compile-time: which pointer types may hold `nil`.
 
 A function may return `*Connection?` when nil means “not found”. Callers choose:
@@ -110,7 +101,7 @@ A function may return `*Connection?` when nil means “not found”. Callers cho
 - `c?.Subroute(p)` — skip call, propagate nil,
 - `if c == nil { … }` — custom handling.
 
-Do **not** use `return new(T)` or `return nil` inside methods to mean “receiver was nil” — that path is unreachable for direct calls once `nil_receiver_panic` is enabled.
+Do **not** use `return new(T)` or `return nil` inside methods to mean “receiver was nil” — that path is unreachable for direct calls in Bow.
 
 ## Related docs
 

@@ -61,5 +61,5 @@ This directory documents language and library extensions planned or implemented 
 | `t.FormatCustom("yyyy-MM-dd hh:mm:ss tt")`, `time.ParseCustom(…)` | [library_changes.md](library_changes.md) |
 | `func (p Person) Hello()` (foreign receiver) | [extension_methods.md](extension_methods.md) |
 | `struct T { … }`, `interface I { … }` | [syntax.md](syntax.md) |
-| `nil_receiver_panic enable` in go.mod | [nil_receivers.md](nil_receivers.md) |
+| Pointer method call on nil receiver | Call-site panic — [nil_receivers.md](nil_receivers.md) |
 | `obj?.method()`, `inner()?.Method()` | [nil_receivers.md](nil_receivers.md), [nilable_types.md](nilable_types.md) |

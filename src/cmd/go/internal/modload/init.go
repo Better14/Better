@@ -308,22 +308,6 @@ func (mms *MainModuleSet) NilablePointers(ld *Loader) string {
 	return ""
 }
 
-// NilReceiverPanic returns the nil_receiver_panic mode from the main module's go.mod.
-// The empty string means disable (dependency / std semantics).
-func (mms *MainModuleSet) NilReceiverPanic(ld *Loader) string {
-	if ld.inWorkspaceMode() {
-		return ""
-	}
-	if mms != nil && len(mms.versions) == 1 {
-		f := mms.ModFile(mms.mustGetSingleMainModule(ld))
-		if f == nil || f.NilReceiverPanic == nil {
-			return "enable"
-		}
-		return f.NilReceiverPanic.Mode
-	}
-	return ""
-}
-
 func (mms *MainModuleSet) WorkFileReplaceMap() map[module.Version]module.Version {
 	return mms.workFileReplaceMap
 }

@@ -8,7 +8,7 @@ This is a brainstorming list, not a commitment.
 
 | Behavior | Notes |
 | -------- | ----- |
-| Nil pointer receivers run methods | Call-site panic via [`nil_receiver_panic`](nil_receivers.md) |
+| Nil pointer receivers run methods | Call-site panic — [nil_receivers.md](nil_receivers.md) |
 | Silent nil chains / defensive nil-receiver guards | Prefer `?.` / `*T?` — [nilable types](nilable_types.md), [nilable pointers](nilable_pointer_types.md) |
 | Weak panic diagnostics | [Panics and stack traces](panics.md) |
 | `(T, error)` / nil-error footguns | [Result types](result_types.md), [structured errors](errors.md) |
@@ -66,7 +66,7 @@ For each item above, options roughly look like:
 
 1. **Keep upstream semantics** (document only).
 2. **Lint / modernize rewrite** (no language change).
-3. **go.mod / per-file flag** (like `nil_receiver_panic`).
+3. **Per-file `//go:` directive** (like `//go:nilable_pointers`).
 4. **Hard language change** in Bow (with migration path).
 
 Highest-impact leftovers to consider first:

@@ -673,7 +673,7 @@ func walkCall1(n *ir.CallExpr, init *ir.Nodes) {
 		}
 	}
 
-	if nilReceiverPanicEnabled() && methodCallNeedsNilReceiverCheck(n) {
+	if methodCallNeedsNilReceiverCheck(n) {
 		check := typecheck.Expr(ir.NewUnaryExpr(n.Pos(), ir.OCHECKNIL, n.Args[0]))
 		init.Append(typecheck.Stmt(check))
 	}
@@ -1193,10 +1193,6 @@ func usefield(n *ir.SelectorExpr) {
 		ir.CurFunc.FieldTrack = make(map[*obj.LSym]struct{})
 	}
 	ir.CurFunc.FieldTrack[sym] = struct{}{}
-}
-
-func nilReceiverPanicEnabled() bool {
-	return base.Flag.NilReceiverPanic == "enable"
 }
 
 func methodCallNeedsNilReceiverCheck(call *ir.CallExpr) bool {

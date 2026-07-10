@@ -81,9 +81,6 @@ func (gcToolchain) gc(b *Builder, a *Action, archive string, importcfg, embedcfg
 	if npt := load.NilablePointersFromMod(p.Module); npt != "" {
 		defaultGcFlags = append(defaultGcFlags, "-nilablepointers="+npt)
 	}
-	if nrp := load.NilReceiverPanicFromMod(p.Module); nrp != "" {
-		defaultGcFlags = append(defaultGcFlags, "-nilreceiverpanic="+nrp)
-	}
 	if p.Standard {
 		defaultGcFlags = append(defaultGcFlags, "-std")
 	}
