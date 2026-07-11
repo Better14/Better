@@ -684,13 +684,13 @@ The forin analyzer rewrites value-oriented range loops to the for-in syntax:
 
 	for _, item := range list
 	for i, item := range list
+	for i := range list
 
 become:
 
 	for item in list
 	for i, item in list
-
-Index-only loops (`for i := range list`) are left unchanged.
+	for i, _ in list
 
 Packages whose source files live under GOROOT/src are never rewritten.
 
@@ -736,11 +736,15 @@ The negativeslice analyzer rewrites slice expressions such as:
 
 	s[len(s)-2:len(s)]
 	s[0:len(s)-1]
+	s[0:len(s)]
 
 to:
 
 	s[-2:]
-	s[0:-1]
+	s[:-1]
+	s[:]
+
+Omitted low and high bounds (`s[:5]`, `s[3:]`, `s[:]`) are valid standard Go syntax and are left unchanged.
 
 Packages whose source files live under GOROOT/src are never rewritten.
 */

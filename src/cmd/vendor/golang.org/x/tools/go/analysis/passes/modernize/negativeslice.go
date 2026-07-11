@@ -58,6 +58,9 @@ func negativeSlice(pass *analysis.Pass) (any, error) {
 				})
 			}
 		}
+		if omit, ok := omitZeroLowBound(pass, se); ok && len(edits) > 0 {
+			edits = append(edits, omit)
+		}
 		if len(edits) == 0 {
 			return
 		}
@@ -72,6 +75,17 @@ func negativeSlice(pass *analysis.Pass) (any, error) {
 		})
 	})
 	return nil, nil
+}
+
+func omitZeroLowBound(pass *analysis.Pass, se *ast.SliceExpr) (analysis.TextEdit, bool) {
+	if se.Low == nil || !isZeroIntConst(pass.TypesInfo, se.Low) {
+		return analysis.TextEdit{}, false
+	}
+	return analysis.TextEdit{
+		Pos:     se.Low.Pos(),
+		End:     se.Low.End(),
+		NewText: nil,
+	}, true
 }
 
 func lenMinusBound(pass *analysis.Pass, slice ast.Expr, bound ast.Expr) (string, bool) {

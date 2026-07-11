@@ -33,7 +33,7 @@ func forIn(pass *analysis.Pass) (any, error) {
 	nodeFilter := []ast.Node{(*ast.RangeStmt)(nil)}
 	inspect.Preorder(nodeFilter, func(n ast.Node) {
 		rs := n.(*ast.RangeStmt)
-		if rs.InPos.IsValid() || rs.Tok != token.DEFINE || rs.Value == nil {
+		if rs.InPos.IsValid() || rs.Tok != token.DEFINE {
 			return
 		}
 		rangePos := rs.Range
@@ -41,6 +41,26 @@ func forIn(pass *analysis.Pass) (any, error) {
 			return
 		}
 		rangeEnd := rangePos + token.Pos(len("range"))
+		if rs.Value == nil {
+			name, ok := forInIdentName(rs.Key)
+			if !ok {
+				return
+			}
+			pass.Report(analysis.Diagnostic{
+				Pos:     rs.For,
+				End:     rs.Body.Pos(),
+				Message: "range loop can use for-in syntax",
+				SuggestedFixes: []analysis.SuggestedFix{{
+					Message: "Use for-in syntax",
+					TextEdits: []analysis.TextEdit{{
+						Pos:     rs.Key.Pos(),
+						End:     rangeEnd,
+						NewText: []byte(name + ", _ in"),
+					}},
+				}},
+			})
+			return
+		}
 		if forInBlankValue(rs) {
 			name, ok := forInIdentName(rs.Value)
 			if !ok {

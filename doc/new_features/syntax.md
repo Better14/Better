@@ -128,15 +128,15 @@ Equivalent to `for i, item := range list`.
 
 ### Index-only loops
 
-Index-only iteration still uses `range`:
+Index-only iteration uses a blank value with `in`:
 
 ```go
-for i := range list {
+for i, _ in list {
 	use(i)
 }
 ```
 
-There is no `for i in list` form for indices alone.
+Equivalent to `for i := range list`. There is no `for i in list` form for indices alone.
 
 ### Legacy syntax
 
@@ -148,7 +148,7 @@ still compiles and behaves identically. New code should prefer `for item in list
 
 ## gofix
 
-[`go fix`](https://pkg.go.dev/golang.org/x/tools/cmd/fix) includes the `forin` modernizer, which rewrites value-oriented range loops:
+[`go fix`](https://pkg.go.dev/golang.org/x/tools/cmd/fix) includes the `forin` modernizer, which rewrites range loops to for-in syntax:
 
 ```go
 // before gofix
@@ -156,6 +156,9 @@ for _, item := range items {
 	_ = item
 }
 for i, item := range items {
+	_ = i
+}
+for i := range items {
 	_ = i
 }
 ```
@@ -168,9 +171,12 @@ for item in items {
 for i, item in items {
 	_ = i
 }
+for i, _ in items {
+	_ = i
+}
 ```
 
-Index-only loops (`for i := range items`) are left unchanged. The `modernize` tool applies the same rewrite when `for_in_syntax` is enabled (default).
+Index-only loops (`for i := range items`) are rewritten to `for i, _ in items`. The `modernize` tool applies the same rewrite when `for_in_syntax` is enabled (default).
 
 ## Feedback
 
@@ -284,17 +290,28 @@ After:
 list[-2:] // second-to-last element through the end
 ```
 
-Omitting the low bound is discouraged in new code; write `0` explicitly. The `modernize` tool rewrites `[:` to `[0:` when `explicit_slice_zero` is enabled (default).
+### Omitted bounds
+
+Standard Go slice syntax allows omitting the low bound (defaults to 0), the high bound (defaults to length), or both:
 
 ```go
-list[0:3] // preferred
-list[:3]  // still compiles; modernize rewrites to list[0:3]
+list[:5]  // first five elements — same as list[0:5]
+list[3:]  // from index 3 through the end
+list[:]   // full slice (copy of backing array for slices)
+```
+
+These forms remain valid and are not rewritten by the modernizer.
+
+With negative indices, omitted low bounds work the same way:
+
+```go
+list[:-1]  // all but the last element — same as list[0:-1]
 ```
 
 Both bounds may be negative:
 
 ```go
-list[0:-2]  // all but the last two elements
+list[:-2]   // all but the last two elements
 list[-3:-1] // third-to-last through second-to-last
 ```
 

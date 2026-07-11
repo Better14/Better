@@ -2,5 +2,9 @@ package negativeslice
 
 func f(list []int) {
 	_ = list[-2:] // want "slice bounds can use negative index syntax"
-	_ = list[0:-1]         // want "slice bounds can use negative index syntax"
+	_ = list[:-1]         // want "slice bounds can use negative index syntax"
+	_ = list[:]           // want "slice bounds can use negative index syntax"
+	_ = list[:5]
+	_ = list[3:]
+	_ = list[:]
 }
