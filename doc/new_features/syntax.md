@@ -264,3 +264,40 @@ set2 := {"b", ...set1}
 ## gofix
 
 [`go fix`](https://pkg.go.dev/golang.org/x/tools/cmd/fix) includes modernizers that rewrite the long forms above to shorthand literal and prefix-spread syntax. The `modernize` tool applies the same rewrites when `shorthand_literals` and `spread_call_syntax` are enabled (default).
+
+## Negative slice indices
+
+**Implemented.** Community feedback still welcome.
+
+Slice expressions accept Python-style negative bounds. A negative index counts from the end of the sequence, so `-1` is the last element and `-2` is the second-to-last.
+
+Before:
+
+```go
+// list has length 7
+list[len(list)-2:]
+```
+
+After:
+
+```go
+list[-2:] // second-to-last element through the end
+```
+
+Omitting the low bound is discouraged in new code; write `0` explicitly. The `modernize` tool rewrites `[:` to `[0:` when `explicit_slice_zero` is enabled (default).
+
+```go
+list[0:3] // preferred
+list[:3]  // still compiles; modernize rewrites to list[0:3]
+```
+
+Both bounds may be negative:
+
+```go
+list[0:-2]  // all but the last two elements
+list[-3:-1] // third-to-last through second-to-last
+```
+
+## gofix
+
+[`go fix`](https://pkg.go.dev/golang.org/x/tools/cmd/fix) includes the `negativeslice` modernizer, which rewrites `len(x)-n` slice bounds to `-n` and `len(x)` high bounds to an omitted end. The `modernize` tool applies the same rewrite when `negative_slice_indices` is enabled (default).

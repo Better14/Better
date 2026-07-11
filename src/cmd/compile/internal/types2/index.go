@@ -364,6 +364,8 @@ func (check *Checker) sliceExpr(x *operand, e *syntax.SliceExpr) {
 		return
 	}
 
+	check.resolveNegativeSliceIndices(e, length)
+
 	// check indices
 	var ind [3]int64
 	for i, expr := range e.Index {

@@ -727,5 +727,21 @@ to:
 Both forms are valid; prefix spread is preferred in new code.
 
 Packages whose source files live under GOROOT/src are never rewritten.
+
+# Analyzer negativeslice
+
+negativeslice: rewrite len-based slice bounds to negative index syntax
+
+The negativeslice analyzer rewrites slice expressions such as:
+
+	s[len(s)-2:len(s)]
+	s[0:len(s)-1]
+
+to:
+
+	s[-2:]
+	s[0:-1]
+
+Packages whose source files live under GOROOT/src are never rewritten.
 */
 package modernize
