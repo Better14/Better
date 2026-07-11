@@ -1726,7 +1726,7 @@ func (p *parser) baseTypeOrNil() Expr {
 		t.pos = pos
 		t.Dir = RecvOnly
 		t.Elem = p.chanElem()
-		return t
+		return p.applyTypeSuffixes(t)
 
 	case _Func:
 		// fntype
@@ -1753,7 +1753,7 @@ func (p *parser) baseTypeOrNil() Expr {
 			t.Dir = SendOnly
 		}
 		t.Elem = p.chanElem()
-		return t
+		return p.applyTypeSuffixes(t)
 
 	case _Map:
 		// _Map '[' ntype ']' ntype
@@ -1767,7 +1767,7 @@ func (p *parser) baseTypeOrNil() Expr {
 			p.syntaxError("missing map key type")
 		}
 		p.want(_Rbrack)
-		t.Value = p.typeOrNil()
+		t.Value = p.baseTypeOrNil()
 		if t.Value == nil {
 			t.Value = p.badExpr()
 			p.syntaxError("missing map value type")
@@ -1853,6 +1853,29 @@ func (p *parser) funcType(context string) ([]*Field, *FuncType) {
 	return tparamList, typ
 }
 
+// applyTypeSuffixes applies trailing ! and ? suffixes to typ.
+func (p *parser) applyTypeSuffixes(typ Expr) Expr {
+	for typ != nil && p.tok == _Operator && p.op == Not {
+		bang := p.pos()
+		p.next()
+		rt := new(ResultType)
+		rt.pos = typ.Pos()
+		rt.Bang = bang
+		rt.Elem = typ
+		typ = rt
+	}
+	for typ != nil && p.tok == _Question {
+		qpos := p.pos()
+		p.next()
+		nt := new(NilableType)
+		nt.pos = typ.Pos()
+		nt.QPos = qpos
+		nt.Elem = typ
+		typ = nt
+	}
+	return typ
+}
+
 // "[" has already been consumed, and pos is its position.
 // If len != nil it is the already consumed array length.
 func (p *parser) arrayType(pos Pos, len Expr) Expr {
@@ -1881,7 +1904,7 @@ func (p *parser) arrayType(pos Pos, len Expr) Expr {
 		t.Elem = p.badExpr()
 		p.syntaxError("missing array element type")
 	}
-	return t
+	return p.applyTypeSuffixes(t)
 }
 
 // "[" and "]" have already been consumed, and pos is the position of "[".
@@ -1893,7 +1916,7 @@ func (p *parser) sliceType(pos Pos) Expr {
 		t.Elem = p.badExpr()
 		p.syntaxError("missing slice element type")
 	}
-	return t
+	return p.applyTypeSuffixes(t)
 }
 
 func (p *parser) chanElem() Expr {
@@ -1901,7 +1924,7 @@ func (p *parser) chanElem() Expr {
 		defer p.trace("chanElem")()
 	}
 
-	typ := p.typeOrNil()
+	typ := p.baseTypeOrNil()
 	if typ == nil {
 		typ = p.badExpr()
 		p.syntaxError("missing channel element type")
@@ -2127,13 +2150,13 @@ func (p *parser) arrayOrTArgs() Expr {
 	n, comma := p.typeList(false)
 	p.want(_Rbrack)
 	if !comma {
-		if elem := p.typeOrNil(); elem != nil {
+		if elem := p.baseTypeOrNil(); elem != nil {
 			// x [n]E
 			t := new(ArrayType)
 			t.pos = pos
 			t.Len = n
 			t.Elem = elem
-			return t
+			return p.applyTypeSuffixes(t)
 		}
 	}
 

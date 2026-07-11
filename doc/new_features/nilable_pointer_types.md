@@ -127,14 +127,19 @@ Today every pointer can be `nil`, and the compiler does not distinguish “this 
 | Today (`disable`) | With NPT on (`warnings` / `enable`) |
 | ----------------- | ------------------------------- |
 | `var a *MyStruct` — may be `nil`; no annotation | `var a *MyStruct` — **must not** be `nil` |
-| (same syntax) | `var a *MyStruct?` — **may** be `nil` |
+| `var s []string` — may be `nil` | `var s []string` — **must not** be `nil` |
+| `var m map[K]V` — may be `nil` | `var m map[K]V` — **must not** be `nil` |
+| `var ch chan T` — may be `nil` | `var ch chan T` — **must not** be `nil` |
+| (same syntax) | `var a *MyStruct?`, `[]string?`, `map[K]V?`, `chan T?` — **may** be `nil` |
 
 When the context is **disabled** (default), pointer types behave exactly as in current Go: every `*T` may be `nil`, and `*T?` is not a distinct type (or is rejected as redundant).
 
-When the context is **enabled** (`warnings` or `enable`), pointer annotations apply:
+When the context is **enabled** (`warnings` or `enable`), pointer, slice, map, and channel annotations apply:
 
-- `*T` — non-nilable pointer; assigning or passing `nil` where `*T` is expected is a compile error under `enable` (a warning under `warnings`).
-- `*T?` — nilable pointer; holding `nil` is allowed; dereferencing without a nil check is a warning under `enable` (see [Diagnostics](#diagnostics)).
+- `*T`, `[]T`, `map[K]V`, `chan T` — non-nilable; assigning or passing `nil` where expected is a compile error under `enable` (a warning under `warnings`).
+- `*T?`, `[]T?`, `map[K]V?`, `chan T?` — nilable; holding `nil` is allowed; using without a nil check is a warning under `enable` (see [Diagnostics](#diagnostics)).
+
+The `?` suffix binds to the whole reference type: `chan int?` is a nilable channel, while `chan (int?)` is a non-nilable channel of nilable `int` values. The same rule applies to slices and maps (`[]string?` vs `[]` of `string?`, `map[K]V?` vs `map[K](V?)`).
 
 The `?` suffix attaches to the pointer type as a whole (`*MyStruct?`), consistent with `int?` for value types. It is not the same as `*int?` (pointer to nilable `int`), which remains “pointer to `int?`” when both features are in use.
 
@@ -145,6 +150,7 @@ The `?` suffix attaches to the pointer type as a whole (`*MyStruct?`), consisten
 **In scope for v1:**
 
 - Plain pointers: `*T`, `*T?`
+- Slices, maps, and channels: `[]T`, `[]T?`, `map[K]V`, `map[K]V?`, `chan T`, `chan T?`
 - Pointer fields in struct definitions
 - Function parameters and results
 - Local variables and assignments
@@ -153,7 +159,7 @@ The `?` suffix attaches to the pointer type as a whole (`*MyStruct?`), consisten
 
 **Out of scope for v1 (may follow later):**
 
-- Slices, maps, channels, functions, and interfaces as separate nilable/non-nilable reference kinds (more surface area; may follow later)
+- Functions and interfaces as separate nilable/non-nilable reference kinds
 - Changing the meaning of `nil` at runtime
 - Automatic insertion of nil checks in generated code
 
@@ -169,6 +175,15 @@ var required *MyStruct = nil         // compile error with enable; warning with 
 
 var optional *MyStruct? = nil        // ok
 var optional *MyStruct? = &MyStruct{} // ok
+
+var items []string = nil             // compile error with enable; warning with warnings
+var items []string? = nil            // ok
+
+var cache map[string]int = nil       // compile error with enable; warning with warnings
+var cache map[string]int? = nil      // ok
+
+var done chan struct = nil           // compile error with enable; warning with warnings
+var done chan struct? = nil          // ok
 ```
 
 ### Struct fields
@@ -386,6 +401,8 @@ Libraries consumed with NPT off keep today’s behavior. When both consumer and 
 | ------ | ------- | ------ |
 | `*MyStruct` | may be `nil` | must not be `nil` (non-nilable) |
 | `*MyStruct?` | N/A or same as `*MyStruct` | may be `nil` (nilable) |
+| `[]T`, `map[K]V`, `chan T` | may be `nil` | must not be `nil` (non-nilable) |
+| `[]T?`, `map[K]V?`, `chan T?` | N/A or same as `[]T` / `map[K]V` / `chan T` | may be `nil` (nilable) |
 | `p?.Field` | valid on any pointer | idiomatic for `*T?` |
 | `p ?? fallback` | valid | unwrap `*T?` to `*T` with default |
 

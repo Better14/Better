@@ -246,3 +246,129 @@ func f(r row) string {
 		t.Fatalf("Check failed: %v", err)
 	}
 }
+
+func TestNilableSliceNilAssign(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f() {
+	var s []string = nil
+	_ = s
+}`
+	if err := checkNilablePointers(t, src, "enable"); err == nil {
+		t.Fatal("expected error for nil assign to []string")
+	}
+}
+
+func TestNilableSliceOptionalAssign(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f() {
+	var s []string? = nil
+	_ = s
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilableSliceNarrowing(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f(a []string?) {
+	if a != nil {
+		var b []string = a
+		_ = b
+	}
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilableMapNilAssign(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f() {
+	var m map[string]int = nil
+	_ = m
+}`
+	if err := checkNilablePointers(t, src, "enable"); err == nil {
+		t.Fatal("expected error for nil assign to map[string]int")
+	}
+}
+
+func TestNilableMapOptionalAssign(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f() {
+	var m map[string]int? = nil
+	_ = m
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilableMapNarrowing(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f(a map[string]int?) {
+	if a != nil {
+		var b map[string]int = a
+		_ = b
+	}
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilableChanNilAssign(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f() {
+	var ch chan int = nil
+	_ = ch
+}`
+	if err := checkNilablePointers(t, src, "enable"); err == nil {
+		t.Fatal("expected error for nil assign to chan int")
+	}
+}
+
+func TestNilableChanOptionalAssign(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f() {
+	var ch chan int? = nil
+	_ = ch
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilableChanNarrowing(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f(a chan int?) {
+	if a != nil {
+		var b chan int = a
+		_ = b
+	}
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilableChanElemOptional(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f() {
+	var ch chan (*int?) = nil
+	_ = ch
+}`
+	if err := checkNilablePointers(t, src, "enable"); err == nil {
+		t.Fatal("expected error for nil assign to strict chan (*int?)")
+	}
+}

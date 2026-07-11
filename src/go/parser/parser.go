@@ -625,9 +625,24 @@ func (p *parser) parseTypeName(ident *ast.Ident) ast.Expr {
 	return ident
 }
 
+// applyTypeSuffixes applies trailing ! and ? suffixes to typ.
+func (p *parser) applyTypeSuffixes(typ ast.Expr) ast.Expr {
+	for typ != nil && p.tok == token.NOT {
+		b := p.pos
+		p.next()
+		typ = &ast.ResultTypeExpr{X: typ, Bang: b}
+	}
+	for typ != nil && p.tok == token.QUESTION {
+		q := p.pos
+		p.next()
+		typ = &ast.NilableTypeExpr{X: typ, QPos: q}
+	}
+	return typ
+}
+
 // "[" has already been consumed, and lbrack is its position.
 // If len != nil it is the already consumed array length.
-func (p *parser) parseArrayType(lbrack token.Pos, len ast.Expr) *ast.ArrayType {
+func (p *parser) parseArrayType(lbrack token.Pos, len ast.Expr) ast.Expr {
 	if p.trace {
 		defer un(trace(p, "ArrayType"))
 	}
@@ -657,7 +672,7 @@ func (p *parser) parseArrayType(lbrack token.Pos, len ast.Expr) *ast.ArrayType {
 		p.errorExpected(pos, "type")
 		elt = &ast.BadExpr{From: pos, To: pos}
 	}
-	return &ast.ArrayType{Lbrack: lbrack, Len: len, Elt: elt}
+	return p.applyTypeSuffixes(&ast.ArrayType{Lbrack: lbrack, Len: len, Elt: elt})
 }
 
 func (p *parser) parseArrayFieldOrTypeInstance(x *ast.Ident) (*ast.Ident, ast.Expr) {
@@ -692,7 +707,7 @@ func (p *parser) parseArrayFieldOrTypeInstance(x *ast.Ident) (*ast.Ident, ast.Ex
 			p.errorExpected(pos, "type")
 			elt = &ast.BadExpr{From: pos, To: pos}
 		}
-		return x, &ast.ArrayType{Lbrack: lbrack, Elt: elt}
+		return x, p.applyTypeSuffixes(&ast.ArrayType{Lbrack: lbrack, Elt: elt})
 	}
 
 	// x [P]E or x[P]
@@ -704,7 +719,7 @@ func (p *parser) parseArrayFieldOrTypeInstance(x *ast.Ident) (*ast.Ident, ast.Ex
 				// Trailing commas are invalid in array type fields.
 				p.error(trailingComma, "unexpected comma; expecting ]")
 			}
-			return x, &ast.ArrayType{Lbrack: lbrack, Len: args[0], Elt: elt}
+			return x, p.applyTypeSuffixes(&ast.ArrayType{Lbrack: lbrack, Len: args[0], Elt: elt})
 		}
 	}
 
@@ -1459,21 +1474,11 @@ func (p *parser) parseMapType() *ast.MapType {
 		p.errorExpected(pos, "type")
 		value = &ast.BadExpr{From: pos, To: pos}
 	}
-	for value != nil && p.tok == token.NOT {
-		b := p.pos
-		p.next()
-		value = &ast.ResultTypeExpr{X: value, Bang: b}
-	}
-	for value != nil && p.tok == token.QUESTION {
-		q := p.pos
-		p.next()
-		value = &ast.NilableTypeExpr{X: value, QPos: q}
-	}
 
 	return &ast.MapType{Map: pos, Key: key, Value: value}
 }
 
-func (p *parser) parseChanType() *ast.ChanType {
+func (p *parser) parseChanType() ast.Expr {
 	if p.trace {
 		defer un(trace(p, "ChanType"))
 	}
@@ -1493,9 +1498,14 @@ func (p *parser) parseChanType() *ast.ChanType {
 		p.expect(token.CHAN)
 		dir = ast.RECV
 	}
-	value := p.parseType()
+	value := p.tryIdentOrType()
+	if value == nil {
+		pos := p.pos
+		p.errorExpected(pos, "type")
+		value = &ast.BadExpr{From: pos, To: pos}
+	}
 
-	return &ast.ChanType{Begin: pos, Arrow: arrow, Dir: dir, Value: value}
+	return p.applyTypeSuffixes(&ast.ChanType{Begin: pos, Arrow: arrow, Dir: dir, Value: value})
 }
 
 func (p *parser) parseTypeInstance(typ ast.Expr) ast.Expr {

@@ -70,6 +70,7 @@ func isNilablePointerType(t Type) bool {
 	return ok
 }
 
+// nilablePointerElem returns T when t is T? and T is a pointer, slice, map, or channel type.
 func nilablePointerElem(t Type) (Type, bool) {
 	if t == nil {
 		return nil, false
@@ -78,18 +79,25 @@ func nilablePointerElem(t Type) (Type, bool) {
 	if !ok {
 		return nil, false
 	}
-	if _, ok := o.elem.Underlying().(*Pointer); !ok {
+	switch o.elem.Underlying().(type) {
+	case *Pointer, *Slice, *Map, *Chan:
+		return o.elem, true
+	default:
 		return nil, false
 	}
-	return o.elem, true
 }
 
+// isStrictPointerType reports whether t is a non-optional pointer, slice, map, or channel.
 func isStrictPointerType(t Type) bool {
 	if t == nil {
 		return false
 	}
-	_, ok := t.Underlying().(*Pointer)
-	return ok
+	switch t.Underlying().(type) {
+	case *Pointer, *Slice, *Map, *Chan:
+		return true
+	default:
+		return false
+	}
 }
 
 func (check *Checker) collapseNilablePointerType(pos token.Pos, typ Type) Type {
