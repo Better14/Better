@@ -154,6 +154,9 @@ func (pw *pkgWriter) maybeTypeAndValue(x syntax.Expr) (syntax.TypeAndValue, bool
 	if call := pw.info.IndexOperatorCalls[x]; call != nil {
 		return pw.maybeTypeAndValue(call)
 	}
+	if call := pw.info.InterpolatedStringCalls[x]; call != nil {
+		return pw.maybeTypeAndValue(call)
+	}
 
 	tv := x.GetTypeInfo()
 
@@ -2124,6 +2127,10 @@ func (w *writer) expr(expr syntax.Expr) {
 		w.p.unexpected("expression", expr)
 
 	case *syntax.BasicLit:
+		if call := w.p.info.InterpolatedStringCalls[expr]; call != nil {
+			w.expr(call)
+			break
+		}
 		w.emitBasicLit(expr, nil)
 
 	case *syntax.CompositeLit:

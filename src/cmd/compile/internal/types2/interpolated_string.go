@@ -234,6 +234,11 @@ func (check *Checker) maybeLowerInterpolatedString(x *operand, e *syntax.BasicLi
 	if lowered == e {
 		return false
 	}
+	call, ok := lowered.(*syntax.CallExpr)
+	if !ok {
+		return false
+	}
+	check.recordInterpolatedStringCall(e, call)
 	check.expr(nil, x, lowered)
 	return true
 }

@@ -332,6 +332,9 @@ type Info struct {
 
 	// OperatorAssignCalls maps +=, ++, and similar assignment statements to desugared rhs calls.
 	OperatorAssignCalls map[*syntax.AssignStmt]*syntax.CallExpr
+
+	// InterpolatedStringCalls maps string literals with {expr} holes to lowered fmt.Sprintf calls.
+	InterpolatedStringCalls map[syntax.Expr]*syntax.CallExpr
 }
 
 // MethodOverloadKey identifies an overloaded method set.

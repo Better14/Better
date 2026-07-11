@@ -217,6 +217,12 @@ func (check *Checker) recordOperatorAssignCall(stmt *syntax.AssignStmt, call *sy
 	}
 }
 
+func (check *Checker) recordInterpolatedStringCall(lit *syntax.BasicLit, call *syntax.CallExpr) {
+	if m := check.InterpolatedStringCalls; m != nil && lit != nil && call != nil {
+		m[lit] = call
+	}
+}
+
 func (check *Checker) recordCallOverloads(expr syntax.Expr, funcs []*Func) {
 	if len(funcs) <= 1 {
 		return
