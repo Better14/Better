@@ -115,6 +115,16 @@ func (check *Checker) reportNilToStrictPointer(at poser, T Type) {
 	}
 }
 
+func (check *Checker) reportNilableUseWithoutNilCheck(at poser, t Type, verb string, code Code) {
+	msg := check.sprintf("cannot %s %s without nil check", verb, t)
+	switch check.nilablePointersModeAt(at.Pos()) {
+	case nptEnable:
+		check.errorf(at, code, invalidOp+"%s", msg)
+	default:
+		check.softErrorf(at, code, invalidOp+"%s", msg)
+	}
+}
+
 func (check *Checker) fileAt(pos syntax.Pos) *syntax.File {
 	for _, f := range check.files {
 		if f.Pos().Cmp(pos) <= 0 && pos.Cmp(f.EOF) <= 0 {

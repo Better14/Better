@@ -372,3 +372,41 @@ func f() {
 		t.Fatal("expected error for nil assign to strict chan (*int?)")
 	}
 }
+
+func TestNilableChanCloseRequiresNilCheck(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f(ch chan int?) {
+	close(ch)
+}`
+	if err := checkNilablePointers(t, src, "enable"); err == nil {
+		t.Fatal("expected error for close without nil check")
+	}
+}
+
+func TestNilableChanCloseAfterNilCheck(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f(ch chan int?) {
+	if ch != nil {
+		close(ch)
+	}
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}
+
+func TestNilableChanCloseAfterEarlyReturn(t *testing.T) {
+	const src = `package p
+//go:nilable_pointers enable
+func f(ch chan int?) {
+	if ch == nil {
+		return
+	}
+	close(ch)
+}`
+	if err := checkNilablePointers(t, src, "enable"); err != nil {
+		t.Fatalf("Check failed: %v", err)
+	}
+}

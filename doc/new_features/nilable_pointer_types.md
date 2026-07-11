@@ -343,6 +343,7 @@ When NPT is on (`nilable_pointers` is `warnings` or `enable`):
 | Pass `nil` for a non-nilable `*T` parameter | definite | warning | compile error | compile error |
 | Pass `*T?` where `*T` is required | flow | warning | warning | compile error |
 | Dereference `*T?` without check | flow | warning | warning | compile error |
+| `close(ch)` on `chan T?` without nil check | flow | warning | compile error | compile error |
 | Leave non-nilable struct field uninitialized | flow | warning | warning | compile error |
 
 **Definite** violations do not depend on control-flow inference — the source itself assigns or returns `nil` for a non-nilable type. **Flow** violations depend on null-state analysis; they are warnings under `enable` in v1 because the analyzer may be incomplete or produce debatable results.

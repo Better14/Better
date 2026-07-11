@@ -35,7 +35,8 @@ var ch chan int
 | `for v := range ch` | Panic on first receive if `ch` is nil |
 | `select { case x := <-ch: … }` | Unchanged: nil channel cases are never selected (no receive runs) |
 | Send on nil channel | Unchanged: still blocks forever |
-| `close(nil)` | Unchanged: still panics |
+| `close(nil)` on strict `chan T` | Unchanged: still panics at run time |
+| `close(ch)` on nilable `chan T?` without nil check | Compile error with NPT `enable` (see [Nilable pointer types](nilable_pointer_types.md)) |
 
 The compiler inserts `OCHECKNIL` on the channel expression before lowering to `chanrecv1` / `chanrecv2`. There is no `go.mod` toggle — this is always on in Bow.
 
@@ -56,6 +57,11 @@ if ch == nil {
 	return errors.New("no channel")
 }
 v := <-ch
+
+// close requires a nil check on nilable channels
+if ch != nil {
+	close(ch)
+}
 ```
 
 With [nilable pointer types](nilable_pointer_types.md), `chan T` is non-nilable under NPT; use `chan T?` when the channel itself may be absent.

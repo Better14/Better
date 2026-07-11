@@ -251,7 +251,11 @@ func (check *Checker) builtin(x *operand, call *ast.CallExpr, id builtinId) (_ b
 
 	case _Close:
 		// close(c)
-		if !underIs(x.typ(), func(u Type) bool {
+		chanTyp := x.typ()
+		if elem, ok := nilablePointerElem(chanTyp); ok && check.nilablePointersOnAt(x.Pos()) {
+			chanTyp = elem
+		}
+		if !underIs(chanTyp, func(u Type) bool {
 			uch, _ := u.(*Chan)
 			if uch == nil {
 				check.errorf(x, InvalidClose, invalidOp + "cannot close non-channel %s", x)
@@ -264,6 +268,12 @@ func (check *Checker) builtin(x *operand, call *ast.CallExpr, id builtinId) (_ b
 			return true
 		}) {
 			return
+		}
+		if check.nilablePointersOnAt(x.Pos()) {
+			if _, ok := nilablePointerElem(x.typ()); ok {
+				check.reportNilableUseWithoutNilCheck(x, x.typ(), "close", InvalidClose)
+				return
+			}
 		}
 		x.mode_ = novalue
 		if check.recordTypes() {
