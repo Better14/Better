@@ -44,6 +44,7 @@ Prefer `errors.New` / `errors.Wrap` for panic values you expect to inspect in lo
 Panics inserted by the compiler capture a stack at the **failure site**, including:
 
 - **Nil receiver method calls** ([nil_receivers.md](nil_receivers.md))
+- **Nil channel receive** ([fixed_weird_behaviors.md](fixed_weird_behaviors.md))
 - **Nil pointer dereference**
 - **Nil unwrap** of `T?`, `T!`, or `*T?` (force cast / `!.value`)
 - **Bounds / type assertion** failures

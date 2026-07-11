@@ -52,6 +52,16 @@ func Walk(fn *ir.Func) {
 	}
 }
 
+// appendNilChannelRecvCheck inserts a nil check before receiving from ch.
+// In Bow, reading from a nil channel panics instead of blocking forever.
+func appendNilChannelRecvCheck(pos src.XPos, ch ir.Node, init *ir.Nodes) {
+	if ch == nil || ch.Type() == nil || !ch.Type().IsChan() {
+		return
+	}
+	check := typecheck.Expr(ir.NewUnaryExpr(pos, ir.OCHECKNIL, ch))
+	init.Append(typecheck.Stmt(check))
+}
+
 // walkRecv walks an ORECV node.
 func walkRecv(n *ir.UnaryExpr) ir.Node {
 	if n.Typecheck() == 0 {
@@ -60,6 +70,7 @@ func walkRecv(n *ir.UnaryExpr) ir.Node {
 	init := ir.TakeInit(n)
 
 	n.X = walkExpr(n.X, &init)
+	appendNilChannelRecvCheck(n.Pos(), n.X, &init)
 	call := walkExpr(mkcall1(chanfn("chanrecv1", 2, n.X.Type()), nil, &init, n.X, typecheck.NodNil()), &init)
 	return ir.InitExpr(init, call)
 }

@@ -77,6 +77,7 @@ func walkAssign(init *ir.Nodes, n ir.Node) ir.Node {
 		// order.stmt made sure x is addressable.
 		recv := as.Y.(*ir.UnaryExpr)
 		recv.X = walkExpr(recv.X, init)
+		appendNilChannelRecvCheck(recv.Pos(), recv.X, init)
 
 		n1 := typecheck.NodAddr(as.X)
 		r := recv.X // the channel
@@ -220,6 +221,7 @@ func walkAssignRecv(init *ir.Nodes, n *ir.AssignListStmt) ir.Node {
 	r := n.Rhs[0].(*ir.UnaryExpr) // recv
 	walkExprListSafe(n.Lhs, init)
 	r.X = walkExpr(r.X, init)
+	appendNilChannelRecvCheck(r.Pos(), r.X, init)
 	var n1 ir.Node
 	if ir.IsBlank(n.Lhs[0]) {
 		n1 = typecheck.NodNil()

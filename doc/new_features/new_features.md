@@ -8,6 +8,7 @@ This directory documents language and library extensions planned or implemented 
 - [Nilable types (`T?`)](nilable_types.md) — optional values, `?.`, and `??`
 - [Nilable pointer types (`*T` / `*T?`)](nilable_pointer_types.md) — non-nilable vs nilable pointers; `nilable_pointers` in go.mod and `//go:nilable_pointers` regions
 - [No nil receivers](nil_receivers.md) — pointer method calls panic at the call site; use `?.` for optional chains
+- [Fixed weird behaviors](fixed_weird_behaviors.md) — upstream surprises Bow has changed (e.g. nil channel receive)
 - [Enums](enums.md) — algebraic enums, variants, and exhaustive switching
 - [Operator overloading](operator_overloading.md) — user-defined operators via operator methods
 

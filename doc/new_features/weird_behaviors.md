@@ -9,6 +9,7 @@ This is a brainstorming list, not a commitment.
 | Behavior | Notes |
 | -------- | ----- |
 | Nil pointer receivers run methods | Call-site panic — [nil_receivers.md](nil_receivers.md) |
+| Nil channel receive blocks forever | Receive-site panic — [fixed_weird_behaviors.md](fixed_weird_behaviors.md) |
 | Silent nil chains / defensive nil-receiver guards | Prefer `?.` / `*T?` — [nilable types](nilable_types.md), [nilable pointers](nilable_pointer_types.md) |
 | Weak panic diagnostics | [Panics and stack traces](panics.md) |
 | `(T, error)` / nil-error footguns | [Result types](result_types.md), [structured errors](errors.md) |
@@ -18,8 +19,7 @@ This is a brainstorming list, not a commitment.
 - **Typed nil in interfaces** — `var p *T; var i error = p` → `i != nil`. Classic `return err` bug when `err` is a nil concrete pointer.
 - **Nil map: read OK, write panics** — asymmetric; easy to forget initialization.
 - **Nil slice** — `len` / `cap` / `range` / `append` fine; indexing panics.
-- **Nil channel send/recv blocks forever** — looks like a hang, not a clear failure.
-- **Nil channel in `select`** — case is ignored (useful but surprising).
+- **Nil channel in `select`** — case is ignored (useful but surprising); direct receive panics in Bow — see [fixed_weird_behaviors.md](fixed_weird_behaviors.md).
 - **`close(nil chan)` panics** — inconsistent with “nil channel is inert in select.”
 - **Range over nil** slice/map/chan — zero iterations, no panic (usually fine; still surprising next to other nil panics).
 
@@ -80,6 +80,7 @@ Highest-impact leftovers to consider first:
 ## Related docs
 
 - [No nil receivers](nil_receivers.md)
+- [Fixed weird behaviors](fixed_weird_behaviors.md)
 - [Nilable types](nilable_types.md)
 - [Nilable pointer types](nilable_pointer_types.md)
 - [Result types](result_types.md)
