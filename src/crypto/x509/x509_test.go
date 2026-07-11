@@ -3010,8 +3010,8 @@ func TestCreateRevocationList(t *testing.T) {
 				for i, rce := range parsedCRL.RevokedCertificateEntries {
 					expected := tc.template.RevokedCertificateEntries[i]
 					if rce.SerialNumber.Cmp(expected.SerialNumber) != 0 {
-						t.Fatalf("RevocationListEntry serial mismatch: got %d; want %d.",
-							rce.SerialNumber, expected.SerialNumber)
+					t.Fatalf("RevocationListEntry serial mismatch: got %v; want %v.",
+						rce.SerialNumber, expected.SerialNumber)
 					}
 					if !rce.RevocationTime.Equal(expected.RevocationTime) {
 						t.Fatalf("RevocationListEntry revocation time mismatch: got %v; want %v.",

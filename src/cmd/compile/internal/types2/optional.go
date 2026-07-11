@@ -52,6 +52,12 @@ func OptionalDestElem(t Type) (elem Type, ok bool) {
 	return optionalStructElem(t)
 }
 
+// OptionalSrcElem returns the element type of an optional source T?
+// (either *Optional or a lowered optional struct).
+func OptionalSrcElem(t Type) (elem Type, ok bool) {
+	return OptionalDestElem(t)
+}
+
 // OptionalType returns the struct type used to lower T? to Option[T].
 func OptionalType(pkg *Package, opt *Optional) *Struct {
 	pos := nopos

@@ -1522,6 +1522,12 @@ loop:
 			case *ArrayType, *SliceType, *StructType, *MapType, *SetType:
 				// x is a comptype
 				complit_ok = true
+			case *NilableType:
+				// map[string]T?{…} and similar: ? suffix on composite type
+				switch Unparen(t.(*NilableType).Elem).(type) {
+				case *ArrayType, *SliceType, *StructType, *MapType, *SetType, *ChanType:
+					complit_ok = true
+				}
 			}
 			if !complit_ok {
 				break loop

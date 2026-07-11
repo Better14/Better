@@ -1,0 +1,5 @@
+package a
+
+struct Person { // want "type declaration can use struct/interface shorthand syntax"
+	Name string
+}

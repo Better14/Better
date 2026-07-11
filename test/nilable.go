@@ -23,12 +23,12 @@ func intPtr(n int) *int {
 
 func main() {
 	var count int? = intPtr(5)
-	if count == nil {
-		panic("count")
-	}
 	n := count ?? 0
 	if n != 5 {
 		panic(fmt.Sprintf("coalesce int: got %d", n))
+	}
+	if count == nil {
+		panic("count")
 	}
 
 	var absent int? = nil

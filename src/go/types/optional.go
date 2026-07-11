@@ -53,6 +53,12 @@ func OptionalDestElem(t Type) (elem Type, ok bool) {
 	return optionalStructElem(t)
 }
 
+// OptionalSrcElem returns the element type of an optional source T?
+// (either *Optional or a lowered optional struct).
+func OptionalSrcElem(t Type) (elem Type, ok bool) {
+	return OptionalDestElem(t)
+}
+
 // OptionalType returns the struct type used to lower T? to Option[T].
 func OptionalType(pkg *Package, opt *Optional) *Struct {
 	pos := nopos
@@ -457,7 +463,7 @@ func (check *Checker) isSkipping(s ast.Stmt, label string) bool {
 	default:
 		return false
 	case *ast.ExprStmt:
-		if call, ok := ast.Unparen(s.X).(*ast.CallExpr); ok && (check.isPanic[call] || isPanicCall(call)) {
+		if call, ok := ast.Unparen(s.X).(*ast.CallExpr); ok && check.isPanic[call] {
 			return true
 		}
 	case *ast.ReturnStmt:

@@ -26,8 +26,8 @@ func (check *Checker) isTerminating(s syntax.Stmt, label string) bool {
 		return check.isTerminating(s.Stmt, s.Label.Value)
 
 	case *syntax.ExprStmt:
-		// calling the predeclared (possibly parenthesized) panic() function is terminating
-		if call, ok := syntax.Unparen(s.X).(*syntax.CallExpr); ok && (check.isPanic[call] || isPanicCall(call)) {
+		// calling the predeclared panic() function is terminating
+		if call, ok := syntax.Unparen(s.X).(*syntax.CallExpr); ok && check.isPanic[call] {
 			return true
 		}
 
@@ -193,7 +193,7 @@ func hasBreakCommList(list []*syntax.CommClause, label string, implicit bool) bo
 func (check *Checker) isSkipping(s syntax.Stmt, label string) bool {
 	switch s := s.(type) {
 	case *syntax.ExprStmt:
-		if call, ok := syntax.Unparen(s.X).(*syntax.CallExpr); ok && (check.isPanic[call] || isPanicCall(call)) {
+		if call, ok := syntax.Unparen(s.X).(*syntax.CallExpr); ok && check.isPanic[call] {
 			return true
 		}
 	case *syntax.ReturnStmt:

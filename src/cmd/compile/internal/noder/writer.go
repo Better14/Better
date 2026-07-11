@@ -2891,11 +2891,10 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 			return
 		}
 		if p, ok := types2.CoreType(src).(*types2.Pointer); ok && types2.Identical(p.Elem(), elem) {
-			w.Code(exprOptionalWrap)
-			w.Bool(false)
+			w.Code(exprOptionalWrapFromPtr)
 			w.pos(expr)
 			w.typ(dst)
-			w.implicitConvExpr(elem, expr)
+			w.expr(expr)
 			return
 		}
 		if types2.AssignableTo(src, elem) {
@@ -2907,7 +2906,7 @@ func (w *writer) convertExpr(dst types2.Type, expr syntax.Expr, implicit bool) {
 			return
 		}
 	}
-	if o, ok := types2.AsOptional(src); ok && types2.Identical(dst, o.Elem()) {
+	if elem, ok := types2.OptionalSrcElem(src); ok && types2.Identical(dst, elem) {
 		w.Code(exprOptionalUnwrap)
 		w.Bool(true) // force cast: panic if nil
 		w.pos(expr)
