@@ -10,10 +10,10 @@ import "iter"
 // Set is a hash set.
 type Set[T comparable] map[T]struct{}
 
-func Make[T comparable]() Set[T] { return make(Set[T]) }
+func New[T comparable]() Set[T] { return make(Set[T]) }
 
 func Of[T comparable](vals ...T) Set[T] {
-	s := Make[T]()
+	s := New[T]()
 	for _, v := range vals {
 		s.Add(v)
 	}
@@ -48,7 +48,7 @@ func (s Set[T]) Values() []T {
 }
 
 func (a Set[T]) Union(b Set[T]) Set[T] {
-	out := Make[T]()
+	out := New[T]()
 	for v := range a {
 		out.Add(v)
 	}
@@ -59,7 +59,7 @@ func (a Set[T]) Union(b Set[T]) Set[T] {
 }
 
 func (a Set[T]) Intersect(b Set[T]) Set[T] {
-	out := Make[T]()
+	out := New[T]()
 	for v := range a {
 		if b.Contains(v) {
 			out.Add(v)

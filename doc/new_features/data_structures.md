@@ -130,7 +130,7 @@ Yes — `{}T{ ... }` is the intended literal form for this extension. It is not 
 Other construction and use:
 
 ```go
-b := set.Make[int]()           // empty set
+b := set.New[int]()            // empty set
 b.Add(1)
 b.Add(2)
 b.Contains(1)                  // true

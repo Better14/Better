@@ -28,6 +28,11 @@ func main() {
 	if s.Len() != 2 || !s.Contains("a") {
 		panic("set")
 	}
+	empty := set.New[string]()
+	empty.Add("x")
+	if !empty.Contains("x") {
+		panic("set.New")
+	}
 
 	q := queue.New[int]()
 	q.Enqueue(1)
