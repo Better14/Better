@@ -320,6 +320,87 @@ Language-server support for Bow syntax — completion, diagnostics, and signatur
 
 Full spec: [doc/new_features/gopls.md](doc/new_features/gopls.md)
 
+### 16. Fixed weird upstream behaviors
+
+Bow changes several surprising upstream Go behaviors so bugs fail fast with stack traces instead of silent wrong behavior or hangs.
+
+- **Nil pointer receivers** — calling a method on a `nil` pointer panics at the **call site**; the method body does not run with a nil receiver. No more defensive `if c == nil { return nil }` guards inside methods.
+- **Nil channel receive** — receiving from a `nil` channel **panics** instead of blocking forever.
+
+```go
+var c *Connection
+c.Subroute("api") // panics here — not inside Subroute
+
+var ch chan int
+<-ch // panics — does not hang
+```
+
+Use `?.` at call sites when nil is expected and the call should be skipped. [modernize](https://github.com/Bow5/modernize) removes obsolete in-method nil-receiver guards and adds `?.` only where the old guard returned nil or zero.
+
+Full spec: [doc/new_features/nil_receivers.md](doc/new_features/nil_receivers.md), [doc/new_features/fixed_weird_behaviors.md](doc/new_features/fixed_weird_behaviors.md), [doc/new_features/weird_behaviors.md](doc/new_features/weird_behaviors.md)
+
+### 17. Shorthand array, map, and set literals
+
+Shorter literal syntax for slices, maps, and sets. Types are inferred from entries (untyped integers default to `int`).
+
+```go
+a := ["string", "asdf"]           // []string{"string", "asdf"}
+m := {"a": "b"}                   // map[string]string{"a": "b"}
+s := {"a", "b", "c"}              // set.Of("a", "b", "c")
+tags := {}string{"go", "linq"}    // typed set literal
+```
+
+`go fix` and [modernize](https://github.com/Bow5/modernize) rewrite long forms only when the inferred type matches the explicit prefix — `[]int{1, 2, 3}` becomes `[1, 2, 3]`, but `[]int64{1, 2, 3}` is left unchanged.
+
+Full spec: [doc/new_features/syntax.md](doc/new_features/syntax.md#array-map-and-set-literals)
+
+### 18. For-in loops
+
+`for-in` replaces `for range` for iterating slices, maps, channels, and other sequences.
+
+```go
+for item in items {
+	use(item)
+}
+for i, item in items {
+	use(i, item)
+}
+for i, _ in items { // index-only
+	use(i)
+}
+```
+
+Full spec: [doc/new_features/syntax.md](doc/new_features/syntax.md#for-in-loops)
+
+### 19. Spread and negative slice syntax
+
+Prefix spread in variadic calls and literals; Python-style negative slice bounds.
+
+```go
+myFunc(...nums)              // preferred over myFunc(nums...)
+more := ["fruit", ...a]
+last := list[:-1]            // drop last element
+head := list[:5]             // standard omitted bounds still valid
+```
+
+Full spec: [doc/new_features/syntax.md](doc/new_features/syntax.md#spread-operator), [doc/new_features/syntax.md](doc/new_features/syntax.md#negative-slice-indices)
+
+### 20. Interpolated strings
+
+Double-quoted strings interpolate expressions; backtick strings do not.
+
+```go
+price := 12.5
+msg := "Price is {price:.2f}"
+
+escaped := "literal \\{braces\\}"
+raw := `not {interpolated}`
+```
+
+[modernize](https://github.com/Bow5/modernize) converts `fmt.Sprintf` and string `+` chains where possible, and escapes literal braces in existing quoted strings.
+
+Full spec: [doc/new_features/syntax.md](doc/new_features/syntax.md#interpolated-strings)
+
 See also the [quick reference table](doc/new_features/new_features.md#quick-reference) in the feature index.
 
 ---
@@ -440,6 +521,6 @@ Bow adds new syntax and stdlib features. To move an existing codebase over:
 
 1. **Install Bow** and set `GOROOT` and `PATH` — see [Build from source](#build-from-source-bootstrap) above or [doc/new_docs/installation.md](doc/new_docs/installation.md).
 
-2. **Clone and build [modernize](https://github.com/Bow5/modernize)** with Bow as `GOROOT`, then run it on your module. Modernize applies mechanical rewrites for nilable pointers, `T!` / `!` error handling, structured errors, and struct/interface shorthand. See the [modernize README](https://github.com/Bow5/modernize) for usage.
+2. **Clone and build [modernize](https://github.com/Bow5/modernize)** with Bow as `GOROOT`, then run it on your module. Modernize applies mechanical rewrites for nil-receiver guard removal, nilable pointers, `T!` / `!` error handling, structured errors, for-in loops, shorthand literals, interpolated strings, spread calls, negative slice indices, and struct/interface shorthand. See the [modernize README](https://github.com/Bow5/modernize) for usage.
 
 3. **Use an AI assistant** (Cursor, Claude, etc.). Clone [SyntaxExample](https://github.com/Bow5/SyntaxExample). Point AI at [`doc/new_features/`](doc/new_features/new_features.md) and SyntaxExample for features modernize does not cover — LINQ, enums, extension methods, and the rest documented there.

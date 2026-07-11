@@ -749,5 +749,19 @@ to:
 Omitted low and high bounds (`s[:5]`, `s[3:]`, `s[:]`) are valid standard Go syntax and are left unchanged.
 
 Packages whose source files live under GOROOT/src are never rewritten.
+
+# Analyzer interpolatedstrings
+
+interpolatedstrings: rewrite fmt.Sprintf and string concatenation to interpolated string syntax
+
+The interpolatedstrings analyzer:
+
+- Escapes literal `{` and `}` in double-quoted strings as `\{` and `\}`
+- Rewrites fmt.Sprintf with a string-literal format to `"…{expr}…"` form
+- Merges simple string `+` concatenations into one interpolated string
+
+Backtick raw strings are not interpolated and are left unchanged.
+
+Packages whose source files live under GOROOT/src are never rewritten.
 */
 package modernize

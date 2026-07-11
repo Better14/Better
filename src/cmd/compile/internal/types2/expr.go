@@ -1173,6 +1173,12 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		if e.Bad {
 			goto Error // error reported during parsing
 		}
+		if check.maybeLowerInterpolatedString(x, e) {
+			if !x.isValid() {
+				goto Error
+			}
+			break
+		}
 		check.basicLit(x, e)
 		if !x.isValid() {
 			goto Error

@@ -326,6 +326,26 @@ list[:-2]   // all but the last two elements
 list[-3:-1] // third-to-last through second-to-last
 ```
 
+## Interpolated strings
+
+**Implemented.** Community feedback still welcome.
+
+Double-quoted strings are interpolated. Backtick raw strings are not.
+
+```go
+price := 12.5
+msg := "Price is {price:.2f}"   // equivalent to fmt.Sprintf("Price is %.2f", price)
+
+literal := "braces: \\{not interpolated\\}"
+raw := `literal {braces} stay`
+```
+
+- `{expr}` inserts a value (default format `%v`).
+- `{expr:.2f}` uses printf-style formatting on the right of `:` (`.2f` → `%.2f`).
+- `\{` and `\}` escape literal braces.
+
+[`go fix`](https://pkg.go.dev/golang.org/x/tools/cmd/fix) and `modernize` escape literal `{`/`}` in existing `"..."` strings, rewrite `fmt.Sprintf` with a string-literal format to interpolation, and merge simple string `+` concatenations into one interpolated string (`interpolated_strings` step).
+
 ## gofix
 
 [`go fix`](https://pkg.go.dev/golang.org/x/tools/cmd/fix) includes the `negativeslice` modernizer, which rewrites `len(x)-n` slice bounds to `-n` and `len(x)` high bounds to an omitted end. The `modernize` tool applies the same rewrite when `negative_slice_indices` is enabled (default).
