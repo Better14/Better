@@ -1330,7 +1330,31 @@ func (p *parser) operand(keep_parens bool) Expr {
 		}
 		return ftyp
 
-	case _Lbrack, _Chan, _Map, _Struct, _Interface:
+	case _Lbrack:
+		return p.lbrackOperand()
+
+	case _Lbrace:
+		pos := p.pos()
+		p.next()
+		if p.got(_Rbrace) {
+			st := new(SetType)
+			st.pos = pos
+			elem := p.baseTypeOrNil()
+			if elem == nil {
+				elem = p.badExpr()
+				p.syntaxError("missing set element type")
+			}
+			st.Elem = elem
+			return st
+		}
+		cl := p.complitexprBody(pos)
+		if cl.NKeys > 0 {
+			cl.Shorthand = ShorthandMap
+			return p.desugarMapShorthand(cl)
+		}
+		return p.desugarSetShorthand(cl)
+
+	case _Chan, _Map, _Struct, _Interface:
 		return p.type_() // othertype
 
 	default:
@@ -1475,7 +1499,7 @@ loop:
 			t.pos = pos
 			p.next()
 			t.Fun = x
-			t.ArgList, t.HasDots = p.argList()
+			t.ArgList, t.HasDots, t.PrefixDots = p.argList()
 			x = t
 
 		case _Lbrace:
@@ -1495,7 +1519,7 @@ loop:
 					// x is possibly a composite literal type
 					complit_ok = true
 				}
-			case *ArrayType, *SliceType, *StructType, *MapType:
+			case *ArrayType, *SliceType, *StructType, *MapType, *SetType:
 				// x is a comptype
 				complit_ok = true
 			}
@@ -1507,8 +1531,12 @@ loop:
 				// already progressed, no need to advance
 			}
 			n := p.complitexpr()
-			n.Type = x
-			x = n
+			if _, ok := t.(*SetType); ok {
+				x = p.desugarSetShorthand(n)
+			} else {
+				n.Type = x
+				x = n
+			}
 
 		case _Question:
 			qpos := p.pos()
@@ -1622,14 +1650,18 @@ func (p *parser) complitexpr() *CompositeLit {
 		defer p.trace("complitexpr")()
 	}
 
+	p.want(_Lbrace)
+	return p.complitexprBody(p.pos())
+}
+
+func (p *parser) complitexprBody(pos Pos) *CompositeLit {
 	x := new(CompositeLit)
-	x.pos = p.pos()
+	x.pos = pos
 
 	p.xnest++
-	p.want(_Lbrace)
 	x.Rbrace = p.list("composite literal", _Comma, _Rbrace, func() bool {
 		// value
-		e := p.bare_complitexpr()
+		e := p.shorthandLitElem()
 		if p.tok == _Colon {
 			// key ':' value
 			l := new(KeyValueExpr)
@@ -2021,6 +2053,9 @@ func (p *parser) funcResult() []*Field {
 	}
 
 	pos := p.pos()
+	if p.tok == _Lbrace {
+		return nil
+	}
 	if typ := p.typeOrNil(); typ != nil {
 		f := new(Field)
 		f.pos = pos
@@ -3481,16 +3516,22 @@ func (p *parser) stmtList() (l []Stmt) {
 
 // argList parses a possibly empty, comma-separated list of arguments,
 // optionally followed by a comma (if not empty), and closed by ")".
-// The last argument may be followed by "...".
+// The last argument may be preceded or followed by "...".
 //
 // argList = [ arg { "," arg } [ "..." ] [ "," ] ] ")" .
-func (p *parser) argList() (list []Expr, hasDots bool) {
+func (p *parser) argList() (list []Expr, hasDots bool, prefixDots bool) {
 	if trace {
 		defer p.trace("argList")()
 	}
 
 	p.xnest++
 	p.list("argument list", _Comma, _Rparen, func() bool {
+		if p.tok == _DotDotDot {
+			p.next()
+			list = append(list, p.expr())
+			hasDots = true
+			return true
+		}
 		list = append(list, p.expr())
 		hasDots = p.got(_DotDotDot)
 		return hasDots
@@ -3693,4 +3734,254 @@ func UnpackListExpr(x Expr) []Expr {
 	default:
 		return []Expr{x}
 	}
+}
+
+func hasSpreadElems(elems []Expr) bool {
+	for _, e := range elems {
+		if _, ok := e.(*SpreadExpr); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *parser) desugarArrayShorthand(cl *CompositeLit) Expr {
+	if !hasSpreadElems(cl.ElemList) {
+		return cl
+	}
+	pos := cl.Pos()
+	var result Expr
+	flush := func(batch []Expr) {
+		if len(batch) == 0 {
+			return
+		}
+		lit := &CompositeLit{
+			Shorthand: ShorthandArray,
+			ElemList:  batch,
+		}
+		lit.SetPos(pos)
+		if result == nil {
+			result = lit
+		} else {
+			result = p.appendCall(pos, result, lit, false)
+		}
+	}
+	var batch []Expr
+	for _, el := range cl.ElemList {
+		if se, ok := el.(*SpreadExpr); ok {
+			flush(batch)
+			batch = nil
+			if result == nil {
+				result = se.X
+			} else {
+				result = p.appendCall(pos, result, se.X, true)
+			}
+			continue
+		}
+		batch = append(batch, el)
+	}
+	flush(batch)
+	if result == nil {
+		empty := &CompositeLit{Shorthand: ShorthandArray}
+		empty.SetPos(pos)
+		return empty
+	}
+	return result
+}
+
+func (p *parser) appendCall(pos Pos, slice, arg Expr, spread bool) *CallExpr {
+	call := &CallExpr{
+		Fun:     NewName(pos, "append"),
+		ArgList: []Expr{slice, arg},
+		HasDots: spread,
+	}
+	call.SetPos(pos)
+	return call
+}
+
+func (p *parser) desugarMapShorthand(cl *CompositeLit) Expr {
+	if !hasSpreadElems(cl.ElemList) {
+		return cl
+	}
+	pos := cl.Pos()
+	var static []Expr
+	var spreads []Expr
+	for _, e := range cl.ElemList {
+		if se, ok := e.(*SpreadExpr); ok {
+			spreads = append(spreads, se.X)
+			continue
+		}
+		static = append(static, e)
+	}
+	out := NewName(pos, "out")
+	init := &CompositeLit{
+		Shorthand: ShorthandMap,
+		ElemList:  static,
+	}
+	init.SetPos(pos)
+	stmts := []Stmt{&AssignStmt{
+		Op:  Def,
+		Lhs: out,
+		Rhs: init,
+	}}
+	for _, sp := range spreads {
+		k := NewName(pos, "k")
+		v := NewName(pos, "v")
+		rng := &RangeClause{
+			Lhs: &ListExpr{ElemList: []Expr{k, v}},
+			Def: true,
+			X:   sp,
+		}
+		rng.SetPos(pos)
+		stmts = append(stmts, &ForStmt{
+			Init: rng,
+			Body: &BlockStmt{List: []Stmt{&AssignStmt{
+				Lhs: &IndexExpr{X: out, Index: k},
+				Rhs: v,
+			}}},
+		})
+	}
+	body := &BlockStmt{List: stmts}
+	body.SetPos(pos)
+	body.List = append(body.List, &ReturnStmt{Results: out})
+	fl := &FuncLit{
+		Type: &FuncType{},
+		Body: body,
+	}
+	fl.SetPos(pos)
+	call := &CallExpr{Fun: fl}
+	call.SetPos(pos)
+	return call
+}
+
+func (p *parser) desugarSetShorthand(cl *CompositeLit) Expr {
+	pos := cl.Pos()
+	var static []Expr
+	var spreads []Expr
+	for _, e := range cl.ElemList {
+		if se, ok := e.(*SpreadExpr); ok {
+			spreads = append(spreads, se.X)
+			continue
+		}
+		static = append(static, e)
+	}
+	var result Expr = p.setOfCall(pos, static)
+	for _, sp := range spreads {
+		result = p.setUnionCall(pos, result, sp)
+	}
+	return result
+}
+
+func (p *parser) setOfCall(pos Pos, elems []Expr) *CallExpr {
+	sel := &SelectorExpr{
+		X:   NewName(pos, "set"),
+		Sel: NewName(pos, "Of"),
+	}
+	sel.SetPos(pos)
+	call := &CallExpr{Fun: sel, ArgList: elems}
+	call.SetPos(pos)
+	return call
+}
+
+func (p *parser) setUnionCall(pos Pos, a, b Expr) Expr {
+	sel := &SelectorExpr{
+		X:   a,
+		Sel: NewName(pos, "Union"),
+	}
+	sel.SetPos(pos)
+	call := &CallExpr{Fun: sel, ArgList: []Expr{b}}
+	call.SetPos(pos)
+	return call
+}
+
+func (p *parser) lbrackOperand() Expr {
+	pos := p.pos()
+	p.next()
+	if p.tok == _DotDotDot {
+		p.next()
+		p.want(_Rbrack)
+		elem := p.baseTypeOrNil()
+		if elem == nil {
+			elem = p.badExpr()
+		}
+		t := new(ArrayType)
+		t.pos = pos
+		t.Elem = elem
+		return p.applyTypeSuffixes(t)
+	}
+	if p.got(_Rbrack) {
+		if p.atTypeStart() {
+			elem := p.baseTypeOrNil()
+			if elem == nil {
+				elem = p.badExpr()
+			}
+			t := new(SliceType)
+			t.pos = pos
+			t.Elem = elem
+			return p.applyTypeSuffixes(t)
+		}
+		cl := new(CompositeLit)
+		cl.pos = pos
+		cl.Shorthand = ShorthandArray
+		return cl
+	}
+	first := p.shorthandLitElem()
+	if p.got(_Comma) {
+		elems := []Expr{first}
+		for p.tok != _Rbrack && p.tok != _EOF {
+			elems = append(elems, p.shorthandLitElem())
+			if !p.got(_Comma) {
+				break
+			}
+		}
+		p.want(_Rbrack)
+		cl := new(CompositeLit)
+		cl.pos = pos
+		cl.Shorthand = ShorthandArray
+		cl.ElemList = elems
+		return p.desugarArrayShorthand(cl)
+	}
+	if p.got(_Rbrack) {
+		if p.atTypeStart() {
+			elem := p.baseTypeOrNil()
+			if elem == nil {
+				elem = p.badExpr()
+			}
+			t := new(ArrayType)
+			t.pos = pos
+			t.Len = first
+			t.Elem = elem
+			return p.applyTypeSuffixes(t)
+		}
+		cl := new(CompositeLit)
+		cl.pos = pos
+		cl.Shorthand = ShorthandArray
+		cl.ElemList = []Expr{first}
+		return p.desugarArrayShorthand(cl)
+	}
+	p.syntaxError("expected ] or , in array literal")
+	p.advance(_Rparen, _Rbrack, _Rbrace)
+	return p.badExpr()
+}
+
+func (p *parser) atTypeStart() bool {
+	switch p.tok {
+	case _Name, _Star, _Lbrack, _Chan, _Map, _Struct, _Interface, _Func, _Lparen, _Arrow:
+		return true
+	default:
+		return false
+	}
+}
+
+func (p *parser) shorthandLitElem() Expr {
+	if p.tok == _DotDotDot {
+		dots := p.pos()
+		p.next()
+		se := new(SpreadExpr)
+		se.pos = dots
+		se.Dots = dots
+		se.X = p.bare_complitexpr()
+		return se
+	}
+	return p.bare_complitexpr()
 }

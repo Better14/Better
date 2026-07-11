@@ -147,6 +147,9 @@ func (w walker) node(n Node) {
 		}
 		w.exprList(n.ElemList)
 
+	case *SpreadExpr:
+		w.node(n.X)
+
 	case *KeyValueExpr:
 		w.node(n.Key)
 		w.node(n.Value)
@@ -252,6 +255,9 @@ func (w walker) node(n Node) {
 	case *MapType:
 		w.node(n.Key)
 		w.node(n.Value)
+
+	case *SetType:
+		w.node(n.Elem)
 
 	case *ResultType:
 		w.node(n.Elem)

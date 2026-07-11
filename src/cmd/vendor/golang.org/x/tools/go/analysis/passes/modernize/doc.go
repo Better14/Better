@@ -182,6 +182,19 @@ unnecessary `x := x` statement.
 
 This fix only applies to `range` loops.
 
+# Analyzer importcomment
+
+importcomment: remove obsolete comments specifying canonical import path
+
+The importcomment analyzer removes comments specifying the canonical
+import path, such as
+
+	package foo // import "example.com/foo"
+
+The go command enforced these comments in GOPATH mode via "go get", but
+ignores them in module mode, so they are obsolete once the package
+belongs to a module. The fix removes the comment.
+
 # Analyzer mapsloop
 
 mapsloop: replace explicit loops over maps with calls to maps package
@@ -330,6 +343,21 @@ No fix is offered in cases when the runtime type is dynamic, such as:
 	reflect.TypeOf(r)
 
 or when the operand has potential side effects.
+
+# Analyzer reflecttypeassert
+
+reflecttypeassert: replace v.Interface().(T) with reflect.TypeAssert[T](v)
+
+This analyzer suggests fixes to replace two-valued type assertions on
+the result of (reflect.Value).Interface with reflect.TypeAssert,
+introduced in go1.25, which avoids the intermediate allocation of an
+interface value, for example:
+
+	x, ok := v.Interface().(string)  ->  x, ok := reflect.TypeAssert[string](v)
+
+No fix is offered for single-valued assertions, since they panic when
+the assertion fails whereas reflect.TypeAssert does not. Nor is a fix
+offered for a type switch.
 
 # Analyzer slicesbackward
 
@@ -641,8 +669,8 @@ to the shorthand syntax:
 	interface Stringer { ... }
 
 Only standalone (non-parenthesized) type declarations without type
-parameters or type aliases are rewritten, including local declarations
-inside function bodies. Other type declarations are left unchanged.
+parameters or type aliases are rewritten. Other type declarations are
+left unchanged.
 
 Packages whose source files live under GOROOT/src are never rewritten,
 so that go fix can be run on the toolchain tree without breaking
@@ -663,6 +691,40 @@ become:
 	for i, item in list
 
 Index-only loops (`for i := range list`) are left unchanged.
+
+Packages whose source files live under GOROOT/src are never rewritten.
+
+# Analyzer shorthandliterals
+
+shorthandliterals: rewrite composite literals to shorthand array, map, and set syntax
+
+The shorthandliterals analyzer rewrites:
+
+	[]T{elem1, elem2}
+	map[K]V{key: value}
+	set.Of(elem1, elem2)
+
+to:
+
+	[elem1, elem2]
+	{key: value}
+	{elem1, elem2}
+
+Packages whose source files live under GOROOT/src are never rewritten.
+
+# Analyzer spreadcall
+
+spreadcall: rewrite suffix variadic spread to prefix spread syntax
+
+The spreadcall analyzer rewrites variadic calls such as:
+
+	f(xs...)
+
+to:
+
+	f(...xs)
+
+Both forms are valid; prefix spread is preferred in new code.
 
 Packages whose source files live under GOROOT/src are never rewritten.
 */

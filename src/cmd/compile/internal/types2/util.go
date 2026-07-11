@@ -27,8 +27,8 @@ const isTypes2 = true
 // of p sorts lexicographically before the filename of q.
 func cmpPos(p, q syntax.Pos) int { return p.Cmp(q) }
 
-// hasDots reports whether the last argument in the call is followed by ...
-func hasDots(call *syntax.CallExpr) bool { return call.HasDots }
+// hasDots reports whether the last argument in the call uses variadic spread.
+func hasDots(call *syntax.CallExpr) bool { return call.HasDots || call.PrefixDots }
 
 // dddErrPos returns the node (poser) for reporting an invalid ... use in a call.
 func dddErrPos(call *syntax.CallExpr) *syntax.CallExpr {

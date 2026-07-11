@@ -109,6 +109,21 @@ func (check *Checker) compositeLit(x *operand, e *syntax.CompositeLit, hint Type
 		return
 	}
 
+	if e.Shorthand != syntax.ShorthandNone {
+		check.compositeShorthandLit(x, e, hint)
+		return
+	}
+
+	if st, ok := syntax.Unparen(e.Type).(*syntax.SetType); ok {
+		elem := check.varType(st.Elem)
+		if hasSpreadElems(e.ElemList) {
+			check.expr(nil, x, check.lowerSpreadSetLit(e, elem))
+			return
+		}
+		check.expr(nil, x, check.makeSetOfCall(e.Pos(), e.ElemList, elem))
+		return
+	}
+
 	var typ, base Type
 	var isElem bool // true if composite literal is an element of an enclosing composite literal
 

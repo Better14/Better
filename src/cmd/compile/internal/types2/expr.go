@@ -1308,6 +1308,10 @@ func (check *Checker) exprInternal(T *target, x *operand, e syntax.Expr, hint Ty
 		check.error(e, InvalidSyntaxTree, "enum pattern not allowed outside enum switch")
 		goto Error
 
+	case *syntax.SpreadExpr:
+		check.error(e, InvalidSyntaxTree, "invalid use of spread operator")
+		goto Error
+
 	case *syntax.ListExpr:
 		// catch-all for unexpected expression lists
 		check.error(e, InvalidSyntaxTree, "unexpected list of expressions")

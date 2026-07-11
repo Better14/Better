@@ -376,6 +376,10 @@ func (check *Checker) typInternal(e0 syntax.Expr, def *TypeName) (T Type) {
 
 		return typ
 
+	case *syntax.SetType:
+		elem := check.varType(e.Elem)
+		return check.setTypeForElem(e.Pos(), elem)
+
 	case *syntax.ResultType:
 		elem := check.varType(e.Elem)
 		if !isValid(elem) {

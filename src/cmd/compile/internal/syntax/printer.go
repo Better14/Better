@@ -387,22 +387,48 @@ func (p *printer) printRawNode(n Node) {
 		}
 
 	case *CompositeLit:
-		if n.Type != nil {
-			p.print(n.Type)
-		}
-		p.print(_Lbrace)
-		if p.form == ShortForm {
-			if len(n.ElemList) > 0 {
-				p.print(_Name, "…")
+		switch n.Shorthand {
+		case ShorthandArray:
+			p.print(_Lbrack)
+			if p.form == ShortForm {
+				if len(n.ElemList) > 0 {
+					p.print(_Name, "…")
+				}
+			} else {
+				p.printExprList(n.ElemList)
 			}
-		} else {
-			if n.NKeys > 0 && n.NKeys == len(n.ElemList) {
+			p.print(_Rbrack)
+		case ShorthandMap, ShorthandSet:
+			p.print(_Lbrace)
+			if p.form == ShortForm {
+				if len(n.ElemList) > 0 {
+					p.print(_Name, "…")
+				}
+			} else if n.NKeys > 0 && n.NKeys == len(n.ElemList) {
 				p.printExprLines(n.ElemList)
 			} else {
 				p.printExprList(n.ElemList)
 			}
+			p.print(_Rbrace)
+		default:
+			if n.Type != nil {
+				p.print(n.Type)
+			}
+			p.print(_Lbrace)
+			if p.form == ShortForm {
+				if len(n.ElemList) > 0 {
+					p.print(_Name, "…")
+				}
+			} else if n.NKeys > 0 && n.NKeys == len(n.ElemList) {
+				p.printExprLines(n.ElemList)
+			} else {
+				p.printExprList(n.ElemList)
+			}
+			p.print(_Rbrace)
 		}
-		p.print(_Rbrace)
+
+	case *SpreadExpr:
+		p.print(_DotDotDot, n.X)
 
 	case *ParenExpr:
 		p.print(_Lparen, n.X, _Rparen)
@@ -529,6 +555,9 @@ func (p *printer) printRawNode(n Node) {
 
 	case *MapType:
 		p.print(_Map, _Lbrack, n.Key, _Rbrack, n.Value)
+
+	case *SetType:
+		p.print(_Lbrace, _Rbrace, n.Elem)
 
 	case *ResultType:
 		p.print(n.Elem, Not)

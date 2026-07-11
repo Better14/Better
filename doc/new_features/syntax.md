@@ -175,3 +175,92 @@ Index-only loops (`for i := range items`) are left unchanged. The `modernize` to
 ## Feedback
 
 This feature is implemented in the compiler, type checker, and gopls. If you have thoughts on readability, tooling impact, or migration from the `type` form, please share feedback.
+
+## Array, map, and set literals
+
+**Implemented.** Community feedback still welcome.
+
+Shorthand literals infer element types from their entries, similar to composite literals without an explicit type.
+
+### Array literals
+
+```go
+a := ["string", "asdf"]
+```
+
+Equivalent to:
+
+```go
+a := []string{"string", "asdf"}
+```
+
+### Dict literals
+
+```go
+m := {"a": "b"}
+```
+
+Equivalent to:
+
+```go
+m := map[string]string{"a": "b"}
+```
+
+### Set literals
+
+```go
+s := {"a", "b", "c", "c"}
+```
+
+Equivalent to:
+
+```go
+s := {}string{"a", "b", "c", "c"}
+```
+
+which is equivalent to:
+
+```go
+s := set.Of("a", "b", "c", "c")
+```
+
+Typed set literals use `{}T{…}`:
+
+```go
+t := {}string{"x", "y"}
+```
+
+## Spread operator
+
+**Implemented.** Community feedback still welcome.
+
+### Variadic calls
+
+Prefix spread is preferred; suffix spread remains valid.
+
+```go
+func myFunc(arg ...int) {}
+
+a := [1, 2, 3]
+myFunc(...a) // preferred
+myFunc(a...) // still valid
+```
+
+### Literals
+
+Spread works in array, map, and set literals:
+
+```go
+a := ["apple", "banana"]
+b := ["fruit", ...a]
+
+map1 := {"a": "b"}
+map2 := {"c": "d", ...map1}
+
+set1 := {"a"}
+set2 := {"b", ...set1}
+```
+
+## gofix
+
+[`go fix`](https://pkg.go.dev/golang.org/x/tools/cmd/fix) includes modernizers that rewrite the long forms above to shorthand literal and prefix-spread syntax. The `modernize` tool applies the same rewrites when `shorthand_literals` and `spread_call_syntax` are enabled (default).

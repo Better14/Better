@@ -231,6 +231,14 @@ type (
 		ElemList []Expr
 		NKeys    int // number of elements with keys
 		Rbrace   Pos
+		Shorthand int // ShorthandNone, ShorthandArray, ShorthandMap, ShorthandSet
+		expr
+	}
+
+	// ...X spread element in composite literals or prefix variadic argument
+	SpreadExpr struct {
+		Dots Pos
+		X    Expr
 		expr
 	}
 
@@ -310,9 +318,10 @@ type (
 
 	// Fun(ArgList[0], ArgList[1], ...)
 	CallExpr struct {
-		Fun     Expr
-		ArgList []Expr // nil means no arguments
-		HasDots bool   // last argument is followed by ...
+		Fun        Expr
+		ArgList    []Expr // nil means no arguments
+		HasDots    bool   // last argument is followed by ...
+		PrefixDots bool   // ... comes before the last argument
 		expr
 	}
 
@@ -382,6 +391,12 @@ type (
 	// map[Key]Value
 	MapType struct {
 		Key, Value Expr
+		expr
+	}
+
+	// {}Elem set literal type
+	SetType struct {
+		Elem Expr
 		expr
 	}
 
@@ -608,6 +623,14 @@ type simpleStmt struct {
 }
 
 func (simpleStmt) aSimpleStmt() {}
+
+// Shorthand composite literal kinds.
+const (
+	ShorthandNone = iota
+	ShorthandArray
+	ShorthandMap
+	ShorthandSet
+)
 
 // ----------------------------------------------------------------------------
 // Comments
