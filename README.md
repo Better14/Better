@@ -336,6 +336,7 @@ var ch chan int
 ```
 
 Use `?.` at call sites when nil is expected and the call should be skipped. [modernize](https://github.com/Bow5/modernize) removes obsolete in-method nil-receiver guards and adds `?.` only where the old guard returned nil or zero.
+- **Typed nil in interfaces** — `var p *T; var i I = p` → `i == nil` is **true** (upstream: false). See [interface_nil_eq.md](interface_nil_eq.md).
 
 Full spec: [doc/new_features/nil_receivers.md](doc/new_features/nil_receivers.md), [doc/new_features/fixed_weird_behaviors.md](doc/new_features/fixed_weird_behaviors.md), [doc/new_features/weird_behaviors.md](doc/new_features/weird_behaviors.md)
 

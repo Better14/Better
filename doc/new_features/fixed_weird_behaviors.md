@@ -66,6 +66,38 @@ if ch != nil {
 
 With [nilable pointer types](nilable_pointer_types.md), `chan T` is non-nilable under NPT; use `chan T?` when the channel itself may be absent.
 
+## Typed nil in interfaces → compares equal to nil
+
+### Upstream
+
+Storing a typed nil pointer in an interface leaves the type slot set:
+
+```go
+var p *PathError = nil
+var err error = p
+if err != nil {
+	// upstream: this runs — typed nil is "non-nil"
+}
+```
+
+### Bow
+
+`iface == nil` is true when the interface has no type **or** the data word is nil (typed nil). `iface != nil` requires both type and data to be non-nil.
+
+```go
+var p *T = nil
+var i SomeInterface = p
+fmt.Println(i == nil) // true
+```
+
+The compiler lowers `i == nil` to `tab(i) == nil || data(i) == nil`.
+
+### Migration
+
+Review every interface-typed `== nil` / `!= nil`. Code that distinguished typed nil from true nil may change behavior. [modernize](https://github.com/Bow5/modernize) adds `//FIXME: Make sure still works after interface == nil change.` at each site (comment only).
+
+Full spec: [interface_nil_eq.md](interface_nil_eq.md)
+
 ## Related docs
 
 - [Weird behaviors backlog](weird_behaviors.md) — candidates not yet changed

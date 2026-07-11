@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	. "internal/types/errors"
+	"unicode"
+	"unicode/utf8"
 )
 
 func isQuotedStringLit(lit *syntax.BasicLit) bool {
@@ -23,20 +24,8 @@ func isRawStringLit(lit *syntax.BasicLit) bool {
 }
 
 func quotedStringHasInterpolation(quoted string) bool {
-	if len(quoted) < 2 || quoted[0] != '"' {
-		return false
-	}
-	body := quoted[1 : len(quoted)-1]
-	for i := 0; i < len(body); i++ {
-		if body[i] != '{' {
-			continue
-		}
-		if i > 0 && body[i-1] == '\\' {
-			continue
-		}
-		return true
-	}
-	return false
+	_, holes, ok := parseQuotedInterpolation(quoted)
+	return ok && len(holes) > 0
 }
 
 type interpHole struct {
@@ -70,10 +59,21 @@ func parseQuotedInterpolation(quoted string) (format string, holes []interpHole,
 		}
 		close := strings.IndexByte(body[i+1:], '}')
 		if close < 0 {
-			return "", nil, false
+			b.WriteByte(ch)
+			continue
 		}
 		inside := body[i+1 : i+1+close]
 		exprSrc, fmtSpec := splitInterpSpec(inside)
+		trimmed := strings.TrimSpace(exprSrc)
+		if trimmed == "" {
+			b.WriteByte(ch)
+			continue
+		}
+		// Documentation patterns like v8.{0-9} are literal braces, not holes.
+		if r, _ := utf8.DecodeRuneInString(trimmed); r != '_' && r != '(' && !unicode.IsLetter(r) {
+			b.WriteByte(ch)
+			continue
+		}
 		if exprSrc == "" {
 			return "", nil, false
 		}
@@ -103,12 +103,7 @@ func splitInterpSpec(inside string) (expr, format string) {
 
 func (check *Checker) lowerInterpolatedString(lit *syntax.BasicLit) syntax.Expr {
 	format, holes, ok := parseQuotedInterpolation(lit.Value)
-	if !ok {
-		check.errorf(lit, InvalidSyntaxTree, "invalid interpolated string")
-		lit.Bad = true
-		return lit
-	}
-	if len(holes) == 0 {
+	if !ok || len(holes) == 0 {
 		return lit
 	}
 	args := make([]syntax.Expr, 0, len(holes)+1)
@@ -116,8 +111,11 @@ func (check *Checker) lowerInterpolatedString(lit *syntax.BasicLit) syntax.Expr 
 	for _, hole := range holes {
 		expr, err := check.parseInterpHoleExpr(lit.Pos(), hole.exprSrc)
 		if err != nil {
-			check.errorf(lit, InvalidSyntaxTree, "invalid interpolation expression %q: %v", hole.exprSrc, err)
-			lit.Bad = true
+			return lit
+		}
+		var x operand
+		check.expr(nil, &x, expr)
+		if !x.isValid() || x.mode() == typexpr {
 			return lit
 		}
 		args = append(args, expr)
@@ -160,10 +158,10 @@ func (check *Checker) parseInterpHoleExpr(pos syntax.Pos, exprSrc string) (synta
 		return nil, fmt.Errorf("missing body")
 	}
 	stmt, ok := fn.Body.List[0].(*syntax.AssignStmt)
-	if !ok || len(stmt.Rhs) == 0 {
+	if !ok || stmt.Rhs == nil {
 		return nil, fmt.Errorf("missing assignment")
 	}
-	expr := stmt.Rhs[0]
+	expr := stmt.Rhs
 	expr.SetPos(pos)
 	return expr, nil
 }
@@ -173,6 +171,9 @@ func (check *Checker) maybeLowerInterpolatedString(x *operand, e *syntax.BasicLi
 		return false
 	}
 	lowered := check.lowerInterpolatedString(e)
+	if lowered == e {
+		return false
+	}
 	check.expr(nil, x, lowered)
 	return true
 }

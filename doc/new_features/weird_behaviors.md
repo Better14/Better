@@ -13,10 +13,10 @@ This is a brainstorming list, not a commitment.
 | Silent nil chains / defensive nil-receiver guards | Prefer `?.` / `*T?` — [nilable types](nilable_types.md), [nilable pointers](nilable_pointer_types.md) |
 | Weak panic diagnostics | [Panics and stack traces](panics.md) |
 | `(T, error)` / nil-error footguns | [Result types](result_types.md), [structured errors](errors.md) |
+| Typed nil in interfaces | [interface_nil_eq.md](interface_nil_eq.md) — `iface == nil` includes typed nil |
 
 ## Nil / zero-value semantics
 
-- **Typed nil in interfaces** — `var p *T; var i error = p` → `i != nil`. Classic `return err` bug when `err` is a nil concrete pointer.
 - **Nil map: read OK, write panics** — asymmetric; easy to forget initialization.
 - **Nil slice** — `len` / `cap` / `range` / `append` fine; indexing panics.
 - **Nil channel in `select`** — case is ignored (useful but surprising); direct receive panics in Bow — see [fixed_weird_behaviors.md](fixed_weird_behaviors.md).
@@ -71,11 +71,10 @@ For each item above, options roughly look like:
 
 Highest-impact leftovers to consider first:
 
-1. Typed nil in interfaces / error returns  
-2. Nil map write vs read asymmetry (or required make)  
-3. `defer` + named returns clarity  
-4. `append` aliasing / copy-on-grow warnings  
-5. Mutex-by-value detection (compiler or vet)
+1. Nil map write vs read asymmetry (or required make)  
+2. `defer` + named returns clarity  
+3. `append` aliasing / copy-on-grow warnings  
+4. Mutex-by-value detection (compiler or vet)
 
 ## Related docs
 

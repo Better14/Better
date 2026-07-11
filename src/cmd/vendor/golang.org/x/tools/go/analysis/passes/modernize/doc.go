@@ -763,5 +763,17 @@ The interpolatedstrings analyzer:
 Backtick raw strings are not interpolated and are left unchanged.
 
 Packages whose source files live under GOROOT/src are never rewritten.
+
+# Analyzer interfacenileq
+
+interfacenileq: label interface == nil comparisons for review after typed-nil semantics change
+
+Bow treats typed nil values stored in interfaces as equal to nil. The interfacenileq analyzer
+inserts a FIXME comment above each `== nil` or `!= nil` comparison where an operand has
+interface type (including `error`):
+
+	//FIXME: Make sure still works after interface == nil change.
+
+No logic is rewritten automatically. Packages under GOROOT/src are skipped.
 */
 package modernize

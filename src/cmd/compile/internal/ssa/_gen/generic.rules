@@ -787,8 +787,9 @@
 // slice and interface comparisons
 // The frontend ensures that we can only compare against nil,
 // so we need only compare the first word (interface type or slice ptr).
-(EqInter x y)  => (EqPtr  (ITab x) (ITab y))
-(NeqInter x y) => (NeqPtr (ITab x) (ITab y))
+// For interfaces, also treat typed nil (nil data word) as equal to nil.
+(EqInter x y)  => (Or (EqPtr (ITab x) (ITab y)) (Or (And (EqPtr (ITab y) (ConstNil)) (EqPtr (IData x) (ConstNil))) (And (EqPtr (ITab x) (ConstNil)) (EqPtr (IData y) (ConstNil)))))
+(NeqInter x y) => (And (NeqPtr (ITab x) (ITab y)) (And (Or (NeqPtr (ITab y) (ConstNil)) (NeqPtr (IData x) (ConstNil))) (Or (NeqPtr (ITab x) (ConstNil)) (NeqPtr (IData y) (ConstNil)))))
 (EqSlice x y)  => (EqPtr  (SlicePtr x) (SlicePtr y))
 (NeqSlice x y) => (NeqPtr (SlicePtr x) (SlicePtr y))
 

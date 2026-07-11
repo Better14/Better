@@ -40,6 +40,10 @@ func fakePC(n ir.Node) ir.Node {
 //
 //	n.Left = walkCompare(n.Left, init)
 func walkCompare(n *ir.BinaryExpr, init *ir.Nodes) ir.Node {
+	if (n.X.Type().IsInterface() && ir.IsNil(n.Y)) || (n.Y.Type().IsInterface() && ir.IsNil(n.X)) {
+		return walkCompareInterfaceNil(n, init)
+	}
+
 	if n.X.Type().IsInterface() && n.Y.Type().IsInterface() && n.X.Op() != ir.ONIL && n.Y.Op() != ir.ONIL {
 		return walkCompareInterface(n, init)
 	}
@@ -312,6 +316,39 @@ func walkCompare(n *ir.BinaryExpr, init *ir.Nodes) ir.Node {
 		a1 := typecheck.Stmt(ir.NewAssignStmt(base.Pos, ir.BlankNode, cmpl))
 		a2 := typecheck.Stmt(ir.NewAssignStmt(base.Pos, ir.BlankNode, cmpr))
 		init.Append(a1, a2)
+	}
+	return finishCompare(n, expr, init)
+}
+
+// walkCompareInterfaceNil lowers interface == nil and interface != nil.
+// A typed nil (non-nil type slot, nil data word) compares equal to nil.
+func walkCompareInterfaceNil(n *ir.BinaryExpr, init *ir.Nodes) ir.Node {
+	var iface ir.Node
+	if n.X.Type().IsInterface() {
+		iface = n.X
+	} else {
+		iface = n.Y
+	}
+	iface = cheapExpr(iface, init)
+
+	tab := ir.NewUnaryExpr(base.Pos, ir.OITAB, iface)
+	tab.SetType(types.Types[types.TUNSAFEPTR])
+	tab.SetTypecheck(1)
+	data := ir.NewUnaryExpr(base.Pos, ir.OIDATA, iface)
+	data.SetType(types.Types[types.TUNSAFEPTR])
+	data.SetTypecheck(1)
+	nilNode := typecheck.NodNil()
+
+	tabIsNil := ir.NewBinaryExpr(base.Pos, ir.OEQ, tab, nilNode)
+	dataIsNil := ir.NewBinaryExpr(base.Pos, ir.OEQ, data, nilNode)
+
+	var expr ir.Node
+	if n.Op() == ir.OEQ {
+		expr = ir.NewLogicalExpr(base.Pos, ir.OOROR, tabIsNil, dataIsNil)
+	} else {
+		tabNotNil := ir.NewBinaryExpr(base.Pos, ir.ONE, tab, nilNode)
+		dataNotNil := ir.NewBinaryExpr(base.Pos, ir.ONE, data, nilNode)
+		expr = ir.NewLogicalExpr(base.Pos, ir.OANDAND, tabNotNil, dataNotNil)
 	}
 	return finishCompare(n, expr, init)
 }

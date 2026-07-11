@@ -66,6 +66,7 @@ var Suite = []*analysis.Analyzer{
 	SpreadCallAnalyzer,
 	NegativeSliceAnalyzer,
 	InterpolatedStringsAnalyzer,
+	InterfaceNilEqAnalyzer,
 
 	// Not included:
 	//
