@@ -1,0 +1,13 @@
+package forin
+
+func f(items []string) {
+	for item in items { // want "range loop can use for-in syntax"
+		_ = item
+	}
+	for i, item in items { // want "range loop can use for-in syntax"
+		_, _ = i, item
+	}
+	for k := range items {
+		_ = k
+	}
+}

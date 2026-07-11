@@ -579,6 +579,7 @@ type (
 	RangeClause struct {
 		Lhs Expr // nil means no Lhs = or Lhs :=
 		Def bool // means :=
+		In  bool // means "in" instead of "range"
 		X   Expr // range X
 		simpleStmt
 	}

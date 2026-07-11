@@ -647,5 +647,23 @@ inside function bodies. Other type declarations are left unchanged.
 Packages whose source files live under GOROOT/src are never rewritten,
 so that go fix can be run on the toolchain tree without breaking
 bootstrap builds.
+
+# Analyzer forin
+
+forin: rewrite range loops to for-in syntax
+
+The forin analyzer rewrites value-oriented range loops to the for-in syntax:
+
+	for _, item := range list
+	for i, item := range list
+
+become:
+
+	for item in list
+	for i, item in list
+
+Index-only loops (`for i := range list`) are left unchanged.
+
+Packages whose source files live under GOROOT/src are never rewritten.
 */
 package modernize

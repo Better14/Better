@@ -2281,7 +2281,37 @@ func (p *parser) parseSimpleStmt(mode int) (ast.Stmt, bool) {
 	return p.finishSimpleStmt(x, mode)
 }
 
+// forInKeyValue maps `for item in` to `_, item` and `for i, item in` to `i, item`.
+func forInKeyValue(x []ast.Expr) (key, value ast.Expr) {
+	switch len(x) {
+	case 1:
+		blank := ast.NewIdent("_")
+		blank.NamePos = x[0].Pos()
+		return blank, x[0]
+	case 2:
+		return x[0], x[1]
+	default:
+		return nil, nil
+	}
+}
+
 func (p *parser) finishSimpleStmt(x []ast.Expr, mode int) (ast.Stmt, bool) {
+	if mode == rangeOk && p.tok == token.IDENT && p.lit == "in" {
+		inPos := p.pos
+		p.next()
+		rhsX := p.parseRhs()
+		key, value := forInKeyValue(x)
+		lhs := []ast.Expr{key, value}
+		rangePos := inPos
+		return &ast.AssignStmt{
+			Lhs:      lhs,
+			TokPos:   inPos,
+			Tok:      token.DEFINE,
+			ForInPos: inPos,
+			Rhs:      []ast.Expr{&ast.UnaryExpr{OpPos: rangePos, Op: token.RANGE, X: rhsX}},
+		}, true
+	}
+
 	switch p.tok {
 	case
 		token.DEFINE, token.ASSIGN, token.ADD_ASSIGN,
@@ -2836,6 +2866,7 @@ func (p *parser) parseForStmt() ast.Stmt {
 			TokPos: as.TokPos,
 			Tok:    as.Tok,
 			Range:  as.Rhs[0].Pos(),
+			InPos:  as.ForInPos,
 			X:      x,
 			Body:   body,
 		}

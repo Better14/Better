@@ -64,6 +64,7 @@ var Suite = []*analysis.Analyzer{
 	unsafeFuncsAnalyzer,
 	WaitGroupGoAnalyzer,
 	ShorthandTypesAnalyzer,
+	ForInAnalyzer,
 }
 
 // -- helpers --

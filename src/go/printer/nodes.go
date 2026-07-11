@@ -1792,7 +1792,21 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool) {
 
 	case *ast.RangeStmt:
 		p.print(token.FOR, blank)
-		if s.Key != nil {
+		if s.InPos.IsValid() {
+			if s.Value != nil && isBlankIdent(s.Key) {
+				p.expr(s.Value)
+			} else if s.Key != nil {
+				p.expr(s.Key)
+				if s.Value != nil {
+					p.setPos(s.Value.Pos())
+					p.print(token.COMMA, blank)
+					p.expr(s.Value)
+				}
+			}
+			p.print(blank)
+			in := &ast.Ident{NamePos: s.InPos, Name: "in"}
+			p.print(in, blank)
+		} else if s.Key != nil {
 			p.expr(s.Key)
 			if s.Value != nil {
 				// use position of value following the comma as
@@ -1804,8 +1818,10 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool) {
 			p.print(blank)
 			p.setPos(s.TokPos)
 			p.print(s.Tok, blank)
+			p.print(token.RANGE, blank)
+		} else {
+			p.print(token.RANGE, blank)
 		}
-		p.print(token.RANGE, blank)
 		p.expr(stripParens(s.X))
 		p.print(blank)
 		p.block(s.Body, 1)
@@ -2345,4 +2361,9 @@ func (p *printer) file(src *ast.File) {
 	p.expr(src.Name)
 	p.declList(src.Decls)
 	p.print(newline)
+}
+
+func isBlankIdent(e ast.Expr) bool {
+	id, ok := ast.Unparen(e).(*ast.Ident)
+	return ok && id.Name == "_"
 }

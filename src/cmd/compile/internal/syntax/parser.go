@@ -2588,7 +2588,11 @@ func (p *parser) simpleStmt(lhs Expr, keyword token) SimpleStmt {
 		if debug && lhs != nil {
 			panic("invalid call of simpleStmt")
 		}
-		return p.newRangeClause(nil, false)
+		return p.newRangeClause(nil, false, false)
+	}
+
+	if lhs != nil && keyword == _For && p.atInKeyword() {
+		return p.newInClause(lhs)
 	}
 
 	if lhs == nil {
@@ -2596,6 +2600,9 @@ func (p *parser) simpleStmt(lhs Expr, keyword token) SimpleStmt {
 	}
 
 	if _, ok := lhs.(*ListExpr); !ok && p.tok != _Assign && p.tok != _Define {
+		if keyword == _For && p.atInKeyword() {
+			return p.newInClause(lhs)
+		}
 		// expr
 		pos := p.pos()
 		switch p.tok {
@@ -2630,6 +2637,10 @@ func (p *parser) simpleStmt(lhs Expr, keyword token) SimpleStmt {
 	}
 
 	// expr_list
+	if keyword == _For && p.atInKeyword() {
+		return p.newInClause(lhs)
+	}
+
 	switch p.tok {
 	case _Assign, _Define:
 		pos := p.pos()
@@ -2639,9 +2650,13 @@ func (p *parser) simpleStmt(lhs Expr, keyword token) SimpleStmt {
 		}
 		p.next()
 
+		if keyword == _For && p.atInKeyword() {
+			return p.newInClause(lhs)
+		}
+
 		if keyword == _For && p.tok == _Range {
 			// expr_list op= _Range expr
-			return p.newRangeClause(lhs, op == Def)
+			return p.newRangeClause(lhs, op == Def, false)
 		}
 
 		// expr_list op= expr_list
@@ -2674,11 +2689,53 @@ func (p *parser) simpleStmt(lhs Expr, keyword token) SimpleStmt {
 	}
 }
 
-func (p *parser) newRangeClause(lhs Expr, def bool) *RangeClause {
+func (p *parser) atInKeyword() bool {
+	return p.tok == _Name && p.lit == "in"
+}
+
+func (p *parser) newInClause(lhs Expr) *RangeClause {
+	return p.newRangeClause(lhs, true, true)
+}
+
+func (p *parser) inClauseLhs(lhs Expr) Expr {
+	switch e := lhs.(type) {
+	case *ListExpr:
+		if len(e.ElemList) == 1 {
+			blank := NewName(e.ElemList[0].Pos(), "_")
+			return newListExpr(e.ElemList[0].Pos(), blank, e.ElemList[0])
+		}
+		return lhs
+	case *Name:
+		blank := NewName(e.Pos(), "_")
+		return newListExpr(e.Pos(), blank, e)
+	default:
+		return lhs
+	}
+}
+
+func newListExpr(pos Pos, elems ...Expr) *ListExpr {
+	t := new(ListExpr)
+	t.pos = pos
+	t.ElemList = elems
+	return t
+}
+
+func (p *parser) newRangeClause(lhs Expr, def, in bool) *RangeClause {
 	r := new(RangeClause)
 	r.pos = p.pos()
-	p.next() // consume _Range
+	if in {
+		if !p.atInKeyword() {
+			p.syntaxError("expected in")
+		}
+		p.next() // consume "in"
+		r.In = true
+	} else {
+		p.next() // consume _Range
+	}
 	r.Lhs = lhs
+	if in {
+		r.Lhs = p.inClauseLhs(lhs)
+	}
 	r.Def = def
 	r.X = p.expr()
 	return r

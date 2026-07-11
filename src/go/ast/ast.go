@@ -790,10 +790,11 @@ type (
 	// a short variable declaration.
 	//
 	AssignStmt struct {
-		Lhs    []Expr
-		TokPos token.Pos   // position of Tok
-		Tok    token.Token // assignment token, DEFINE
-		Rhs    []Expr
+		Lhs      []Expr
+		TokPos   token.Pos   // position of Tok
+		Tok      token.Token // assignment token, DEFINE
+		Rhs      []Expr
+		ForInPos token.Pos // position of "in" in for-in loops; invalid for ordinary assignments
 	}
 
 	// A GoStmt node represents a go statement.
@@ -893,6 +894,7 @@ type (
 		TokPos     token.Pos   // position of Tok; invalid if Key == nil
 		Tok        token.Token // ILLEGAL if Key == nil, ASSIGN, DEFINE
 		Range      token.Pos   // position of "range" keyword
+		InPos      token.Pos   // position of "in" keyword; invalid if "range" was used
 		X          Expr        // value to range over
 		Body       *BlockStmt
 	}

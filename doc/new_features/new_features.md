@@ -19,6 +19,7 @@ This directory documents language and library extensions planned or implemented 
 - [Lambda syntax (`=>`)](lambda_syntax.md)
 - [Default function arguments](default_arguments.md)
 - [Struct and interface shorthand (`struct T { … }`, `interface I { … }`)](syntax.md)
+- [For-in loops (`for item in list`)](syntax.md#for-in-loops)
 - [Panics and stack traces](panics.md) — stderr traceback on unrecovered panic; structured error panics
 
 ## Generics and methods

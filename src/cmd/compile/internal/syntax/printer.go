@@ -664,13 +664,29 @@ func (p *printer) printRawNode(n Node) {
 
 	case *RangeClause:
 		if n.Lhs != nil {
-			tok := _Assign
-			if n.Def {
-				tok = _Define
+			if n.In {
+				if list, ok := n.Lhs.(*ListExpr); ok && len(list.ElemList) == 2 {
+					if name, ok := list.ElemList[0].(*Name); ok && name.Value == "_" {
+						p.print(list.ElemList[1], blank)
+					} else {
+						p.print(n.Lhs, blank)
+					}
+				} else {
+					p.print(n.Lhs, blank)
+				}
+			} else {
+				tok := _Assign
+				if n.Def {
+					tok = _Define
+				}
+				p.print(n.Lhs, blank, tok, blank)
 			}
-			p.print(n.Lhs, blank, tok, blank)
 		}
-		p.print(_Range, blank, n.X)
+		if n.In {
+			p.print(_Name, "in", blank, n.X)
+		} else {
+			p.print(_Range, blank, n.X)
+		}
 
 	case *ForStmt:
 		p.print(_For, blank)
