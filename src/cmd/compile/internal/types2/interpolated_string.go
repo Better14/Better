@@ -1,6 +1,3 @@
-// Copyright authors of this Go fork
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
 
 package types2
 
@@ -57,12 +54,23 @@ func parseQuotedInterpolation(quoted string) (format string, holes []interpHole,
 			b.WriteByte(ch)
 			continue
 		}
+		// ${VAR} shell-style expansions are literal braces, not holes.
+		if i > 0 && body[i-1] == '$' {
+			b.WriteByte(ch)
+			continue
+		}
 		close := strings.IndexByte(body[i+1:], '}')
 		if close < 0 {
 			b.WriteByte(ch)
 			continue
 		}
 		inside := body[i+1 : i+1+close]
+		// fmt.Sprintf patterns like "{PkgName:%v, DeclList:%v}" and interface
+		// type sets like "{int|string}" use braces literally.
+		if strings.ContainsAny(inside, ",;|{") {
+			b.WriteByte(ch)
+			continue
+		}
 		exprSrc, fmtSpec := splitInterpSpec(inside)
 		trimmed := strings.TrimSpace(exprSrc)
 		if trimmed == "" {
@@ -101,10 +109,57 @@ func splitInterpSpec(inside string) (expr, format string) {
 	return strings.TrimSpace(inside[:colon]), strings.TrimSpace(inside[colon+1:])
 }
 
+func isInterpFormatSpec(s string) bool {
+	s = strings.TrimSpace(s)
+	if s == "" || strings.ContainsAny(s, ",;%") {
+		return false
+	}
+	return true
+}
+
+func (check *Checker) holeLooksLikeInterpolation(hole interpHole, lit *syntax.BasicLit) bool {
+	if isInterpFormatSpec(hole.format) {
+		return true
+	}
+	exprSrc := hole.exprSrc
+	if strings.ContainsAny(exprSrc, ".(,)[}]\"'`+-*/%&|^<>=!") {
+		return true
+	}
+	expr, err := check.parseInterpHoleExpr(lit.Pos(), exprSrc)
+	if err != nil {
+		return false
+	}
+	name, ok := expr.(*syntax.Name)
+	if !ok {
+		return true
+	}
+	if !isValidName(name.Value) {
+		return false
+	}
+	_, obj := check.lookupScope(name.Value)
+	if obj == nil {
+		obj = check.lookupPkgEnumVariant(name.Value)
+	}
+	if obj == nil {
+		return false
+	}
+	switch obj.(type) {
+	case *Var, *Const:
+		return true
+	default:
+		return false
+	}
+}
+
 func (check *Checker) lowerInterpolatedString(lit *syntax.BasicLit) syntax.Expr {
 	format, holes, ok := parseQuotedInterpolation(lit.Value)
 	if !ok || len(holes) == 0 {
 		return lit
+	}
+	for _, hole := range holes {
+		if !check.holeLooksLikeInterpolation(hole, lit) {
+			return lit
+		}
 	}
 	args := make([]syntax.Expr, 0, len(holes)+1)
 	args = append(args, check.stringLit(lit.Pos(), format))
@@ -114,7 +169,7 @@ func (check *Checker) lowerInterpolatedString(lit *syntax.BasicLit) syntax.Expr 
 			return lit
 		}
 		var x operand
-		check.expr(nil, &x, expr)
+		check.exprOrType(&x, expr, false)
 		if !x.isValid() || x.mode() == typexpr {
 			return lit
 		}

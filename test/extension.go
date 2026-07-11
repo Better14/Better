@@ -1,9 +1,5 @@
 // run
 
-// Copyright authors of this Go fork
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 // Verify extension methods on iter.Seq and foreign types.
 
 package main

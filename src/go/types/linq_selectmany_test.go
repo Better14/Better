@@ -1,5 +1,3 @@
-// Copyright authors of this Go fork
-
 package types_test
 
 import (

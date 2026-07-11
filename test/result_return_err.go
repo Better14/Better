@@ -1,9 +1,5 @@
 // run
 
-// Copyright authors of this Go fork
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 // Test single-value return sugar in T! functions:
 //   return v   => return v, nil
 //   return err => return zero, err
