@@ -51,10 +51,7 @@ func interfaceNilEq(pass *analysis.Pass) (any, error) {
 				return true
 			}
 			seen[pos.String()] = true
-			lineStart, err := pass.Fset.File(f.Pos()).Offset(pass.Fset.File(f.Pos()).LineStart(pos.Line))
-			if err != nil {
-				return true
-			}
+			lineStart := pass.Fset.File(f.Pos()).Offset(pass.Fset.File(f.Pos()).LineStart(pos.Line))
 			pass.Report(analysis.Diagnostic{
 				Pos:     pass.Fset.File(f.Pos()).Pos(lineStart),
 				Message: "interface == nil comparison may change behavior after typed-nil fix",

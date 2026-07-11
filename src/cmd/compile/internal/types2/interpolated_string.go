@@ -59,6 +59,11 @@ func parseQuotedInterpolation(quoted string) (format string, holes []interpHole,
 			b.WriteByte(ch)
 			continue
 		}
+		// {{template}} patterns are literal braces, not holes.
+		if i > 0 && body[i-1] == '{' {
+			b.WriteByte(ch)
+			continue
+		}
 		close := strings.IndexByte(body[i+1:], '}')
 		if close < 0 {
 			b.WriteByte(ch)

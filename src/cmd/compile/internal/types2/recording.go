@@ -28,7 +28,9 @@ func (check *Checker) record(x *operand) {
 	default:
 		typ = x.typ()
 	}
-	assert(x.expr != nil && typ != nil)
+	if x.expr == nil || typ == nil {
+		return
+	}
 
 	if isUntyped(typ) {
 		// delay type and value recording until we know the type
