@@ -188,6 +188,17 @@ This feature is implemented in the compiler, type checker, and gopls. If you hav
 
 Shorthand literals infer element types from their entries, similar to composite literals without an explicit type.
 
+`go fix` and `modernize` only rewrite a long-form literal when the inferred shorthand type matches the explicit type prefix. Untyped integer literals default to `int`, floats to `float64`, and strings to `string`. Non-default element types are left unchanged.
+
+| Long form | Shorthand | Rewrite? |
+| --------- | --------- | -------- |
+| `[]int{1, 2, 3}` | `[1, 2, 3]` | Yes — `int` is the default |
+| `[]int64{1, 2, 3}` | (unchanged) | No — literals infer `int`, not `int64` |
+| `[]User{User{"bob"}}` | `[User{"bob"}]` | Yes — element type matches |
+| `[]IUser{User{"bob"}}` | (unchanged) | No — interface is not the default for `User{"bob"}` |
+
+The same rule applies to `map[K]V{…}` and `set.Of(…)` → `{…}`: rewrite only when key/value/element types match what shorthand inference would pick.
+
 ### Array literals
 
 ```go

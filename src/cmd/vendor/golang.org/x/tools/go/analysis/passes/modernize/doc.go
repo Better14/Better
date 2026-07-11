@@ -710,6 +710,8 @@ to:
 	{key: value}
 	{elem1, elem2}
 
+only when shorthand type inference would pick the same element/key/value types as the explicit prefix. For example, []int{1, 2} is rewritten because untyped integer literals default to int, but []int64{1, 2} is left unchanged. Interface-typed slices such as []IUser{User{…}} are not rewritten when the element composite literal’s type differs from the interface.
+
 Packages whose source files live under GOROOT/src are never rewritten.
 
 # Analyzer spreadcall

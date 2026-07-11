@@ -55,6 +55,9 @@ func shorthandLitComposite(pass *analysis.Pass, lit *ast.CompositeLit) {
 		if !lit.Lbrace.IsValid() || !lit.Rbrace.IsValid() {
 			return
 		}
+		if !shorthandSliceRewriteOK(lit) {
+			return
+		}
 		pass.Report(analysis.Diagnostic{
 			Pos:     lit.Type.Pos(),
 			End:     lit.Lbrace + 1,
@@ -79,6 +82,9 @@ func shorthandLitComposite(pass *analysis.Pass, lit *ast.CompositeLit) {
 		if !lit.Lbrace.IsValid() {
 			return
 		}
+		if !shorthandMapRewriteOK(lit) {
+			return
+		}
 		pass.Report(analysis.Diagnostic{
 			Pos:     lit.Type.Pos(),
 			End:     lit.Lbrace + 1,
@@ -98,6 +104,9 @@ func shorthandLitComposite(pass *analysis.Pass, lit *ast.CompositeLit) {
 func shorthandLitSetOf(pass *analysis.Pass, call *ast.CallExpr) {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok || !isSetPackageIdent(sel.X) || !isSetOfIdent(sel.Sel) {
+		return
+	}
+	if !shorthandSetOfRewriteOK(call) {
 		return
 	}
 	if len(call.Args) == 0 {
