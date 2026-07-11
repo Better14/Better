@@ -19,6 +19,8 @@ This fork adds first-class container types in the standard library (or as built-
 
 A `list` is a growable, ordered sequence (like a slice) with methods that mutate in place. You no longer need to reassign the result of `append`:
 
+**Growth strategy:** when an append would exceed capacity, `list` **doubles** capacity (minimum 1). Standard Go slices double only while capacity is below 256 elements; above that the runtime grows by ~**1.25×** (`oldcap + oldcap/4`). A `list` therefore reallocates less often during sustained growth at large sizes.
+
 Before (slice):
 
 ```go

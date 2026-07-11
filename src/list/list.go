@@ -3,6 +3,16 @@
 // license that can be found in the LICENSE file.
 
 // Package list provides a growable ordered sequence with in-place mutation.
+//
+// A List is backed by a slice but exposes methods so callers need not write
+// s = append(s, x). Growth uses a 2× capacity strategy: whenever an append
+// would exceed capacity, capacity doubles (minimum 1). Standard Go slices use
+// runtime growth of 2× while capacity is below 256 elements, then ~1.25×
+// (oldcap + oldcap/4) for larger capacities. list therefore reallocates less
+// often on sustained growth at large sizes, at the cost of higher peak memory.
+//
+// Append and AddRange batch writes into the backing slice with a single capacity
+// check per call; Of and FromSlice pre-size capacity to the source length.
 package list
 
 import "iter"
@@ -12,51 +22,65 @@ type List[T any] struct {
 	data []T
 }
 
+// New returns an empty list.
 func New[T any]() *List[T] { return &List[T]{} }
 
+// Of returns a list containing vals, with capacity reserved for len(vals).
 func Of[T any](vals ...T) *List[T] {
-	l := &List[T]{}
-	l.Append(vals...)
-	return l
+	if len(vals) == 0 {
+		return &List[T]{}
+	}
+	return &List[T]{data: append(make([]T, 0, len(vals)), vals...)}
 }
 
+// FromSlice returns a list copy of s, with capacity reserved for len(s).
 func FromSlice[T any](s []T) *List[T] {
-	l := &List[T]{}
-	l.Append(s...)
-	return l
+	if len(s) == 0 {
+		return &List[T]{}
+	}
+	return &List[T]{data: append(make([]T, 0, len(s)), s...)}
 }
 
-// ensureCapacity grows the backing slice when len+additional would exceed cap.
-// When already at capacity, the new capacity is double the old (minimum 1).
-func (l *List[T]) ensureCapacity(additional int) {
-	need := len(l.data) + additional
-	if cap(l.data) >= need {
-		return
+// growCap returns the smallest power-of-two capacity at least need, starting from cap (or 1).
+func growCap(cap, need int) int {
+	if cap == 0 {
+		cap = 1
 	}
-	newCap := cap(l.data)
-	if newCap == 0 {
-		newCap = 1
+	for cap < need {
+		cap *= 2
 	}
-	for newCap < need {
-		newCap *= 2
-	}
+	return cap
+}
+
+func (l *List[T]) grow(need int) {
+	newCap := growCap(cap(l.data), need)
 	buf := make([]T, len(l.data), newCap)
 	copy(buf, l.data)
 	l.data = buf
 }
 
+// Append adds elements to the end. When the backing slice is full, capacity
+// doubles before the append (see package documentation).
 func (l *List[T]) Append(vals ...T) {
-	if len(vals) == 0 {
+	n := len(vals)
+	if n == 0 {
 		return
 	}
-	l.ensureCapacity(len(vals))
+	need := len(l.data) + n
+	if cap(l.data) < need {
+		l.grow(need)
+	}
 	l.data = append(l.data, vals...)
 }
 
-// AddRange appends all elements from r.
+// AddRange appends all elements from r in as few growth steps as possible.
 func (l *List[T]) AddRange(r iter.Seq[T]) {
+	buf := make([]T, 0, 8)
 	for v := range r {
-		l.Append(v)
+		buf = append(buf, v)
+	}
+	if len(buf) > 0 {
+		l.Append(buf...)
 	}
 }
 
@@ -99,7 +123,15 @@ func (l *List[T]) ToSlice() []T { return append([]T(nil), l.data...) }
 func (l *List[T]) Clear() { l.data = nil }
 
 func (l *List[T]) Insert(i int, v T) {
-	l.ensureCapacity(1)
+	n := len(l.data)
+	if i == n {
+		l.Append(v)
+		return
+	}
+	need := n + 1
+	if cap(l.data) < need {
+		l.grow(need)
+	}
 	l.data = append(l.data, *new(T))
 	copy(l.data[i+1:], l.data[i:])
 	l.data[i] = v

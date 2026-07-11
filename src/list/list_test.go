@@ -41,6 +41,29 @@ func TestAtSet(t *testing.T) {
 	}
 }
 
+func TestOfPreallocCap(t *testing.T) {
+	l := Of(1, 2, 3, 4, 5)
+	if l.Len() != 5 || l.Cap() < 5 {
+		t.Fatalf("len=%d cap=%d", l.Len(), l.Cap())
+	}
+}
+
+func TestAddRangeBatch(t *testing.T) {
+	l := New[int]()
+	l.AddRange(slices.Values([]int{1, 2, 3, 4, 5}))
+	if !slices.Equal(l.ToSlice(), []int{1, 2, 3, 4, 5}) {
+		t.Fatalf("got %v", l.ToSlice())
+	}
+}
+
+func TestInsertAtEndUsesAppend(t *testing.T) {
+	l := Of(1, 2)
+	l.Insert(2, 3)
+	if !slices.Equal(l.ToSlice(), []int{1, 2, 3}) {
+		t.Fatalf("got %v", l.ToSlice())
+	}
+}
+
 func TestAddRangeIndexOfContains(t *testing.T) {
 	l := New[int]()
 	l.AddRange(slices.Values([]int{1, 2, 3}))
