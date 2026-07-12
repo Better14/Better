@@ -205,6 +205,15 @@ func (check *Checker) ensureImported(pos syntax.Pos, path string) *PkgName {
 	for _, imp := range check.imports {
 		if imp.imported != nil && imp.imported.path == path {
 			check.usedPkgNames[imp] = true
+			for _, file := range check.files {
+				scope := check.fileScopes[file]
+				if scope == nil {
+					scope = check.Scopes[file]
+				}
+				if scope != nil && scope.Lookup(imp.name) == nil {
+					check.declare(scope, nil, imp, nopos)
+				}
+			}
 			return imp
 		}
 	}

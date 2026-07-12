@@ -119,7 +119,61 @@ func isInterpFormatSpec(s string) bool {
 	if s == "" || strings.ContainsAny(s, ",;%") {
 		return false
 	}
+	// Gorilla/mux and similar route/query patterns use braces literally.
+	if strings.Contains(s, ".+") || strings.Contains(s, ".*") || strings.Contains(s, "[") || strings.Contains(s, "]") {
+		return false
+	}
 	return true
+}
+
+// interpolationShouldLower reports whether holes in a string should be lowered
+// to fmt.Sprintf. Strings that are only a single simple identifier hole (e.g.
+// "{name}" in URL templates) are left literal so they do not capture nearby
+// variables in scope.
+func interpolationShouldLower(format string, holes []interpHole) bool {
+	if len(holes) > 1 {
+		return true
+	}
+	for _, hole := range holes {
+		if isInterpFormatSpec(hole.format) {
+			return true
+		}
+		if !isSimpleIdentExpr(hole.exprSrc) {
+			return true
+		}
+	}
+	return printfFormatHasLiteralText(format)
+}
+
+func isSimpleIdentExpr(exprSrc string) bool {
+	exprSrc = strings.TrimSpace(exprSrc)
+	if exprSrc == "" {
+		return false
+	}
+	for i, r := range exprSrc {
+		if i == 0 {
+			if r != '_' && !unicode.IsLetter(r) {
+				return false
+			}
+			continue
+		}
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+			return false
+		}
+	}
+	return true
+}
+
+func printfFormatHasLiteralText(format string) bool {
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			return true
+		}
+		if i+1 < len(format) {
+			i++ // skip verb
+		}
+	}
+	return false
 }
 
 func (check *Checker) holeLooksLikeInterpolation(hole interpHole, lit *syntax.BasicLit) bool {
@@ -159,6 +213,9 @@ func (check *Checker) holeLooksLikeInterpolation(hole interpHole, lit *syntax.Ba
 func (check *Checker) lowerInterpolatedString(lit *syntax.BasicLit) syntax.Expr {
 	format, holes, ok := parseQuotedInterpolation(lit.Value)
 	if !ok || len(holes) == 0 {
+		return lit
+	}
+	if !interpolationShouldLower(format, holes) {
 		return lit
 	}
 	for _, hole := range holes {

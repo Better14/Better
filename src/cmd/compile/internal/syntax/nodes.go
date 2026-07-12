@@ -592,10 +592,11 @@ type (
 
 type (
 	RangeClause struct {
-		Lhs Expr // nil means no Lhs = or Lhs :=
-		Def bool // means :=
-		In  bool // means "in" instead of "range"
-		X   Expr // range X
+		Lhs     Expr // nil means no Lhs = or Lhs :=
+		Def     bool // means :=
+		In      bool // means "in" instead of "range"
+		InSingle bool // for-in with a single iteration variable (`for v in x`, not `for _, v in x`)
+		X       Expr // range X
 		simpleStmt
 	}
 

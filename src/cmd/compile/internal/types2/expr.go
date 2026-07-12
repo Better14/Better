@@ -1567,7 +1567,7 @@ func (check *Checker) forceExpr(x *operand, e *syntax.ForceExpr) {
 		x.mode_ = novalue
 		x.typ_ = universeError
 		x.expr = e
-		check.record(x)
+		check.recordTypeAndValue(e, novalue, universeError, nil)
 		return
 	}
 

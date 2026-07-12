@@ -292,6 +292,10 @@ func UnquoteChar(s string, quote byte) (value rune, multibyte bool, tail string,
 		value = '\t'
 	case 'v':
 		value = '\v'
+	case '{':
+		value = '{'
+	case '}':
+		value = '}'
 	case 'x', 'u', 'U':
 		n := 0
 		switch c {

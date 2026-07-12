@@ -2775,6 +2775,9 @@ func (p *parser) newRangeClause(lhs Expr, def, in bool) *RangeClause {
 	}
 	r.Lhs = lhs
 	if in {
+		if _, single := lhs.(*Name); single {
+			r.InSingle = true
+		}
 		r.Lhs = p.inClauseLhs(lhs)
 	}
 	r.Def = def

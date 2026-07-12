@@ -1998,7 +1998,7 @@ func (p *Package) load(ld *modload.Loader, ctx context.Context, opts PackageOpts
 		}
 
 		// Interpolated strings lower to fmt.Sprintf at compile time.
-		if usesInterpolatedStrings(p.GoFiles) {
+		if usesInterpolatedStrings(p.Dir, p.GoFiles) {
 			addImport("fmt", true)
 		}
 	}

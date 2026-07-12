@@ -1041,9 +1041,19 @@ func (r *rewriter) endLoop(loop *forLoop) {
 		base.Fatalf("invalid typecheck of range func")
 	}
 
+	lhsExprs := syntax.UnpackListExpr(rclause.Lhs)
+	// `for v in seq` is parsed as `for _, v in seq` with InSingle set. When the
+	// iterator yield function takes a single value, drop the synthetic blank so
+	// bodyFunc maps the visible variable to the yield parameter.
+	if rclause.In && rclause.InSingle && len(lhsExprs) == 2 && ftyp.Params().Len() == 1 {
+		if name, ok := lhsExprs[0].(*syntax.Name); ok && name.Value == "_" {
+			lhsExprs = lhsExprs[1:]
+		}
+	}
+
 	// Give the closure generated for the body a name, to help the debugger connect it to its frame, if active.
 	r.bodyClosureCount++
-	clo := r.bodyFunc(nfor.Body.List, syntax.UnpackListExpr(rclause.Lhs), rclause.Def, ftyp, start, end)
+	clo := r.bodyFunc(nfor.Body.List, lhsExprs, rclause.Def, ftyp, start, end)
 	cloDecl, cloVar := r.declSingleVar(fmt.Sprintf("#yield%d", r.bodyClosureCount), clo.GetTypeInfo().Type, clo)
 	setPos(cloDecl, start)
 

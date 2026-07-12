@@ -578,7 +578,9 @@ func (s *State) analyze(nodes ir.Nodes) {
 				assign(n.Value, xTyp.Elem())
 			} else if xTyp.IsChan() {
 				assign(n.Key, xTyp.Elem())
-				base.AssertfAt(n.Value == nil, n.Pos(), "n.Value != nil in range over chan")
+				if n.Value != nil && !ir.IsBlank(n.Value) {
+					base.AssertfAt(n.Value == nil, n.Pos(), "n.Value != nil in range over chan")
+				}
 			} else if xTyp.IsMap() {
 				assign(n.Key, xTyp.Key())
 				assign(n.Value, xTyp.Elem())

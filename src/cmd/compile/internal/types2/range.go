@@ -20,7 +20,7 @@ import (
 // variables are assigned to only (=) or whether there is a short variable
 // declaration (:=). If the latter and there are no variables, an error is
 // reported at noNewVarPos.
-func (check *Checker) rangeStmt(inner stmtContext, rangeStmt *syntax.ForStmt, noNewVarPos poser, sKey, sValue, sExtra, rangeVar syntax.Expr, isDef bool) {
+func (check *Checker) rangeStmt(inner stmtContext, rangeStmt *syntax.ForStmt, noNewVarPos poser, sKey, sValue, sExtra, rangeVar syntax.Expr, isDef bool, forIn bool, inSingle bool) {
 	// check expression to iterate over
 	var x operand
 
@@ -73,11 +73,32 @@ func (check *Checker) rangeStmt(inner stmtContext, rangeStmt *syntax.ForStmt, no
 		case k == nil && sKey != nil:
 			check.softErrorf(sKey, InvalidIterVar, "range over %s permits no iteration variables", &x)
 		case v == nil && sValue != nil:
-			check.softErrorf(sValue, InvalidIterVar, "range over %s permits only one iteration variable", &x)
+			if forIn && isValueOnlyRange(x.typ()) {
+				if isBlankIdent(sKey) {
+					if !inSingle {
+						check.softErrorf(sKey, InvalidIterVar, "value-only range requires `for v in %s`, not `for _, v in %s`", &x, &x)
+					}
+				} else {
+					check.softErrorf(sKey, InvalidIterVar, "range over %s permits only one iteration variable", &x)
+				}
+			} else if forIn && isBlankIdent(sKey) && rangePermitsBlankSecondVar(x.typ()) {
+				break // for i in integer range (parsed as for _, i in)
+			} else if forIn && isBlankIdent(sValue) && rangePermitsBlankSecondVar(x.typ()) {
+				break // for i, _ in integer range
+			} else {
+				check.softErrorf(sValue, InvalidIterVar, "range over %s permits only one iteration variable", &x)
+			}
 		case sExtra != nil:
 			check.softErrorf(sExtra, InvalidIterVar, "range clause permits at most two iteration variables")
 		}
 		key, val = k, v
+	}
+
+	// `for v in x` is parsed as `for _, v in x` with inSingle set. For value-only
+	// ranges and integer repeat loops, rangeKeyVal puts the element/count type in
+	// key and leaves val nil. Propagate to the visible variable slot.
+	if forIn && isBlankIdent(sKey) && sValue != nil && val == nil && key != nil && (inSingle || rangePermitsBlankSecondVar(x.typ())) {
+		val = key
 	}
 
 	// Open the for-statement block scope now, after the range clause.
@@ -280,5 +301,36 @@ func rangeKeyVal(check *Checker, orig Type, allowVersion func(goVersion) bool) (
 		}
 		return key, val, "", true
 	}
-	return
+	return bad("")
+}
+
+func isBlankIdent(expr syntax.Expr) bool {
+	name, ok := syntax.Unparen(expr).(*syntax.Name)
+	return ok && name.Value == "_"
+}
+
+// isValueOnlyRange reports whether x supports only a single iteration variable
+// (channels and iter.Seq with one yield parameter).
+func isValueOnlyRange(typ Type) bool {
+	switch u := typ.Underlying().(type) {
+	case *Chan:
+		return true
+	case *Signature:
+		if u.Params().Len() != 1 {
+			return false
+		}
+		yield, ok := u.Params().At(0).Type().Underlying().(*Signature)
+		if !ok {
+			return false
+		}
+		return yield.Params().Len() == 1
+	default:
+		return false
+	}
+}
+
+// rangePermitsBlankSecondVar reports whether `for i, _ in x` or `for _, i in x`
+// is allowed on integer repeat loops.
+func rangePermitsBlankSecondVar(typ Type) bool {
+	return isInteger(typ)
 }

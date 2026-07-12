@@ -8,15 +8,17 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
 
 // usesInterpolatedStrings reports whether any of the package's Go source
 // files contain double-quoted string literals with {expr} interpolation holes.
-func usesInterpolatedStrings(goFiles []string) bool {
+func usesInterpolatedStrings(dir string, goFiles []string) bool {
 	fset := token.NewFileSet()
-	for _, path := range goFiles {
+	for _, name := range goFiles {
+		path := filepath.Join(dir, name)
 		if fileHasInterpolatedStrings(fset, path) {
 			return true
 		}

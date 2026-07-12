@@ -1706,6 +1706,13 @@ func (w *writer) forStmt(stmt *syntax.ForStmt) {
 			}
 
 			keyType, valueType := types2.RangeKeyVal(w.p.typeOf(rang.X))
+			if rang.In && rang.InSingle && valueType == nil && keyType != nil {
+				if list, ok := rang.Lhs.(*syntax.ListExpr); ok && len(list.ElemList) == 2 {
+					if name, ok := list.ElemList[0].(*syntax.Name); ok && name.Value == "_" {
+						valueType = keyType
+					}
+				}
+			}
 			assign(0, keyType)
 			assign(1, valueType)
 		}

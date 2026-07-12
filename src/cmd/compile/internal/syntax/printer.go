@@ -694,8 +694,8 @@ func (p *printer) printRawNode(n Node) {
 	case *RangeClause:
 		if n.Lhs != nil {
 			if n.In {
-				if list, ok := n.Lhs.(*ListExpr); ok && len(list.ElemList) == 2 {
-					if name, ok := list.ElemList[0].(*Name); ok && name.Value == "_" {
+				if n.InSingle {
+					if list, ok := n.Lhs.(*ListExpr); ok && len(list.ElemList) == 2 {
 						p.print(list.ElemList[1], blank)
 					} else {
 						p.print(n.Lhs, blank)
