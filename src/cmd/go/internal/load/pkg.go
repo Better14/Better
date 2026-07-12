@@ -1996,6 +1996,11 @@ func (p *Package) load(ld *modload.Loader, ctx context.Context, opts PackageOpts
 				break
 			}
 		}
+
+		// Interpolated strings lower to fmt.Sprintf at compile time.
+		if usesInterpolatedStrings(p.GoFiles) {
+			addImport("fmt", true)
+		}
 	}
 
 	// Check for case-insensitive collisions of import paths.

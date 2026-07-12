@@ -180,7 +180,11 @@ func (check *Checker) lowerInterpolatedString(lit *syntax.BasicLit) syntax.Expr 
 		}
 		args = append(args, expr)
 	}
-	return check.makeFmtSprintfCall(lit.Pos(), args)
+	lowered := check.makeFmtSprintfCall(lit.Pos(), args)
+	if lowered == nil {
+		return lit
+	}
+	return lowered
 }
 
 func (check *Checker) stringLit(pos syntax.Pos, val string) *syntax.BasicLit {
@@ -192,9 +196,12 @@ func (check *Checker) stringLit(pos syntax.Pos, val string) *syntax.BasicLit {
 }
 
 func (check *Checker) makeFmtSprintfCall(pos syntax.Pos, args []syntax.Expr) *syntax.CallExpr {
-	check.importPackage(pos, "fmt", "")
+	pkgName := check.ensureImported(pos, "fmt")
+	if pkgName == nil {
+		return nil
+	}
 	sel := &syntax.SelectorExpr{
-		X:   syntax.NewName(pos, "fmt"),
+		X:   syntax.NewName(pos, pkgName.Name()),
 		Sel: syntax.NewName(pos, "Sprintf"),
 	}
 	sel.SetPos(pos)
