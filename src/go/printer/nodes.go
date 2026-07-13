@@ -423,7 +423,7 @@ func combinesWithName(x ast.Expr) bool {
 // The result is false if x could be a type element OR an ordinary (value) expression.
 func isTypeElem(x ast.Expr) bool {
 	switch x := x.(type) {
-	case *ast.ArrayType, *ast.StructType, *ast.FuncType, *ast.InterfaceType, *ast.MapType, *ast.ChanType:
+	case *ast.ArrayType, *ast.StructType, *ast.FuncType, *ast.InterfaceType, *ast.MapType, *ast.SetType, *ast.ChanType:
 		return true
 	case *ast.UnaryExpr:
 		return x.Op == token.TILDE
@@ -1265,37 +1265,71 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		}
 
 	case *ast.CompositeLit:
-		// composite literal elements that are composite literals themselves may have the type omitted
-		if x.Type != nil {
-			p.expr1(x.Type, token.HighestPrec, depth)
-		}
-		p.level++
-		p.setPos(x.Lbrace)
-		enumVariant := p.isOneLineEnumVariantCompositeLit(x)
-		if enumVariant {
-			p.print(token.LBRACE, blank)
-		} else {
+		switch x.Shorthand {
+		case ast.ShorthandArray:
+			p.level++
+			p.setPos(x.Lbrace)
+			p.print(token.LBRACK)
+			p.exprList(x.Lbrace, x.Elts, 1, commaTerm, x.Rbrace, x.Incomplete)
+			mode := noExtraLinebreak
+			if len(x.Elts) > 0 {
+				mode |= noExtraBlank
+			}
+			p.print(indent, unindent, mode)
+			p.setPos(x.Rbrace)
+			p.print(token.RBRACK, mode)
+			p.level--
+		case ast.ShorthandMap, ast.ShorthandSet:
+			p.level++
+			p.setPos(x.Lbrace)
 			p.print(token.LBRACE)
+			p.exprList(x.Lbrace, x.Elts, 1, commaTerm, x.Rbrace, x.Incomplete)
+			mode := noExtraLinebreak
+			if len(x.Elts) > 0 {
+				mode |= noExtraBlank
+			}
+			p.print(indent, unindent, mode)
+			p.setPos(x.Rbrace)
+			p.print(token.RBRACE, mode)
+			p.level--
+		default:
+			// composite literal elements that are composite literals themselves may have the type omitted
+			if x.Type != nil {
+				p.expr1(x.Type, token.HighestPrec, depth)
+			}
+			p.level++
+			p.setPos(x.Lbrace)
+			enumVariant := p.isOneLineEnumVariantCompositeLit(x)
+			if enumVariant {
+				p.print(token.LBRACE, blank)
+			} else {
+				p.print(token.LBRACE)
+			}
+			p.exprList(x.Lbrace, x.Elts, 1, commaTerm, x.Rbrace, x.Incomplete)
+			// do not insert extra line break following a /*-style comment
+			// before the closing '}' as it might break the code if there
+			// is no trailing ','
+			mode := noExtraLinebreak
+			// do not insert extra blank following a /*-style comment
+			// before the closing '}' unless the literal is empty
+			if len(x.Elts) > 0 {
+				mode |= noExtraBlank
+			}
+			// need the initial indent to print lone comments with
+			// the proper level of indentation
+			p.print(indent, unindent, mode)
+			if enumVariant {
+				p.print(blank)
+			}
+			p.setPos(x.Rbrace)
+			p.print(token.RBRACE, mode)
+			p.level--
 		}
-		p.exprList(x.Lbrace, x.Elts, 1, commaTerm, x.Rbrace, x.Incomplete)
-		// do not insert extra line break following a /*-style comment
-		// before the closing '}' as it might break the code if there
-		// is no trailing ','
-		mode := noExtraLinebreak
-		// do not insert extra blank following a /*-style comment
-		// before the closing '}' unless the literal is empty
-		if len(x.Elts) > 0 {
-			mode |= noExtraBlank
-		}
-		// need the initial indent to print lone comments with
-		// the proper level of indentation
-		p.print(indent, unindent, mode)
-		if enumVariant {
-			p.print(blank)
-		}
-		p.setPos(x.Rbrace)
-		p.print(token.RBRACE, mode)
-		p.level--
+
+	case *ast.SpreadExpr:
+		p.setPos(x.Ellipsis)
+		p.print(token.ELLIPSIS)
+		p.expr0(x.X, depth+1)
 
 	case *ast.Ellipsis:
 		p.print(token.ELLIPSIS)
@@ -1328,6 +1362,11 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		p.expr(x.Key)
 		p.print(token.RBRACK)
 		p.expr(x.Value)
+
+	case *ast.SetType:
+		p.setPos(x.Lbrace)
+		p.print(token.LBRACE, token.RBRACE)
+		p.expr(x.Elem)
 
 	case *ast.ChanType:
 		switch x.Dir {

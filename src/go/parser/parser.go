@@ -1717,6 +1717,12 @@ func (p *parser) parseOperand() ast.Expr {
 
 	case token.FUNC:
 		return p.parseFuncTypeOrLit()
+
+	case token.LBRACK:
+		return p.parseLbrackOperand()
+
+	case token.LBRACE:
+		return p.parseLbraceOperand()
 	}
 
 	if typ := p.tryIdentOrType(); typ != nil { // do not consume trailing type parameters

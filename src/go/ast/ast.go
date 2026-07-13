@@ -333,10 +333,24 @@ type (
 	// A CompositeLit node represents a composite literal.
 	CompositeLit struct {
 		Type       Expr      // literal type; or nil
-		Lbrace     token.Pos // position of "{"
+		Lbrace     token.Pos // position of "{" or "[" for shorthand literals
 		Elts       []Expr    // list of composite elements; or nil
-		Rbrace     token.Pos // position of "}"
+		Rbrace     token.Pos // position of "}" or "]" for shorthand literals
 		Incomplete bool      // true if (source) expressions are missing in the Elts list
+		Shorthand  int       // ShorthandNone, ShorthandArray, ShorthandMap, or ShorthandSet
+	}
+
+	// A SpreadExpr node represents a ...X element in a shorthand composite literal.
+	SpreadExpr struct {
+		Ellipsis token.Pos // position of "..."
+		X        Expr      // spread operand
+	}
+
+	// A SetType node represents a {}Elem set literal type.
+	SetType struct {
+		Lbrace token.Pos // position of "{"
+		Rbrace token.Pos // position of "}"
+		Elem   Expr      // element type
 	}
 
 	// A ParenExpr node represents a parenthesized expression.
@@ -629,6 +643,10 @@ func (x *BasicLit) End() token.Pos {
 }
 func (x *FuncLit) End() token.Pos        { return x.Body.End() }
 func (x *CompositeLit) End() token.Pos   { return x.Rbrace + 1 }
+func (x *SpreadExpr) Pos() token.Pos     { return x.Ellipsis }
+func (x *SpreadExpr) End() token.Pos     { return x.X.End() }
+func (x *SetType) Pos() token.Pos        { return x.Lbrace }
+func (x *SetType) End() token.Pos        { return x.Elem.End() }
 func (x *ParenExpr) End() token.Pos      { return x.Rparen + 1 }
 func (x *SelectorExpr) End() token.Pos   { return x.Sel.End() }
 func (x *IndexExpr) End() token.Pos      { return x.Rbrack + 1 }
@@ -682,6 +700,8 @@ func (*Ellipsis) exprNode()       {}
 func (*BasicLit) exprNode()       {}
 func (*FuncLit) exprNode()        {}
 func (*CompositeLit) exprNode()   {}
+func (*SpreadExpr) exprNode()     {}
+func (*SetType) exprNode()        {}
 func (*ParenExpr) exprNode()      {}
 func (*SelectorExpr) exprNode()   {}
 func (*IndexExpr) exprNode()      {}

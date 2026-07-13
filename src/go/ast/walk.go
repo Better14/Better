@@ -86,6 +86,12 @@ func Walk(v Visitor, node Node) {
 		}
 		walkList(v, n.Elts)
 
+	case *SpreadExpr:
+		Walk(v, n.X)
+
+	case *SetType:
+		Walk(v, n.Elem)
+
 	case *ParenExpr:
 		Walk(v, n.X)
 
