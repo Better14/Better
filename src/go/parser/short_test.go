@@ -21,6 +21,8 @@ var valids = []string{
 	`package p; func f(...T);`,
 	`package p; func f(float, ...int);`,
 	`package p; func f(x int, a ...int) { f(0, a...); f(1, a...,) };`,
+	`package p; func f(x int, a ...int) { f(0, ...a); f(1, ...a,) };`,
+	`package p; func f(a ...int) { append([]int{1}, ...a) };`,
 	`package p; func f(int,) {};`,
 	`package p; func f(...int,) {};`,
 	`package p; func f(x ...int,) {};`,

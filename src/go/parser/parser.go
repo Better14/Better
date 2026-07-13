@@ -1855,7 +1855,7 @@ func (p *parser) parseCallOrConversion(fun ast.Expr) *ast.CallExpr {
 	var list []ast.Expr
 	var ellipsis token.Pos
 	for p.tok != token.RPAREN && p.tok != token.EOF && !ellipsis.IsValid() {
-		if p.tok == token.ELLIPSIS && len(list) == 0 {
+		if p.tok == token.ELLIPSIS {
 			ellipsis = p.pos
 			p.next()
 			list = append(list, p.parseRhs())
