@@ -576,11 +576,15 @@ func (s *State) analyze(nodes ir.Nodes) {
 			if xTyp.IsArray() || xTyp.IsSlice() {
 				assign(n.Key, nil) // integer does not have methods to devirtualize
 				assign(n.Value, xTyp.Elem())
-			} else if xTyp.IsChan() {
-				assign(n.Key, xTyp.Elem())
-				if n.Value != nil && !ir.IsBlank(n.Value) {
-					base.AssertfAt(n.Value == nil, n.Pos(), "n.Value != nil in range over chan")
-				}
+		} else if xTyp.IsChan() {
+			key, value := n.Key, n.Value
+			if ir.IsBlank(key) && value != nil && !ir.IsBlank(value) {
+				key, value = value, nil // for v in ch
+			}
+			assign(key, xTyp.Elem())
+			if value != nil && !ir.IsBlank(value) {
+				base.AssertfAt(value == nil, n.Pos(), "n.Value != nil in range over chan")
+			}
 			} else if xTyp.IsMap() {
 				assign(n.Key, xTyp.Key())
 				assign(n.Value, xTyp.Elem())

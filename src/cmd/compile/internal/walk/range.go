@@ -65,6 +65,21 @@ func walkRange(nrange *ir.RangeStmt) ir.Node {
 		v2 = nil
 	}
 
+	// `for v in ch` / `for i in N` parse as `for _, v in x`. Normalize to a
+	// single visible iteration variable for value-only ranges.
+	if ir.IsBlank(v1) && v2 != nil {
+		switch t.Kind() {
+		case types.TCHAN:
+			v1, v2 = v2, nil
+			nrange.Key, nrange.Value = v1, v2
+		default:
+			if types.IsInt[t.Kind()] {
+				v1, v2 = v2, nil
+				nrange.Key, nrange.Value = v1, v2
+			}
+		}
+	}
+
 	if ir.IsBlank(v1) && v2 == nil {
 		v1 = nil
 	}

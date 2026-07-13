@@ -180,6 +180,10 @@ func (check *Checker) holeLooksLikeInterpolation(hole interpHole, lit *syntax.Ba
 	if isInterpFormatSpec(hole.format) {
 		return true
 	}
+	// Gorilla/mux route/query templates like {key:.*} or {key-id:.*}.
+	if hole.format != "" {
+		return false
+	}
 	exprSrc := hole.exprSrc
 	if strings.ContainsAny(exprSrc, ".(,)[}]\"'`+-*/%&|^<>=!") {
 		return true
