@@ -78,6 +78,15 @@ func parseQuotedInterpolation(quoted string) (format string, holes []interpHole,
 		}
 		exprSrc, fmtSpec := splitInterpSpec(inside)
 		trimmed := strings.TrimSpace(exprSrc)
+		if fmtSpec == "" {
+			// Route/query templates like {name} or {source-bucket-name} are literal
+			// braces, not interpolation holes (even when the name is in scope).
+			b.WriteByte(ch)
+			b.WriteString(inside)
+			b.WriteByte('}')
+			i += close + 1
+			continue
+		}
 		if trimmed == "" {
 			b.WriteByte(ch)
 			continue
