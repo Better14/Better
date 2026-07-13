@@ -1230,7 +1230,12 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 
 		p.setPos(x.Lparen)
 		p.print(token.LPAREN)
-		if x.Ellipsis.IsValid() {
+		prefixSpread := x.Ellipsis.IsValid() && len(x.Args) > 0 && x.Ellipsis < x.Args[0].Pos()
+		if x.Ellipsis.IsValid() && prefixSpread {
+			p.setPos(x.Ellipsis)
+			p.print(token.ELLIPSIS)
+			p.expr0(x.Args[0], depth+1)
+		} else if x.Ellipsis.IsValid() {
 			p.exprList(x.Lparen, x.Args, depth, 0, x.Ellipsis, false)
 			p.setPos(x.Ellipsis)
 			p.print(token.ELLIPSIS)

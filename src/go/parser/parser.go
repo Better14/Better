@@ -1855,6 +1855,12 @@ func (p *parser) parseCallOrConversion(fun ast.Expr) *ast.CallExpr {
 	var list []ast.Expr
 	var ellipsis token.Pos
 	for p.tok != token.RPAREN && p.tok != token.EOF && !ellipsis.IsValid() {
+		if p.tok == token.ELLIPSIS && len(list) == 0 {
+			ellipsis = p.pos
+			p.next()
+			list = append(list, p.parseRhs())
+			break
+		}
 		list = append(list, p.parseRhs()) // builtins may expect a type: make(some type, ...)
 		if p.tok == token.ELLIPSIS {
 			ellipsis = p.pos
