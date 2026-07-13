@@ -4,7 +4,7 @@ This directory documents language and library extensions planned or implemented 
 
 ## Type system
 
-- [Result types (`T!`)](result_types.md) — `(T, error)` shorthand and `!.value` / `!.field` error propagation
+- [Result types (`T!`)](result_types.md) — `(T, error)` shorthand, `return v` / `return err` sugar, and `!.value` / `!.field` error propagation
 - [Nilable types (`T?`)](nilable_types.md) — optional values, `?.`, and `??`
 - [Nilable pointer types (`*T` / `*T?`)](nilable_pointer_types.md) — non-nilable vs nilable pointers; `nilable_pointers` in go.mod and `//go:nilable_pointers` regions
 - [No nil receivers](nil_receivers.md) — pointer method calls panic at the call site; use `?.` for optional chains
@@ -50,7 +50,7 @@ This directory documents language and library extensions planned or implemented 
 
 | Syntax | Document |
 | ------ | -------- |
-| `int!`, `expr!.value` | [result_types.md](result_types.md) |
+| `int!`, `return err`, `expr!.value` | [result_types.md](result_types.md) |
 | `int?`, `expr?.field`, `expr ?? fallback` | [nilable_types.md](nilable_types.md) |
 | `*T`, `*T?` | [nilable_pointer_types.md](nilable_pointer_types.md) |
 | `nilable_pointers enable` in go.mod | [nilable_pointer_types.md](nilable_pointer_types.md#project-default-nilable_pointers-in-gomod) |

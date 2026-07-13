@@ -5,6 +5,7 @@
 Go now supports a result shorthand:
 
 - `(T, error)` can be written as `T!`
+- `return v` in a `T!` function means `return v, nil`; `return err` means `return zero(T), err` when `err` is an `error` (see [Return sugar](#return-sugar))
 - `expr!` unwraps the success value and early-returns the error if `err != nil`
 - `expr!.field` does the same, then accesses a field on the success value
 - `err!` on a plain `error` early-returns if `err != nil` (no value to unwrap)
@@ -36,7 +37,86 @@ func myFunc() int! {
 }
 ```
 
-A `T!` function may return a single value `v`; the compiler treats it as `return v, nil`. You may still write `return v, nil` or `return zero, err` explicitly.
+## Return sugar
+
+A function declared with result type `T!` is still a normal `(T, error)` function at runtime. In the source, you may return **one** expression and let the compiler expand it to the `(value, error)` pair.
+
+### `return v` — success
+
+If the expression is assignable to `T` (and is not treated as the error result), the compiler lowers it to `return v, nil`.
+
+```go
+func readCount() int! {
+	return 42          // return 42, nil
+}
+
+func getClient() *AdminClient! {
+	return dial()      // return client, nil when dial() returns (*AdminClient, error) via !
+}
+```
+
+### `return err` — failure
+
+If the expression is assignable to `error` but **not** to `T`, the compiler lowers it to `return zero(T), err`.
+
+```go
+var errNotFound = errors.New("not found")
+
+func loadUser(id string) *User! {
+	if id == "" {
+		return errNotFound           // return nil, errNotFound
+	}
+	return fetchUser(id)
+}
+
+func getAdminClient(deploymentID string) *madmin.AdminClient! {
+	if _, ok := peers[deploymentID]; !ok {
+		return errSRPeerNotFound     // return nil, errSRPeerNotFound
+	}
+	return dial(peer.Endpoint)
+}
+```
+
+Any type that implements `error` works — including custom error structs, `errors.New(...)`, `fmt.Errorf(...)`, and package-level `var errFoo = MyError{...}` values. The compiler does **not** look at the identifier name (`err` vs `errSRPeerNotFound`); it only checks **types**.
+
+### How the compiler decides
+
+For `return expr` in a `T!` function, the type checker evaluates `expr` and applies these rules in order:
+
+1. **Success** — if `expr` is assignable to `T` (and the error slot is `error`), treat as `return expr, nil`.
+2. **Failure** — else if `expr` is assignable to `error` but not to `T`, treat as `return zero(T), expr`.
+3. **Error** — otherwise, report a type error (same as an invalid `return` in a `(T, error)` function).
+
+`zero(T)` is the zero value of `T` (`0`, `""`, `nil` for pointers, nil slices/maps/channels, etc.).
+
+If an expression were assignable to both `T` and `error` (unusual), the **success** rule wins.
+
+You can always write the long form explicitly:
+
+```go
+return nil, errSRPeerNotFound
+return client, nil
+```
+
+### `return err` vs `err!`
+
+| Form | When to use |
+| ---- | ----------- |
+| `return err` | Bail out **from a `return` statement** with a specific error value |
+| `err!` | Bail out from a **statement** when `err` is already in a variable |
+
+```go
+func f() int! {
+	if bad {
+		return errors.New("bad")   // return 0, err
+	}
+	err := step()
+	err!                         // same effect: return 0, err if non-nil
+	return step2()!
+}
+```
+
+`err!` does not produce a value; it is control flow like `return`. `return err` is the direct spelling when the error is the return expression itself.
 
 `int!` is semantically equivalent to `(int, error)`.
 
@@ -301,6 +381,7 @@ See [Null-coalescing operator (`??`)](nilable_types.md#null-coalescing-operator-
 ## Notes
 
 - `T!` is the canonical shorthand for `(T, error)` in function signatures and a value type elsewhere.
+- In a `T!` function, `return v` means `return v, nil` and `return err` means `return zero(T), err` when `err` implements `error` (see [Return sugar](#return-sugar)).
 - Use `expr!`, `expr!.field`, or `err!` only in contexts where early-returning an error is valid for the enclosing function's signature (typically a `T!` result function).
 - `expr!` and `err!` may be used as standalone statements when only error propagation is needed; the success value of `expr!` is discarded without requiring `_ =`.
 - You can still do `if err != nil { panic(err) }` or `log.Fatal` as today.
